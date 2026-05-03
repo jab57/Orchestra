@@ -20,7 +20,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 
 # Per-tool timeouts (seconds) matching the plan's latency budget
-TIMEOUT_PERTURBATION = 30.0   # comprehensive_perturbation_analysis
+TIMEOUT_PERTURBATION = 60.0   # comprehensive_perturbation_analysis
 TIMEOUT_PPI = 15.0            # get_protein_interactions
 TIMEOUT_NETWORK = 60.0        # comprehensive_gene_analysis, pathway_focused_analysis
 TIMEOUT_DEFAULT = 30.0

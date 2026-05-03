@@ -3,6 +3,7 @@ Orchestra: LangGraph workflow for MCP-over-MCP orchestration.
 
 Issue #2 implemented: effector path (APC→CTNNB1 proof of concept)
 Issue #3 implemented: TF path (TP53, BRD4→MYC — parallel RegNetAgents + CASCADE)
+Issue #4 implemented: therapeutic target validation (MYC→BRD4 via super-enhancers + PPI)
 """
 
 import asyncio
@@ -237,6 +238,7 @@ class OrchestraWorkflow:
         graph.add_node("route_analysis", self._route_analysis)
         graph.add_node("run_tf_path", self._run_tf_path)
         graph.add_node("run_effector_path", self._run_effector_path)
+        graph.add_node("run_validation_path", self._run_validation_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("generate_report", self._generate_report)
 
@@ -249,10 +251,12 @@ class OrchestraWorkflow:
             {
                 "tf_path": "run_tf_path",
                 "effector_path": "run_effector_path",
+                "validation_path": "run_validation_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
         graph.add_edge("run_effector_path", "synthesize")
+        graph.add_edge("run_validation_path", "synthesize")
         graph.add_edge("synthesize", "generate_report")
         graph.add_edge("generate_report", END)
 
@@ -263,6 +267,8 @@ class OrchestraWorkflow:
     # ------------------------------------------------------------------
 
     def _routing_decision(self, state: OrchestraState) -> str:
+        if state.get("analysis_type") == "therapeutic_validation":
+            return "validation_path"
         role = state.get("gene_role") or "isolated"
         if role in ("master_regulator", "transcription_factor", "minor_regulator"):
             return "tf_path"
@@ -419,11 +425,156 @@ class OrchestraWorkflow:
             return None
         return max(tf_candidates, key=lambda x: x[1])[0]
 
+    async def _run_validation_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Therapeutic target validation path:
+        1. Parallel: RegNetAgents PageRank regulators + CASCADE drug target discovery
+        2. Merge unique candidates from both sources
+        3. Validate top 3 via CASCADE comprehensive_perturbation_analysis (parallel)
+        4. State carries validated_targets list for _synthesize_validation_path
+
+        Two evidence layers cover complementary regulation:
+        - RegNetAgents: classical TF regulators via ARACNe/GREmLN network topology
+        - CASCADE: epigenetic/drug targets via super-enhancers, PPI, DoRothEA, DepMap
+        Targets appearing in both layers have the highest cross-system confidence.
+        """
+        gene = state["gene"]
+        cell_type = state["cell_type"]
+
+        import re
+
+        # Step 1: parallel — RegNetAgents network analysis + CASCADE drug discovery + CASCADE PPI
+        # Three calls cover complementary layers: network topology, drug db, protein interactions.
+        # The two CASCADE calls serialize within the same subprocess but are fast.
+        rna_result, cascade_discovery, ppi_result = await asyncio.gather(
+            self._regnetagents.call_tool(
+                "comprehensive_gene_analysis",
+                {"gene": gene, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_NETWORK,
+            ),
+            self._cascade.call_tool(
+                "therapeutic_target_discovery",
+                {"gene": gene, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_NETWORK,
+            ),
+            self._cascade.call_tool(
+                "get_protein_interactions",
+                {"gene": gene},
+                timeout_seconds=TIMEOUT_PPI,
+            ),
+            return_exceptions=True,
+        )
+
+        if isinstance(rna_result, Exception):
+            state["errors"]["network"] = str(rna_result)
+            rna_result = None
+        else:
+            state["network_analysis"] = rna_result
+
+        if isinstance(cascade_discovery, Exception):
+            state["errors"]["cascade_discovery"] = str(cascade_discovery)
+            cascade_discovery = None
+
+        if isinstance(ppi_result, Exception):
+            state["errors"]["ppi"] = str(ppi_result)
+            ppi_result = None
+
+        # Step 2: extract candidate target names — three ordered sources
+        candidates: list[dict] = []
+        seen: set[str] = set()
+
+        def _add_candidate(name: str, info: dict) -> None:
+            if name and name not in seen:
+                seen.add(name)
+                candidates.append({"gene": name, **info})
+
+        # Source A: RegNetAgents ranked upstream regulators by PageRank
+        if rna_result:
+            ttp = (rna_result or {}).get("therapeutic_target_prioritization") or {}
+            for r in (ttp.get("ranked_regulators") or [])[:5]:
+                name = r.get("regulator")
+                _add_candidate(name, {
+                    "source": "regnetagents_pagerank",
+                    "pagerank": (r.get("centrality_metrics") or {}).get("pagerank", 0),
+                    "downstream_targets": r.get("regulator_downstream_targets", 0),
+                })
+
+        # Source B: CASCADE drug suggestions — explicit target field OR gene names in action text
+        _ACTION_GENE_RE = re.compile(r'\bConsider\s+([A-Z][A-Z0-9]{1,5})\b')
+        if cascade_discovery:
+            for suggestion in (cascade_discovery or {}).get("therapeutic_targets") or []:
+                target = suggestion.get("target")
+                if target and target != "unknown":
+                    _add_candidate(target, {
+                        "source": "cascade_drug_discovery",
+                        "priority": suggestion.get("priority", ""),
+                        "reason": suggestion.get("reason", ""),
+                    })
+                else:
+                    # Extract gene name from action text (e.g. "Consider BRD4/BET inhibitors")
+                    action = suggestion.get("action", "")
+                    m = _ACTION_GENE_RE.search(action)
+                    if m:
+                        _add_candidate(m.group(1), {
+                            "source": "cascade_drug_discovery",
+                            "priority": suggestion.get("priority", ""),
+                            "reason": suggestion.get("reason", ""),
+                        })
+
+        # Source C: STRING PPI top partners (protein-level interactors as drug targets)
+        if ppi_result:
+            interactions = sorted(
+                (ppi_result or {}).get("interactions", []),
+                key=lambda x: x.get("combined_score", 0),
+                reverse=True,
+            )[:3]
+            for i in interactions:
+                partner = i.get("partner")
+                _add_candidate(partner, {
+                    "source": "cascade_ppi",
+                    "ppi_score": i.get("combined_score", 0),
+                })
+
+        # Step 3: validate top 3 unique candidates via CASCADE comprehensive perturbation
+        top = candidates[:3]
+        if top:
+            validation_results = await asyncio.gather(
+                *[
+                    self._cascade.call_tool(
+                        "comprehensive_perturbation_analysis",
+                        {"gene": c["gene"], "cell_type": cell_type},
+                        timeout_seconds=TIMEOUT_PERTURBATION,
+                    )
+                    for c in top
+                ],
+                return_exceptions=True,
+            )
+            for candidate, result in zip(top, validation_results):
+                if isinstance(result, Exception):
+                    candidate["cascade_error"] = str(result)
+                else:
+                    ev = (result or {}).get("evidence_synthesis") or {}
+                    candidate["key_findings"] = ev.get("key_findings", [])
+                    candidate["multi_source_genes"] = [
+                        g["symbol"] for g in (ev.get("multi_source_genes") or [])[:10]
+                    ]
+
+        # Fill remaining candidates (not validated) with empty evidence
+        for candidate in candidates[3:]:
+            candidate.setdefault("key_findings", [])
+            candidate.setdefault("multi_source_genes", [])
+
+        state["validated_targets"] = candidates
+        state["completed_steps"].append("run_validation_path")
+        return state
+
     # ------------------------------------------------------------------
     # Synthesis
     # ------------------------------------------------------------------
 
     def _synthesize(self, state: OrchestraState) -> OrchestraState:
+        if state.get("analysis_type") == "therapeutic_validation":
+            return self._synthesize_validation_path(state)
         role = state.get("gene_role") or "effector"
         if role in ("master_regulator", "transcription_factor", "minor_regulator"):
             return self._synthesize_tf_path(state)
@@ -576,6 +727,31 @@ class OrchestraWorkflow:
 
         return targets
 
+    def _synthesize_validation_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Validation path synthesis: builds per-candidate evidence table from
+        RegNetAgents network rank + CASCADE perturbation confirmation.
+        """
+        validated_targets = state.get("validated_targets") or []
+        network = state.get("network_analysis") or {}
+        network_summary = (
+            network.get("summary")
+            or network.get("network_analysis")
+            or network.get("workflow_summary")
+            or {}
+        )
+
+        state["synthesis"] = {
+            "gene": state["gene"],
+            "cell_type": state["cell_type"],
+            "routing": "validation",
+            "validated_targets": validated_targets,
+            "network_context": network_summary,
+            "errors": state.get("errors", {}),
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
     # ------------------------------------------------------------------
     # Report generation
     # ------------------------------------------------------------------
@@ -596,7 +772,10 @@ class OrchestraWorkflow:
         report_sections = self._format_evidence_report(synthesis)
 
         routing = synthesis.get("routing", "effector")
-        llm_trigger = synthesis.get("tf_partner") if routing == "effector" else routing == "tf"
+        llm_trigger = (
+            bool(synthesis.get("tf_partner")) if routing == "effector"
+            else routing in ("tf", "validation")
+        )
 
         if self.llm_available and llm_trigger:
             try:
@@ -613,6 +792,8 @@ class OrchestraWorkflow:
         routing = synthesis.get("routing", "effector")
         if routing == "tf":
             return self._format_tf_report(synthesis)
+        if routing == "validation":
+            return self._format_validation_report(synthesis)
         return self._format_effector_report(synthesis)
 
     def _format_tf_report(self, synthesis: dict) -> list[str]:
@@ -751,10 +932,77 @@ class OrchestraWorkflow:
     # LLM synthesis
     # ------------------------------------------------------------------
 
+    def _format_validation_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "unknown")
+        candidates = synthesis.get("validated_targets") or []
+        errors = synthesis.get("errors", {})
+
+        lines = [
+            f"## Orchestra Therapeutic Target Validation: {gene} in {cell_type}",
+            f"**Routing:** therapeutic_validation",
+            f"**Candidates evaluated:** {len(candidates)}",
+            "",
+        ]
+
+        if not candidates:
+            lines.append("No therapeutic target candidates identified.")
+            if errors:
+                lines.append("")
+                lines.append("### Errors")
+                for k, v in errors.items():
+                    lines.append(f"- {k}: {v}")
+            return lines
+
+        for i, c in enumerate(candidates, 1):
+            name = c.get("gene", "unknown")
+            source = c.get("source", "unknown")
+            lines.append(f"### Candidate {i}: {name}")
+
+            if source == "regnetagents_pagerank":
+                lines.append(
+                    f"**Source:** RegNetAgents PageRank  |  "
+                    f"pagerank={c.get('pagerank', 0):.4f}  |  "
+                    f"downstream_targets={c.get('downstream_targets', 0)}"
+                )
+            elif source == "cascade_drug_discovery":
+                lines.append(
+                    f"**Source:** CASCADE drug discovery  |  "
+                    f"priority={c.get('priority', '')}  |  "
+                    f"reason: {c.get('reason', '')}"
+                )
+            else:
+                lines.append(f"**Source:** {source}")
+
+            findings = c.get("key_findings") or []
+            if findings:
+                lines.append("**CASCADE perturbation evidence:**")
+                for f in findings:
+                    lines.append(f"  - {f}")
+            elif "cascade_error" in c:
+                lines.append(f"**CASCADE validation error:** {c['cascade_error']}")
+            else:
+                lines.append("**CASCADE validation:** not run (candidate beyond top 3)")
+
+            downstream = c.get("multi_source_genes") or []
+            if downstream:
+                lines.append(f"**Top downstream genes (CASCADE):** {', '.join(downstream[:8])}")
+
+            lines.append("")
+
+        if errors:
+            lines.append("### Partial Data Warnings")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
     async def _call_llm_synthesis(self, synthesis: dict) -> str:
         routing = synthesis.get("routing", "effector")
         if routing == "tf":
             return await self._call_llm_tf_synthesis(synthesis)
+        if routing == "validation":
+            return await self._call_llm_validation_synthesis(synthesis)
         return await self._call_llm_effector_synthesis(synthesis)
 
     async def _call_llm_tf_synthesis(self, synthesis: dict) -> str:
@@ -786,6 +1034,34 @@ class OrchestraWorkflow:
             f"regulatory role and what the cross-system evidence tells us about its "
             "downstream targets and therapeutic relevance. "
             "Be specific about pathways and what the cross-system agreement implies."
+        )
+        system_prompt = (
+            "You are Orchestra, a bioinformatics analysis system. "
+            "Narrate structured evidence concisely. Do not speculate beyond the data provided."
+        )
+        return await self._call_llm(prompt, system_prompt)
+
+    async def _call_llm_validation_synthesis(self, synthesis: dict) -> str:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "unknown")
+        candidates = synthesis.get("validated_targets") or []
+
+        candidate_lines = []
+        for c in candidates[:5]:
+            name = c.get("gene", "unknown")
+            source = c.get("source", "")
+            findings = c.get("key_findings") or []
+            findings_str = "; ".join(findings[:2]) if findings else "not validated"
+            candidate_lines.append(f"- {name} [{source}]: {findings_str}")
+
+        prompt = (
+            f"Therapeutic target analysis for {gene} in {cell_type}.\n\n"
+            "Candidate therapeutic targets identified:\n"
+            + "\n".join(candidate_lines)
+            + f"\n\nWrite a concise 2-3 sentence summary of the top therapeutic targets "
+            f"for inhibiting {gene}, which candidates have the strongest evidence, "
+            "and what the CASCADE perturbation data says about each. "
+            "Be specific about evidence sources and therapeutic relevance."
         )
         system_prompt = (
             "You are Orchestra, a bioinformatics analysis system. "
