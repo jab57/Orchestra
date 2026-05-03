@@ -2,13 +2,13 @@
 Orchestra: LangGraph workflow for MCP-over-MCP orchestration.
 
 Issue #2 implemented: effector path (APC→CTNNB1 proof of concept)
-Issue #3 stub: TF path (TP53, BRD4→MYC — pending)
+Issue #3 implemented: TF path (TP53, BRD4→MYC — parallel RegNetAgents + CASCADE)
 """
 
 import asyncio
 import logging
 import os
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
@@ -88,7 +88,7 @@ class OrchestraWorkflow:
 
         # Optional LLM synthesis — disabled by default
         self.use_llm = os.getenv("USE_LLM_SYNTHESIS", "false").lower() == "true"
-        self.llm_client = None
+        self.llm_client: Any = None
         self.llm_available = self._initialize_llm() if self.use_llm else False
         self.ollama_model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
         self.ollama_temperature = float(os.getenv("OLLAMA_TEMPERATURE", "0.3"))
@@ -163,7 +163,7 @@ class OrchestraWorkflow:
             logger.error(f"Anthropic provider initialization failed: {e}")
             return False
 
-    async def _call_llm(self, prompt: str, system_prompt: str = None) -> str:
+    async def _call_llm(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         provider = os.getenv("LLM_PROVIDER", "ollama").lower()
         if provider == "ollama":
             return await self._call_ollama_provider(prompt, system_prompt)
@@ -171,7 +171,7 @@ class OrchestraWorkflow:
             return await self._call_anthropic_provider(prompt, system_prompt)
         raise ValueError(f"Unknown LLM_PROVIDER: {provider}")
 
-    async def _call_ollama_provider(self, prompt: str, system_prompt: str = None) -> str:
+    async def _call_ollama_provider(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         timeout = int(os.getenv("OLLAMA_TIMEOUT", "60"))
         messages = []
         if system_prompt:
@@ -192,14 +192,15 @@ class OrchestraWorkflow:
                     ),
                     timeout=timeout,
                 )
-                return response.message.content
+                return response.message.content or ""
             except Exception as e:
                 if attempt == 1:
                     raise
                 logger.warning(f"Ollama call failed (attempt 1): {e}, retrying...")
                 await asyncio.sleep(1)
+        raise RuntimeError("unreachable")
 
-    async def _call_anthropic_provider(self, prompt: str, system_prompt: str = None) -> str:
+    async def _call_anthropic_provider(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         model = os.getenv("LLM_MODEL", "claude-haiku-4-5-20251001")
         timeout = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
@@ -222,6 +223,7 @@ class OrchestraWorkflow:
                     raise
                 logger.warning(f"Anthropic call failed (attempt 1): {e}, retrying...")
                 await asyncio.sleep(1)
+        raise RuntimeError("unreachable")
 
     # ------------------------------------------------------------------
     # Graph
@@ -295,8 +297,40 @@ class OrchestraWorkflow:
         return state
 
     async def _run_tf_path(self, state: OrchestraState) -> OrchestraState:
-        # Issue #3: parallel RegNetAgents comprehensive + CASCADE perturbation — pending
-        state["errors"]["tf_path"] = "TF path not yet implemented (Issue #3)"
+        """
+        TF / master regulator path: run RegNetAgents comprehensive network analysis and
+        CASCADE perturbation in parallel, then cross-system synthesis in _synthesize.
+
+        This is the core JOSS contribution — genes corroborated by both RegNetAgents
+        network topology and CASCADE experimental data score higher than either alone.
+        """
+        gene = state["gene"]
+        cell_type = state["cell_type"]
+
+        rna_result, cascade_result = await asyncio.gather(
+            self._regnetagents.call_tool(
+                "comprehensive_gene_analysis",
+                {"gene": gene, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_NETWORK,
+            ),
+            self._cascade.call_tool(
+                "comprehensive_perturbation_analysis",
+                {"gene": gene, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_PERTURBATION,
+            ),
+            return_exceptions=True,
+        )
+
+        if isinstance(rna_result, Exception):
+            state["errors"]["network"] = str(rna_result)
+        else:
+            state["network_analysis"] = rna_result
+
+        if isinstance(cascade_result, Exception):
+            state["errors"]["perturbation"] = str(cascade_result)
+        else:
+            state["perturbation_result"] = cascade_result
+
         state["completed_steps"].append("run_tf_path")
         return state
 
@@ -385,11 +419,84 @@ class OrchestraWorkflow:
             return None
         return max(tf_candidates, key=lambda x: x[1])[0]
 
+    # ------------------------------------------------------------------
+    # Synthesis
+    # ------------------------------------------------------------------
+
     def _synthesize(self, state: OrchestraState) -> OrchestraState:
+        role = state.get("gene_role") or "effector"
+        if role in ("master_regulator", "transcription_factor", "minor_regulator"):
+            return self._synthesize_tf_path(state)
+        return self._synthesize_effector_path(state)
+
+    def _synthesize_tf_path(self, state: OrchestraState) -> OrchestraState:
         """
-        Build structured evidence table from CASCADE and RegNetAgents outputs.
-        Consumes CASCADE's pre-synthesized evidence_synthesis block directly —
-        does not re-implement within-CASCADE cross-source referencing.
+        TF path synthesis: cross-system corroboration between RegNetAgents network
+        targets and CASCADE experimentally validated genes.
+
+        A gene that appears in both RegNetAgents downstream targets (network topology)
+        AND CASCADE multi_source_genes (experimental data) is a cross-system hit —
+        the core evidence Orchestra produces that neither system alone can generate.
+        """
+        perturbation = state.get("perturbation_result") or {}
+        network = state.get("network_analysis") or {}
+
+        evidence_synthesis = perturbation.get("evidence_synthesis", {})
+        key_findings = evidence_synthesis.get("key_findings", [])
+        multi_source_genes = evidence_synthesis.get("multi_source_genes", [])
+        source_agreements = evidence_synthesis.get("source_agreements", [])
+        source_disagreements = evidence_synthesis.get("source_disagreements", [])
+
+        # Extract RegNetAgents downstream targets for cross-system overlap
+        rna_targets = self._extract_regnetagents_targets(network)
+
+        # Cross-system hits: genes supported by both RegNetAgents network topology
+        # AND CASCADE experimental evidence (LINCS, DepMap, etc.)
+        cross_system_hits = [
+            {
+                "symbol": g["symbol"],
+                "source_count": g["source_count"],
+                "sources": g["sources"],
+            }
+            for g in multi_source_genes
+            if g["symbol"] in rna_targets
+        ]
+
+        network_summary = (
+            network.get("summary")
+            or network.get("network_analysis")
+            or network.get("workflow_summary")
+            or {}
+        )
+
+        state["synthesis"] = {
+            "gene": state["gene"],
+            "cell_type": state["cell_type"],
+            "routing": "tf",
+            "gene_role": state.get("gene_role"),
+            "cascade_key_findings": key_findings,
+            "corroborated_targets": [
+                {
+                    "symbol": g["symbol"],
+                    "source_count": g["source_count"],
+                    "sources": g["sources"],
+                }
+                for g in multi_source_genes[:10]
+            ],
+            "cross_system_hits": cross_system_hits,
+            "source_agreements": source_agreements,
+            "source_disagreements": source_disagreements,
+            "network_context": network_summary,
+            "regnetagents_target_count": len(rna_targets),
+            "errors": state.get("errors", {}),
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
+    def _synthesize_effector_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Effector path synthesis: consumes CASCADE's pre-synthesized evidence block
+        for the TF partner, plus RegNetAgents network context for pathway framing.
         """
         perturbation = state.get("perturbation_result") or {}
         network = state.get("network_analysis") or {}
@@ -429,6 +536,50 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
+    def _extract_regnetagents_targets(self, network: dict) -> set:
+        """
+        Extract downstream target gene symbols from RegNetAgents comprehensive_gene_analysis output.
+
+        Primary path: target_analysis.cascade_targets[].gene_symbol
+        Fallback: generic extraction from common field names across tool versions.
+        """
+        targets = set()
+
+        def _collect(container):
+            if isinstance(container, list):
+                for item in container:
+                    if isinstance(item, str):
+                        targets.add(item)
+                    elif isinstance(item, dict):
+                        sym = (
+                            item.get("gene_symbol")
+                            or item.get("symbol")
+                            or item.get("gene")
+                            or item.get("name")
+                        )
+                        if sym:
+                            targets.add(sym)
+
+        # Primary: target_analysis.cascade_targets (confirmed structure from RegNetAgents output)
+        target_analysis = network.get("target_analysis") or {}
+        _collect(target_analysis.get("cascade_targets"))
+
+        # Fallback: generic field names at top level and in common sub-blocks
+        for field in ("targets", "downstream_targets", "regulated_genes", "top_targets", "network_targets"):
+            _collect(network.get(field))
+
+        for block_key in ("network_analysis", "summary", "workflow_summary"):
+            block = network.get(block_key)
+            if isinstance(block, dict):
+                for field in ("targets", "downstream_targets", "regulated_genes", "top_targets", "cascade_targets"):
+                    _collect(block.get(field))
+
+        return targets
+
+    # ------------------------------------------------------------------
+    # Report generation
+    # ------------------------------------------------------------------
+
     async def _generate_report(self, state: OrchestraState) -> OrchestraState:
         """
         Format the structured synthesis as a report.
@@ -444,7 +595,10 @@ class OrchestraWorkflow:
 
         report_sections = self._format_evidence_report(synthesis)
 
-        if self.llm_available and synthesis.get("tf_partner"):
+        routing = synthesis.get("routing", "effector")
+        llm_trigger = synthesis.get("tf_partner") if routing == "effector" else routing == "tf"
+
+        if self.llm_available and llm_trigger:
             try:
                 narrative = await self._call_llm_synthesis(synthesis)
                 report_sections.insert(0, narrative + "\n")
@@ -456,6 +610,92 @@ class OrchestraWorkflow:
         return state
 
     def _format_evidence_report(self, synthesis: dict) -> list[str]:
+        routing = synthesis.get("routing", "effector")
+        if routing == "tf":
+            return self._format_tf_report(synthesis)
+        return self._format_effector_report(synthesis)
+
+    def _format_tf_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "unknown")
+        gene_role = synthesis.get("gene_role", "transcription_factor")
+        key_findings = synthesis.get("cascade_key_findings", [])
+        corroborated = synthesis.get("corroborated_targets", [])
+        cross_system_hits = synthesis.get("cross_system_hits", [])
+        agreements = synthesis.get("source_agreements", [])
+        network_ctx = synthesis.get("network_context", {})
+        rna_target_count = synthesis.get("regnetagents_target_count", 0)
+        errors = synthesis.get("errors", {})
+
+        lines = [
+            f"## Orchestra Analysis: {gene} in {cell_type}",
+            f"**Routing:** TF / {gene_role}",
+            "",
+            "### CASCADE Evidence",
+        ]
+
+        if key_findings:
+            for f in key_findings:
+                lines.append(f"- {f}")
+        else:
+            lines.append("- No key findings available")
+
+        if corroborated:
+            lines.append("")
+            lines.append("**CASCADE multi-source corroborated downstream genes:**")
+            for g in corroborated[:8]:
+                lines.append(
+                    f"- {g['symbol']}: {g['source_count']} sources "
+                    f"({', '.join(g['sources'])})"
+                )
+
+        if agreements:
+            lines.append("")
+            lines.append("**Cross-source agreements (within CASCADE):**")
+            for a in agreements[:5]:
+                lines.append(f"- {a}")
+
+        lines.append("")
+        lines.append("### Cross-System Corroboration")
+        lines.append(
+            f"RegNetAgents downstream targets: {rna_target_count} genes"
+        )
+
+        if cross_system_hits:
+            lines.append(
+                f"**Cross-system hits** ({len(cross_system_hits)} genes in both "
+                "RegNetAgents network topology AND CASCADE experimental data):"
+            )
+            for g in cross_system_hits[:10]:
+                lines.append(
+                    f"- {g['symbol']}: CASCADE {g['source_count']} sources "
+                    f"({', '.join(g['sources'])}) + RegNetAgents network target"
+                )
+        else:
+            lines.append(
+                "No cross-system hits detected — CASCADE and RegNetAgents targets "
+                "do not overlap for this gene/cell-type combination."
+            )
+            if rna_target_count == 0:
+                lines.append(
+                    "  (RegNetAgents returned 0 extractable targets — "
+                    "check network_analysis field structure)"
+                )
+
+        if network_ctx:
+            lines.append("")
+            lines.append("### RegNetAgents Network Context")
+            lines.append(str(network_ctx)[:600])
+
+        if errors:
+            lines.append("")
+            lines.append("### Partial Data Warnings")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
+    def _format_effector_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
         tf_partner = synthesis.get("tf_partner", "not identified")
@@ -507,7 +747,53 @@ class OrchestraWorkflow:
 
         return lines
 
+    # ------------------------------------------------------------------
+    # LLM synthesis
+    # ------------------------------------------------------------------
+
     async def _call_llm_synthesis(self, synthesis: dict) -> str:
+        routing = synthesis.get("routing", "effector")
+        if routing == "tf":
+            return await self._call_llm_tf_synthesis(synthesis)
+        return await self._call_llm_effector_synthesis(synthesis)
+
+    async def _call_llm_tf_synthesis(self, synthesis: dict) -> str:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "unknown")
+        gene_role = synthesis.get("gene_role", "transcription_factor")
+        key_findings = synthesis.get("cascade_key_findings", [])
+        cross_system_hits = synthesis.get("cross_system_hits", [])[:5]
+        corroborated = synthesis.get("corroborated_targets", [])[:5]
+
+        cross_str = (
+            "\n".join(
+                f"- {g['symbol']}: CASCADE {g['source_count']} sources + RegNetAgents target"
+                for g in cross_system_hits
+            )
+            if cross_system_hits
+            else "No cross-system overlap detected."
+        )
+
+        prompt = (
+            f"Gene: {gene} ({gene_role}) in {cell_type}\n\n"
+            "CASCADE key findings:\n"
+            + "\n".join(f"- {f}" for f in key_findings)
+            + "\n\nCross-system corroborated targets (in both network topology and experimental data):\n"
+            + cross_str
+            + "\n\nTop CASCADE-only corroborated genes:\n"
+            + "\n".join(f"- {g['symbol']}: {g['source_count']} sources" for g in corroborated)
+            + f"\n\nWrite a concise 2-3 sentence biological interpretation of {gene}'s "
+            f"regulatory role and what the cross-system evidence tells us about its "
+            "downstream targets and therapeutic relevance. "
+            "Be specific about pathways and what the cross-system agreement implies."
+        )
+        system_prompt = (
+            "You are Orchestra, a bioinformatics analysis system. "
+            "Narrate structured evidence concisely. Do not speculate beyond the data provided."
+        )
+        return await self._call_llm(prompt, system_prompt)
+
+    async def _call_llm_effector_synthesis(self, synthesis: dict) -> str:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
         tf_partner = synthesis.get("tf_partner", "unknown")
