@@ -879,7 +879,7 @@ class OrchestraWorkflow:
     def _format_effector_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
-        tf_partner = synthesis.get("tf_partner", "not identified")
+        tf_partner = synthesis.get("tf_partner") or "not identified"
         key_findings = synthesis.get("cascade_key_findings", [])
         corroborated = synthesis.get("corroborated_targets", [])
         agreements = synthesis.get("source_agreements", [])

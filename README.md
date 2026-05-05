@@ -2,6 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://github.com/jab57/Orchestra/actions/workflows/test.yml/badge.svg)](https://github.com/jab57/Orchestra/actions/workflows/test.yml)
+[![Draft JOSS Paper](https://github.com/jab57/Orchestra/actions/workflows/draft-pdf.yml/badge.svg)](https://github.com/jab57/Orchestra/actions/workflows/draft-pdf.yml)
 
 **MCP Orchestrator for Multi-System Causal Reasoning in Bioinformatics**
 
@@ -95,7 +97,7 @@ Targets corroborated by both systems score higher than those supported by one al
 6. Return: ranked target list with corroboration counts and druggability notes
 ```
 
-Example: BRD4 ranks in PageRank top-5 for MYC (RegNetAgents) AND is confirmed by LINCS knockdown data (CASCADE) AND MYC has super-enhancers → BET inhibitor sensitivity (CASCADE). Neither system produces this conclusion alone.
+Example: CASCADE's super-enhancer analysis identifies BRD4 as a druggable target for MYC — MYC has super-enhancers across 32 cell types indicating BET inhibitor sensitivity. RegNetAgents simultaneously provides MYC's regulatory network context. BRD4 is absent from the ARACNe TF network (expected — it acts through chromatin-level co-activation, not direct mRNA regulation), which is itself informative. Neither system produces this combined epigenetic + network view alone.
 
 ---
 
@@ -139,13 +141,24 @@ An important limitation: RegNetAgents networks are inferred from heterogeneous c
 
 Neither RegNetAgents nor CASCADE alone can answer: *"What transcription factors drive this gene signature, and what happens downstream if we inhibit the top candidate?"*
 
-The canonical example is **BRD4→MYC**: RegNetAgents ranks BRD4 as the top upstream regulator of MYC by PageRank; CASCADE confirms via LINCS experimental knockdown data and identifies MYC super-enhancers indicating BET inhibitor sensitivity. Orchestra's synthesis layer connects these into a therapeutic recommendation that neither system produces independently.
+The canonical example is **BRD4→MYC**: CASCADE's super-enhancer analysis identifies BRD4 as a therapeutic target for MYC (MYC has super-enhancers in 32 cell types → BET inhibitor sensitivity, confirmed by Lovén et al. 2013). RegNetAgents provides MYC's classical regulatory network context. BRD4 is absent from the ARACNe TF network — a biologically meaningful finding, because BRD4 acts through chromatin-level co-activation rather than direct transcriptional regulation. Orchestra presents both the epigenetic evidence and the network context together, producing a therapeutic recommendation neither system generates alone.
 
 A second canonical example is **APC mutation analysis**: APC is a scaffold protein with no transcriptional targets — a perturbation query dead-ends with empty results. Orchestra automatically detects this, queries protein interactions to find CTNNB1 as the key TF partner, simulates CTNNB1 overexpression, and enriches the downstream cascade against Reactome pathways, returning a complete APC→CTNNB1→Wnt causal explanation.
 
 ## Status
 
-**Under active development.** Not yet ready for production use.
+**Under active development.**
+
+| Issue | Description | Status |
+|---|---|---|
+| #1 MCP client | Round-trip calls to both child servers verified | ✓ Done |
+| #2 Effector analysis | `effector_analysis` — APC→CTNNB1 end-to-end | ✓ Done |
+| #3 Causal chain analysis | `causal_chain_analysis` — TF path (TP53, BRD4→MYC) | ✓ Done |
+| #4 Therapeutic target validation | `validate_therapeutic_targets` — PageRank + CASCADE LINCS | ✓ Done |
+| #5 Full synthesis layer | LangGraph DAG wired end-to-end with evidence scoring | Pending |
+| #6 Biological validation | APC, TP53, BRD4→MYC cases documented with metrics | Pending |
+| #7 Test suite | Full JOSS-quality coverage + CI | Partial |
+| #8 Documentation + examples | Installable by an independent researcher | Pending |
 
 Target: v1.0.0 September 2026 | JOSS submission September 2026
 
@@ -163,13 +176,39 @@ cp .env.example .env
 
 Requires [RegNetAgents](https://github.com/jab57/RegNetAgents) and CASCADE to be installed separately.
 
+## Testing
+
+Orchestra ships a test suite covering routing logic, cross-system synthesis, and report formatting — all runnable without live child servers.
+
+```bash
+pytest tests/
+```
+
+Integration tests (requiring running RegNetAgents and CASCADE) are skipped by default and can be enabled with:
+
+```bash
+ORCHESTRA_INTEGRATION_TESTS=1 pytest tests/
+```
+
+CI runs automatically on every push and pull request via GitHub Actions.
+
 ## Usage
 
 Coming soon.
 
 ## Citation
 
-Coming soon (JOSS submission planned September 2026).
+JOSS submission planned September 2026 after v1.0.0 release. Until then, please cite the GitHub repository.
+
+```bibtex
+@software{bird2026orchestra,
+  author       = {Bird, Jose},
+  title        = {Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning},
+  year         = {2026},
+  url          = {https://github.com/jab57/Orchestra},
+  note         = {JOSS submission planned September 2026}
+}
+```
 
 ## License
 
