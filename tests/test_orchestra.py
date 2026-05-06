@@ -515,6 +515,329 @@ class TestFormatValidationReport:
 
 
 # ---------------------------------------------------------------------------
+# _is_in_pathway_enrichment
+# ---------------------------------------------------------------------------
+
+class TestIsInPathwayEnrichment:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def test_gene_found_in_pathway_gene_list(self, wf):
+        network = {
+            "pathway_analysis": {
+                "enriched_pathways": [
+                    {"name": "Wnt signaling", "genes": ["CTNNB1", "APC", "BRD4"]}
+                ]
+            }
+        }
+        assert wf._is_in_pathway_enrichment("BRD4", network) is True
+
+    def test_gene_found_via_dict_symbol_field(self, wf):
+        network = {
+            "reactome": {
+                "pathways": [
+                    {"pathway": "MYC targets", "genes": [{"symbol": "BRD4"}]}
+                ]
+            }
+        }
+        assert wf._is_in_pathway_enrichment("BRD4", network) is True
+
+    def test_gene_not_found(self, wf):
+        network = {
+            "pathway_analysis": {
+                "enriched_pathways": [
+                    {"name": "Wnt", "genes": ["CTNNB1", "APC"]}
+                ]
+            }
+        }
+        assert wf._is_in_pathway_enrichment("BRD4", network) is False
+
+    def test_empty_network_returns_false(self, wf):
+        assert wf._is_in_pathway_enrichment("BRD4", {}) is False
+
+    def test_case_insensitive_match(self, wf):
+        network = {
+            "pathway_analysis": {
+                "gene_set": ["brd4", "myc"]
+            }
+        }
+        assert wf._is_in_pathway_enrichment("BRD4", network) is True
+
+    def test_empty_gene_returns_false(self, wf):
+        assert wf._is_in_pathway_enrichment("", {"pathway_analysis": {"genes": ["BRD4"]}}) is False
+
+
+# ---------------------------------------------------------------------------
+# _score_candidate_evidence
+# ---------------------------------------------------------------------------
+
+class TestScoreCandidateEvidence:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _candidate(self, source="cascade_drug_discovery", pagerank=0.0,
+                   key_findings=None):
+        return {
+            "gene": "BRD4",
+            "source": source,
+            "pagerank": pagerank,
+            "key_findings": key_findings or [],
+        }
+
+    def test_pagerank_source_sets_flag(self, wf):
+        c = self._candidate(source="regnetagents_pagerank", pagerank=0.05)
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["pagerank_rank"] is True
+
+    def test_non_pagerank_source_clears_flag(self, wf):
+        c = self._candidate(source="cascade_drug_discovery", pagerank=0.0)
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["pagerank_rank"] is False
+
+    def test_lincs_flag_from_key_findings(self, wf):
+        c = self._candidate(key_findings=["LINCS knockdown confirms downregulation"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["lincs_knockdown"] is True
+
+    def test_depmap_essential_sets_flag(self, wf):
+        c = self._candidate(key_findings=["DepMap: gene is essential in 42/50 cell lines"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["depmap_essentiality"] is True
+
+    def test_depmap_not_essential_clears_flag(self, wf):
+        c = self._candidate(key_findings=["DepMap: gene is not essential"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["depmap_essentiality"] is False
+
+    def test_super_enhancer_flag(self, wf):
+        c = self._candidate(key_findings=["MYC has super-enhancers in 32 cell types"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["super_enhancer"] is True
+
+    def test_bet_inhibitor_sets_super_enhancer_flag(self, wf):
+        c = self._candidate(key_findings=["Consider BET inhibitor therapy"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["super_enhancer"] is True
+
+    def test_dorothea_flag(self, wf):
+        c = self._candidate(key_findings=["DoRothEA tier A TF with high confidence"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["dorothea_tier"] is True
+
+    def test_cbio_flag(self, wf):
+        c = self._candidate(key_findings=["cBioPortal: high expression in TCGA BRCA"])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["cbio_expression"] is True
+
+    def test_corroboration_count_correct(self, wf):
+        c = self._candidate(
+            source="regnetagents_pagerank",
+            pagerank=0.05,
+            key_findings=[
+                "LINCS knockdown confirmed",
+                "super-enhancer present",
+                "DoRothEA tier B",
+            ],
+        )
+        scores = wf._score_candidate_evidence(c, {})
+        # pagerank=✓, pathway=- (empty network), lincs=✓, depmap=-, se=✓, dorothea=✓, cbio=-
+        assert scores["corroboration_count"] == 4
+        assert scores["corroboration_denominator"] == 7
+
+    def test_empty_findings_all_false(self, wf):
+        c = self._candidate()
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["corroboration_count"] == 0
+
+    def test_pathway_member_from_network(self, wf):
+        network = {
+            "pathway_analysis": {
+                "enriched_pathways": [{"name": "MYC targets", "genes": ["BRD4", "MYC"]}]
+            }
+        }
+        c = self._candidate()
+        scores = wf._score_candidate_evidence(c, network)
+        assert scores["pathway_member"] is True
+
+
+# ---------------------------------------------------------------------------
+# _synthesize_validation_path — evidence table + graceful degradation
+# ---------------------------------------------------------------------------
+
+class TestSynthesizeValidationPathEnhanced:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _state(self, candidates, network=None, errors=None):
+        return _tf_state(
+            analysis_type="therapeutic_validation",
+            validated_targets=candidates,
+            network_analysis=network or {},
+            errors=errors or {},
+        )
+
+    def test_evidence_table_computed_for_validated_candidates(self, wf):
+        candidates = [
+            {
+                "gene": "BRD4",
+                "source": "cascade_drug_discovery",
+                "key_findings": ["super-enhancer present", "LINCS confirmed"],
+                "multi_source_genes": [],
+            }
+        ]
+        result = wf._synthesize_validation_path(self._state(candidates))
+        table = result["synthesis"]["evidence_table"]
+        assert len(table) == 1
+        assert table[0]["gene"] == "BRD4"
+        assert table[0]["lincs_knockdown"] is True
+        assert table[0]["super_enhancer"] is True
+
+    def test_unvalidated_candidates_excluded_from_table(self, wf):
+        """Candidates beyond top 3 (no key_findings key) are not scored."""
+        candidates = [
+            {"gene": "BRD4", "source": "cascade_drug_discovery",
+             "key_findings": [], "multi_source_genes": []},
+            {"gene": "CDK9", "source": "cascade_ppi"},  # no key_findings
+        ]
+        result = wf._synthesize_validation_path(self._state(candidates))
+        table = result["synthesis"]["evidence_table"]
+        assert all(row["gene"] != "CDK9" for row in table)
+
+    def test_evidence_table_sorted_by_corroboration(self, wf):
+        candidates = [
+            {"gene": "LOW", "source": "cascade_ppi",
+             "key_findings": [], "multi_source_genes": []},
+            {"gene": "HIGH", "source": "regnetagents_pagerank", "pagerank": 0.1,
+             "key_findings": ["LINCS confirmed", "super-enhancer present"],
+             "multi_source_genes": []},
+        ]
+        result = wf._synthesize_validation_path(self._state(candidates))
+        table = result["synthesis"]["evidence_table"]
+        assert table[0]["gene"] == "HIGH"
+
+    def test_regnetagents_available_flag_true_when_network_present(self, wf):
+        candidates = [{"gene": "X", "source": "cascade_ppi",
+                       "key_findings": [], "multi_source_genes": []}]
+        result = wf._synthesize_validation_path(
+            self._state(candidates, network={"some": "data"})
+        )
+        assert result["synthesis"]["regnetagents_available"] is True
+
+    def test_regnetagents_available_flag_false_on_network_error(self, wf):
+        candidates = [{"gene": "X", "source": "cascade_ppi",
+                       "key_findings": [], "multi_source_genes": []}]
+        result = wf._synthesize_validation_path(
+            self._state(candidates, errors={"network": "timeout"})
+        )
+        assert result["synthesis"]["regnetagents_available"] is False
+
+    def test_cascade_available_false_when_all_cascade_errors(self, wf):
+        candidates = [
+            {"gene": "BRD4", "source": "cascade_drug_discovery",
+             "cascade_error": "timeout", "key_findings": [], "multi_source_genes": []}
+        ]
+        result = wf._synthesize_validation_path(self._state(candidates))
+        assert result["synthesis"]["cascade_available"] is False
+
+
+# ---------------------------------------------------------------------------
+# Graceful degradation warnings in report formatters
+# ---------------------------------------------------------------------------
+
+class TestGracefulDegradationWarnings:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _tf_synthesis(self, **overrides):
+        base = {
+            "gene": "TP53", "cell_type": "epithelial_cell",
+            "routing": "tf", "gene_role": "master_regulator",
+            "cascade_key_findings": [], "corroborated_targets": [],
+            "cross_system_hits": [], "source_agreements": [],
+            "network_context": {}, "regnetagents_target_count": 0,
+            "regnetagents_available": True, "cascade_available": True,
+            "errors": {},
+        }
+        base.update(overrides)
+        return base
+
+    def _effector_synthesis(self, **overrides):
+        base = {
+            "gene": "APC", "cell_type": "epithelial_cell",
+            "routing": "effector", "tf_partner": "CTNNB1",
+            "cascade_key_findings": [], "corroborated_targets": [],
+            "source_agreements": [], "source_disagreements": [],
+            "network_context": {},
+            "regnetagents_available": True, "cascade_available": True,
+            "errors": {},
+        }
+        base.update(overrides)
+        return base
+
+    def _validation_synthesis(self, **overrides):
+        base = {
+            "gene": "MYC", "cell_type": "cd4_t_cells",
+            "routing": "validation", "validated_targets": [],
+            "evidence_table": [], "network_context": {},
+            "regnetagents_available": True, "cascade_available": True,
+            "errors": {},
+        }
+        base.update(overrides)
+        return base
+
+    def test_tf_report_warns_when_regnetagents_unavailable(self, wf):
+        text = "\n".join(wf._format_tf_report(
+            self._tf_synthesis(regnetagents_available=False)
+        ))
+        assert "RegNetAgents unavailable" in text
+
+    def test_tf_report_warns_when_cascade_unavailable(self, wf):
+        text = "\n".join(wf._format_tf_report(
+            self._tf_synthesis(cascade_available=False)
+        ))
+        assert "CASCADE unavailable" in text
+
+    def test_tf_report_no_warnings_when_both_available(self, wf):
+        text = "\n".join(wf._format_tf_report(self._tf_synthesis()))
+        assert "unavailable" not in text
+
+    def test_effector_report_warns_when_cascade_unavailable(self, wf):
+        text = "\n".join(wf._format_effector_report(
+            self._effector_synthesis(cascade_available=False)
+        ))
+        assert "CASCADE unavailable" in text
+
+    def test_validation_report_warns_when_regnetagents_unavailable(self, wf):
+        text = "\n".join(wf._format_validation_report(
+            self._validation_synthesis(regnetagents_available=False)
+        ))
+        assert "RegNetAgents unavailable" in text
+
+    def test_validation_report_shows_corroboration_table(self, wf):
+        synthesis = self._validation_synthesis(
+            validated_targets=[
+                {"gene": "BRD4", "source": "cascade_drug_discovery",
+                 "key_findings": ["super-enhancer present"], "multi_source_genes": []}
+            ],
+            evidence_table=[{
+                "gene": "BRD4",
+                "pagerank_rank": False, "pathway_member": False,
+                "lincs_knockdown": False, "depmap_essentiality": False,
+                "super_enhancer": True, "dorothea_tier": False, "cbio_expression": False,
+                "corroboration_count": 1, "corroboration_denominator": 7,
+            }],
+        )
+        text = "\n".join(wf._format_validation_report(synthesis))
+        assert "Evidence Corroboration Table" in text
+        assert "BRD4" in text
+        assert "1/7" in text
+
+
+# ---------------------------------------------------------------------------
 # Integration test — skipped unless ORCHESTRA_INTEGRATION_TESTS=1
 # ---------------------------------------------------------------------------
 

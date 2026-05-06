@@ -620,6 +620,7 @@ class OrchestraWorkflow:
             or {}
         )
 
+        errors = state.get("errors", {})
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
@@ -639,7 +640,9 @@ class OrchestraWorkflow:
             "source_disagreements": source_disagreements,
             "network_context": network_summary,
             "regnetagents_target_count": len(rna_targets),
-            "errors": state.get("errors", {}),
+            "regnetagents_available": bool(network) and "network" not in errors,
+            "cascade_available": bool(perturbation) and "perturbation" not in errors,
+            "errors": errors,
         }
         state["completed_steps"].append("synthesize")
         return state
@@ -665,6 +668,7 @@ class OrchestraWorkflow:
             or {}
         )
 
+        errors = state.get("errors", {})
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
@@ -682,7 +686,9 @@ class OrchestraWorkflow:
             "source_agreements": source_agreements,
             "source_disagreements": source_disagreements,
             "network_context": network_summary,
-            "errors": state.get("errors", {}),
+            "regnetagents_available": bool(network) and "network" not in errors,
+            "cascade_available": bool(perturbation) and "perturbation" not in errors,
+            "errors": errors,
         }
         state["completed_steps"].append("synthesize")
         return state
@@ -727,13 +733,111 @@ class OrchestraWorkflow:
 
         return targets
 
+    def _is_in_pathway_enrichment(self, gene: str, network_analysis: dict) -> bool:
+        """
+        Check if a gene symbol appears in RegNetAgents pathway enrichment gene lists.
+        Searches pathway-related sections only to avoid matching the query gene itself.
+        """
+        if not gene or not network_analysis:
+            return False
+        gene_upper = gene.upper()
+
+        def _in_gene_list(obj) -> bool:
+            if not isinstance(obj, list):
+                return False
+            for item in obj:
+                if isinstance(item, str) and item.upper() == gene_upper:
+                    return True
+                if isinstance(item, dict):
+                    sym = (
+                        item.get("gene_symbol") or item.get("symbol")
+                        or item.get("gene") or item.get("name") or ""
+                    )
+                    if isinstance(sym, str) and sym.upper() == gene_upper:
+                        return True
+            return False
+
+        def _search(obj, depth: int = 0) -> bool:
+            if depth > 6:
+                return False
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    k_lower = k.lower()
+                    if k_lower in ("genes", "gene_list", "gene_set", "members",
+                                   "pathway_genes", "leading_edge"):
+                        if _in_gene_list(v):
+                            return True
+                    elif ("pathway" in k_lower or "reactome" in k_lower
+                          or "enrichment" in k_lower or "gene_set" in k_lower):
+                        if _search(v, depth + 1):
+                            return True
+            elif isinstance(obj, list):
+                return any(_search(item, depth + 1) for item in obj)
+            return False
+
+        return _search(network_analysis)
+
+    def _score_candidate_evidence(
+        self, candidate: dict, network_analysis: dict
+    ) -> dict:
+        """
+        Score a validation candidate against 7 independent evidence sources.
+
+        Returns per-source boolean flags and a total corroboration_count (out of 7).
+        The 7 sources span two methodologically independent systems:
+          RegNetAgents: PageRank rank, pathway membership
+          CASCADE: LINCS knockdown, DepMap essentiality, super-enhancer, DoRothEA, cBioPortal
+        """
+        findings_text = "\n".join(candidate.get("key_findings") or []).lower()
+
+        # RegNetAgents sources
+        pagerank_hit = (
+            candidate.get("source") == "regnetagents_pagerank"
+            or float(candidate.get("pagerank") or 0) > 0
+        )
+        pathway_hit = self._is_in_pathway_enrichment(candidate["gene"], network_analysis)
+
+        # CASCADE sources — inferred from key_findings text
+        lincs_hit = "lincs" in findings_text
+        # DepMap: "not essential" is a negative signal; any other DepMap mention is positive
+        depmap_hit = "depmap" in findings_text and "not essential" not in findings_text
+        se_hit = (
+            "super-enhancer" in findings_text
+            or "super_enhancer" in findings_text
+            or "bet inhibitor" in findings_text
+        )
+        dorothea_hit = "dorothea" in findings_text
+        cbio_hit = "cbioportal" in findings_text or "cbio" in findings_text
+
+        flags: dict[str, bool] = {
+            "pagerank_rank": pagerank_hit,
+            "pathway_member": pathway_hit,
+            "lincs_knockdown": lincs_hit,
+            "depmap_essentiality": depmap_hit,
+            "super_enhancer": se_hit,
+            "dorothea_tier": dorothea_hit,
+            "cbio_expression": cbio_hit,
+        }
+        return {
+            **flags,
+            "corroboration_count": sum(1 for v in flags.values() if v),
+            "corroboration_denominator": 7,
+        }
+
     def _synthesize_validation_path(self, state: OrchestraState) -> OrchestraState:
         """
-        Validation path synthesis: builds per-candidate evidence table from
-        RegNetAgents network rank + CASCADE perturbation confirmation.
+        Validation path synthesis: builds per-candidate 7-source corroboration table
+        from RegNetAgents network rank + CASCADE perturbation evidence.
+
+        Evidence sources:
+          RegNetAgents: PageRank rank, pathway membership (2 sources)
+          CASCADE: LINCS knockdown, DepMap essentiality, super-enhancer,
+                   DoRothEA TF tier, cBioPortal expression (5 sources)
+        Corroboration count = number of independent sources supporting each candidate.
         """
         validated_targets = state.get("validated_targets") or []
         network = state.get("network_analysis") or {}
+        errors = state.get("errors", {})
         network_summary = (
             network.get("summary")
             or network.get("network_analysis")
@@ -741,13 +845,33 @@ class OrchestraWorkflow:
             or {}
         )
 
+        # Score each validated candidate (top 3 that received CASCADE perturbation calls)
+        evidence_table = []
+        for candidate in validated_targets:
+            if candidate.get("key_findings") is not None:
+                scores = self._score_candidate_evidence(candidate, network)
+                evidence_table.append({"gene": candidate["gene"], **scores})
+
+        # Sort by corroboration_count descending so highest-evidence candidate leads
+        evidence_table.sort(key=lambda x: x.get("corroboration_count", 0), reverse=True)
+
+        # Graceful degradation flags — used by formatter to warn on partial data
+        regnetagents_available = bool(network) and "network" not in errors
+        cascade_available = any(
+            c.get("key_findings") is not None and "cascade_error" not in c
+            for c in validated_targets
+        )
+
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
             "routing": "validation",
             "validated_targets": validated_targets,
+            "evidence_table": evidence_table,
             "network_context": network_summary,
-            "errors": state.get("errors", {}),
+            "regnetagents_available": regnetagents_available,
+            "cascade_available": cascade_available,
+            "errors": errors,
         }
         state["completed_steps"].append("synthesize")
         return state
@@ -808,12 +932,21 @@ class OrchestraWorkflow:
         rna_target_count = synthesis.get("regnetagents_target_count", 0)
         errors = synthesis.get("errors", {})
 
+        regnetagents_available = synthesis.get("regnetagents_available", True)
+        cascade_available = synthesis.get("cascade_available", True)
+
         lines = [
             f"## Orchestra Analysis: {gene} in {cell_type}",
             f"**Routing:** TF / {gene_role}",
             "",
-            "### CASCADE Evidence",
         ]
+        if not regnetagents_available:
+            lines.append("> ⚠️ **RegNetAgents unavailable** — network topology and pathway evidence missing; showing CASCADE-only results.")
+            lines.append("")
+        if not cascade_available:
+            lines.append("> ⚠️ **CASCADE unavailable** — experimental validation missing; showing RegNetAgents-only results.")
+            lines.append("")
+        lines.append("### CASCADE Evidence")
 
         if key_findings:
             for f in key_findings:
@@ -885,14 +1018,22 @@ class OrchestraWorkflow:
         agreements = synthesis.get("source_agreements", [])
         network_ctx = synthesis.get("network_context", {})
         errors = synthesis.get("errors", {})
+        regnetagents_available = synthesis.get("regnetagents_available", True)
+        cascade_available = synthesis.get("cascade_available", True)
 
         lines = [
             f"## Orchestra Analysis: {gene} in {cell_type}",
             f"**Routing:** effector/scaffold",
             f"**TF partner (via PPI):** {tf_partner}",
             "",
-            "### CASCADE Evidence",
         ]
+        if not regnetagents_available:
+            lines.append("> ⚠️ **RegNetAgents unavailable** — pathway context missing; showing CASCADE-only results.")
+            lines.append("")
+        if not cascade_available:
+            lines.append("> ⚠️ **CASCADE unavailable** — PPI and perturbation data missing.")
+            lines.append("")
+        lines.append("### CASCADE Evidence")
 
         if key_findings:
             for f in key_findings:
@@ -936,7 +1077,10 @@ class OrchestraWorkflow:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
         candidates = synthesis.get("validated_targets") or []
+        evidence_table = synthesis.get("evidence_table") or []
         errors = synthesis.get("errors", {})
+        regnetagents_available = synthesis.get("regnetagents_available", True)
+        cascade_available = synthesis.get("cascade_available", True)
 
         lines = [
             f"## Orchestra Therapeutic Target Validation: {gene} in {cell_type}",
@@ -944,6 +1088,13 @@ class OrchestraWorkflow:
             f"**Candidates evaluated:** {len(candidates)}",
             "",
         ]
+
+        if not regnetagents_available:
+            lines.append("> ⚠️ **RegNetAgents unavailable** — PageRank and pathway evidence missing; showing CASCADE-only results.")
+            lines.append("")
+        if not cascade_available:
+            lines.append("> ⚠️ **CASCADE unavailable** — experimental validation missing; showing RegNetAgents-only results.")
+            lines.append("")
 
         if not candidates:
             lines.append("No therapeutic target candidates identified.")
@@ -954,6 +1105,37 @@ class OrchestraWorkflow:
                     lines.append(f"- {k}: {v}")
             return lines
 
+        # Corroboration table: structured 7-source evidence summary
+        if evidence_table:
+            lines.append("### Evidence Corroboration Table")
+            lines.append("")
+            lines.append(
+                "| Candidate | PageRank | Pathway | LINCS | DepMap | SuperEnhancer"
+                " | DoRothEA | cBioPortal | Score |"
+            )
+            lines.append("|---|---|---|---|---|---|---|---|---|")
+            for row in evidence_table:
+                def flag(v: bool) -> str:
+                    return "✓" if v else "-"
+                lines.append(
+                    f"| {row['gene']} "
+                    f"| {flag(row['pagerank_rank'])} "
+                    f"| {flag(row['pathway_member'])} "
+                    f"| {flag(row['lincs_knockdown'])} "
+                    f"| {flag(row['depmap_essentiality'])} "
+                    f"| {flag(row['super_enhancer'])} "
+                    f"| {flag(row['dorothea_tier'])} "
+                    f"| {flag(row['cbio_expression'])} "
+                    f"| **{row['corroboration_count']}/{row['corroboration_denominator']}** |"
+                )
+            lines.append("")
+            lines.append(
+                "_PageRank, Pathway = RegNetAgents sources. "
+                "LINCS, DepMap, SuperEnhancer, DoRothEA, cBioPortal = CASCADE sources._"
+            )
+            lines.append("")
+
+        # Detailed per-candidate breakdown
         for i, c in enumerate(candidates, 1):
             name = c.get("gene", "unknown")
             source = c.get("source", "unknown")
