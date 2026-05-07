@@ -788,7 +788,13 @@ class OrchestraWorkflow:
           RegNetAgents: PageRank rank, pathway membership
           CASCADE: LINCS knockdown, DepMap essentiality, super-enhancer, DoRothEA, cBioPortal
         """
-        findings_text = "\n".join(candidate.get("key_findings") or []).lower()
+        # Gather all text signals: key_findings + reason + explanation + any other string fields
+        text_parts = list(candidate.get("key_findings") or [])
+        for field in ("reason", "explanation", "notes", "description"):
+            val = candidate.get(field)
+            if isinstance(val, str):
+                text_parts.append(val)
+        findings_text = "\n".join(text_parts).lower()
 
         # RegNetAgents sources
         pagerank_hit = (

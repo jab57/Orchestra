@@ -10,6 +10,7 @@ Usage:
 """
 
 import json
+import os
 import sys
 from contextlib import AsyncExitStack
 from datetime import timedelta
@@ -100,8 +101,10 @@ class MCPClient:
             )
 
         # Prefer structured content if available; fall back to JSON-parsing text
-        if result.structuredContent:
-            return result.structuredContent
+        # structuredContent added in mcp >1.9; use getattr for compatibility
+        structured = getattr(result, "structuredContent", None)
+        if structured:
+            return structured
 
         text = _extract_text(result.content)
         try:
@@ -130,13 +133,30 @@ def _extract_text(content: list) -> str:
 # Pre-configured clients for the two child servers
 # ---------------------------------------------------------------------------
 
+def _venv_python(server_dir: str) -> str:
+    """Return the venv Python for a child server, falling back to sys.executable."""
+    candidate = os.path.join(server_dir, "env", "Scripts", "python.exe")
+    return candidate if os.path.isfile(candidate) else sys.executable
+
+
+def _child_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """Build subprocess env: inherit current environment, optionally propagate SSL bypass."""
+    env = dict(os.environ)
+    if os.environ.get("ORCHESTRA_SSL_NO_VERIFY") == "1":
+        env["ORCHESTRA_SSL_NO_VERIFY"] = "1"
+    if extra:
+        env.update(extra)
+    return env
+
+
 def make_cascade_client(cwd: str = r"c:\Dev\CASCADE") -> MCPClient:
     """Returns a pre-configured MCPClient for the CASCADE child server."""
     return MCPClient(
         server_name="CASCADE",
-        command=sys.executable,
+        command=_venv_python(cwd),
         args=["cascade_langgraph_mcp_server.py"],
         cwd=cwd,
+        env=_child_env(),
     )
 
 
@@ -144,7 +164,7 @@ def make_regnetagents_client(cwd: str = r"c:\Dev\RegNetAgents") -> MCPClient:
     """Returns a pre-configured MCPClient for the RegNetAgents child server."""
     return MCPClient(
         server_name="RegNetAgents",
-        command=sys.executable,
+        command=_venv_python(cwd),
         args=["regnetagents_langgraph_mcp_server.py"],
         cwd=cwd,
     )
