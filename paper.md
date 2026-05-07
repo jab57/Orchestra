@@ -57,6 +57,20 @@ For a therapeutic target query, `validate_therapeutic_targets(gene="MYC", cell_t
 
 For an effector gene, `effector_analysis(gene="APC", cell_type="epithelial_cell")` detects the empty perturbation condition automatically, identifies CTNNB1 as the highest-influence TF partner via STRING PPI, runs CASCADE perturbation analysis and RegNetAgents pathway enrichment in parallel on CTNNB1, and returns an integrated APC→CTNNB1→Wnt causal explanation. This path is unreachable by either child server: CASCADE dead-ends on empty results; RegNetAgents has no PPI data to bridge from scaffold protein to TF partner.
 
+# Results
+
+Three biological validation cases confirm that Orchestra's routing, evidence coordination, and synthesis layers function correctly (Table 1).
+
+| Tool | Gene | Cell type | Key result |
+|---|---|---|---|
+| `effector_analysis` | APC | epithelial_cell | CTNNB1 identified (STRING score 0.999); hub regulator, 310 downstream targets |
+| `causal_chain_analysis` | TP53 | epithelial_cell | CDKN1A: 3-source corroboration (DoRothEA, LINCS, STRING); 2 cross-system hits |
+| `validate_therapeutic_targets` | MYC | cd4_t_cells | BRD4: 1/7 sources (super-enhancer ✓; absent from ARACNe TF network — expected) |
+
+Table: Validation results across three canonical biological cases.
+
+In the APC case, neither child server alone completes the analysis — CASCADE returns empty perturbation results for the scaffold protein; RegNetAgents has no PPI data to bridge from APC to a transcription factor partner. This is the clearest demonstration that Orchestra's coordinated routing is necessary, not merely convenient. In the MYC case, BRD4 scores 1/7 evidence sources: CASCADE's super-enhancer analysis identifies it as a BET inhibitor target while its absence from RegNetAgents' ARACNe-inferred network is a biologically informative finding — BRD4 acts through chromatin co-activation, not direct mRNA regulation, and is not expected in ARACNe networks. Orchestra presents both views simultaneously, producing a more complete picture than either child server alone.
+
 # Limitations
 
 RegNetAgents regulatory networks are inferred from the CellxGene corpus via GREmLN [@zhang2026gremln], which includes both healthy and disease/cancer-infiltrating cells in heterogeneous proportions. CASCADE's experimental sources (LINCS L1000, DepMap) derive from cancer cell lines. These contexts are not matched: corroboration between systems reflects methodological independence, not biological equivalence. Cross-system agreement is a hypothesis generator and should not substitute for experimental validation in a matched biological context.
