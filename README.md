@@ -159,6 +159,9 @@ A second canonical example is **APC mutation analysis**: APC is a scaffold prote
 | #6 Biological validation | APC, TP53, BRD4→MYC cases documented with metrics | ✓ Done |
 | #7 Test suite | Full JOSS-quality coverage + CI | Partial (74 unit tests) |
 | #8 Documentation + examples | Installable by an independent researcher | Pending |
+| #11 Gene signature analysis | `analyze_gene_signature` — DEG list → ranked TF drivers | Pending |
+| #12 Cross-cell-type comparison | `compare_cell_contexts` — conserved vs. cell-type-specific findings | Pending |
+| #13 Discordance reporting | Cross-system discordance flags in synthesis layer | Pending |
 
 Target: v1.0.0 September 2026 | JOSS submission September 2026
 
