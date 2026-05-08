@@ -145,10 +145,6 @@ The canonical example is **BRD4→MYC**: CASCADE's super-enhancer analysis ident
 
 A second canonical example is **APC mutation analysis**: APC is a scaffold protein with no transcriptional targets — a perturbation query dead-ends with empty results. Orchestra automatically detects this, queries protein interactions to find CTNNB1 as the key TF partner, simulates CTNNB1 overexpression, and enriches the downstream cascade against Reactome pathways, returning a complete APC→CTNNB1→Wnt causal explanation.
 
-## Status
-
-Under active development. v1.0.0 targeting September 2026 | JOSS submission September 2026
-
 ## Installation
 
 ```bash
