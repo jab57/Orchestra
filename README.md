@@ -147,20 +147,7 @@ A second canonical example is **APC mutation analysis**: APC is a scaffold prote
 
 ## Status
 
-**Under active development.**
-
-| Issue | Description | Status |
-|---|---|---|
-| #1 MCP client | Round-trip calls to both child servers verified | ✓ Done |
-| #2 Effector analysis | `effector_analysis` — APC→CTNNB1 end-to-end | ✓ Done |
-| #3 Causal chain analysis | `causal_chain_analysis` — TF path (TP53, BRD4→MYC) | ✓ Done |
-| #4 Therapeutic target validation | `validate_therapeutic_targets` — PageRank + CASCADE LINCS | ✓ Done |
-| #5 Full synthesis layer | LangGraph DAG wired end-to-end with evidence scoring | ✓ Done |
-| #6 Biological validation | APC, TP53, BRD4→MYC cases documented with metrics | ✓ Done |
-| #7 Test suite | Full JOSS-quality coverage + CI | Partial (74 unit tests) |
-| #8 Documentation + examples | Installable by an independent researcher | Pending |
-
-Target: v1.0.0 September 2026 | JOSS submission September 2026
+Under active development. v1.0.0 targeting September 2026 | JOSS submission September 2026
 
 ## Installation
 
