@@ -4,7 +4,11 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Status: Skeleton — implementation in progress.
+Three composite tools:
+  causal_chain_analysis      — TF path (parallel RegNetAgents + CASCADE) or
+                               effector path (PPI → TF partner → simulate)
+  validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
+  effector_analysis           — scaffold/effector routing (APC→CTNNB1 pattern)
 """
 
 import asyncio
@@ -82,7 +86,6 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     cell_type = arguments.get("cell_type", "")
     depth = arguments.get("analysis_depth", "comprehensive")
 
-    # TODO: route to appropriate composite workflow
     result = await workflow.run_analysis(
         gene=gene,
         cell_type=cell_type,
