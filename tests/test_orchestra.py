@@ -838,6 +838,180 @@ class TestGracefulDegradationWarnings:
 
 
 # ---------------------------------------------------------------------------
+# Discordance flags
+# ---------------------------------------------------------------------------
+
+class TestComputeValidationDiscordanceFlags:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _row(self, gene, pagerank=False, lincs=False, depmap=False,
+             se=False, dorothea=False, cbio=False):
+        return {
+            "gene": gene,
+            "pagerank_rank": pagerank,
+            "pathway_member": False,
+            "lincs_knockdown": lincs,
+            "depmap_essentiality": depmap,
+            "super_enhancer": se,
+            "dorothea_tier": dorothea,
+            "cbio_expression": cbio,
+            "corroboration_count": sum([pagerank, lincs, depmap, se, dorothea, cbio]),
+            "corroboration_denominator": 7,
+        }
+
+    def test_brd4_pattern_triggers_experimentally_active_not_in_network(self, wf):
+        """BRD4: super-enhancer support but absent from ARACNe network."""
+        table = [self._row("BRD4", se=True)]
+        flags = wf._compute_validation_discordance_flags(table)
+        types = [f["type"] for f in flags]
+        assert "experimentally_active_not_in_network" in types
+        brd4_flag = next(f for f in flags if f["type"] == "experimentally_active_not_in_network")
+        assert brd4_flag["gene"] == "BRD4"
+
+    def test_pagerank_gene_without_experimental_triggers_topological_hub(self, wf):
+        """High-PageRank gene with no CASCADE evidence → topological hub not validated."""
+        table = [self._row("CDK7", pagerank=True)]
+        flags = wf._compute_validation_discordance_flags(table)
+        types = [f["type"] for f in flags]
+        assert "topological_hub_not_validated" in types
+        flag = next(f for f in flags if f["type"] == "topological_hub_not_validated")
+        assert flag["gene"] == "CDK7"
+
+    def test_no_discordance_when_both_pagerank_and_experimental(self, wf):
+        table = [self._row("MYC", pagerank=True, lincs=True)]
+        flags = wf._compute_validation_discordance_flags(table)
+        assert flags == []
+
+    def test_no_discordance_when_neither_pagerank_nor_experimental(self, wf):
+        table = [self._row("UNKNOWN")]
+        flags = wf._compute_validation_discordance_flags(table)
+        assert flags == []
+
+    def test_multiple_candidates_can_each_flag(self, wf):
+        table = [
+            self._row("HUB", pagerank=True),              # topological_hub_not_validated
+            self._row("BRD4", se=True),                   # experimentally_active_not_in_network
+        ]
+        flags = wf._compute_validation_discordance_flags(table)
+        types = [f["type"] for f in flags]
+        assert "topological_hub_not_validated" in types
+        assert "experimentally_active_not_in_network" in types
+
+
+class TestComputeTfDiscordanceFlags:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _gene(self, symbol, sources=("lincs",)):
+        return {"symbol": symbol, "source_count": len(sources), "sources": list(sources)}
+
+    def test_cascade_only_gene_triggers_experimentally_active_flag(self, wf):
+        """Gene in CASCADE multi_source_genes but NOT in rna_targets → discordance."""
+        multi = [self._gene("BRD4")]
+        rna = set()  # BRD4 absent from network
+        flags = wf._compute_tf_discordance_flags(multi, rna, cross_system_hits=[])
+        types = [f["type"] for f in flags]
+        assert "experimentally_active_not_in_network" in types
+        flag = next(f for f in flags if f["type"] == "experimentally_active_not_in_network")
+        assert any(g["symbol"] == "BRD4" for g in flag["genes"])
+
+    def test_network_only_gap_when_no_cross_system_hits(self, wf):
+        """Large rna_targets, CASCADE has hits, but no overlap → network gap flag."""
+        multi = [self._gene("CDKN1A")]
+        rna = {"MYC", "BCL2", "MDM2"}  # CDKN1A absent from network
+        flags = wf._compute_tf_discordance_flags(multi, rna, cross_system_hits=[])
+        types = [f["type"] for f in flags]
+        assert "network_topology_without_experimental_support" in types
+
+    def test_no_discordance_when_all_genes_in_network(self, wf):
+        """All CASCADE multi_source genes are also in rna_targets → no cascade_only flag."""
+        multi = [self._gene("MYC")]
+        rna = {"MYC", "BCL2"}
+        cross_hits = [{"symbol": "MYC", "source_count": 2, "sources": ["lincs"]}]
+        flags = wf._compute_tf_discordance_flags(multi, rna, cross_system_hits=cross_hits)
+        assert flags == []
+
+    def test_no_network_gap_when_empty_rna_targets(self, wf):
+        """Empty rna_targets (e.g., effector routed wrong) → no network gap flag."""
+        multi = [self._gene("CDKN1A")]
+        flags = wf._compute_tf_discordance_flags(multi, rna_targets=set(), cross_system_hits=[])
+        types = [f["type"] for f in flags]
+        assert "network_topology_without_experimental_support" not in types
+
+
+class TestDiscordanceFlagsInReports:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _tf_synthesis(self, discordance_flags=None, **overrides):
+        base = {
+            "gene": "TP53", "cell_type": "epithelial_cell",
+            "routing": "tf", "gene_role": "master_regulator",
+            "cascade_key_findings": [], "corroborated_targets": [],
+            "cross_system_hits": [], "source_agreements": [],
+            "network_context": {}, "regnetagents_target_count": 0,
+            "regnetagents_available": True, "cascade_available": True,
+            "discordance_flags": discordance_flags or [],
+            "errors": {},
+        }
+        base.update(overrides)
+        return base
+
+    def _validation_synthesis(self, discordance_flags=None, **overrides):
+        base = {
+            "gene": "MYC", "cell_type": "cd4_t_cells",
+            "routing": "validation", "validated_targets": [],
+            "evidence_table": [], "network_context": {},
+            "regnetagents_available": True, "cascade_available": True,
+            "discordance_flags": discordance_flags or [],
+            "errors": {},
+        }
+        base.update(overrides)
+        return base
+
+    def test_tf_report_shows_discordance_section(self, wf):
+        flags = [{
+            "type": "experimentally_active_not_in_network",
+            "description": "BRD4 has CASCADE support but absent from network",
+            "genes": [{"symbol": "BRD4", "source_count": 1, "sources": ["super_enhancer"]}],
+        }]
+        text = "\n".join(wf._format_tf_report(self._tf_synthesis(discordance_flags=flags)))
+        assert "Notable Discordances" in text
+        assert "BRD4" in text
+
+    def test_tf_report_no_discordance_section_when_empty(self, wf):
+        text = "\n".join(wf._format_tf_report(self._tf_synthesis()))
+        assert "Notable Discordances" not in text
+
+    def test_validation_report_shows_discordance_section(self, wf):
+        flags = [{
+            "type": "topological_hub_not_validated",
+            "gene": "CDK7",
+            "description": "CDK7 ranks in network but no CASCADE experimental support",
+            "genes": [],
+        }]
+        synthesis = self._validation_synthesis(
+            discordance_flags=flags,
+            validated_targets=[
+                {"gene": "CDK7", "source": "regnetagents_pagerank",
+                 "key_findings": [], "multi_source_genes": [],
+                 "pagerank": 0.05, "downstream_targets": 30}
+            ],
+        )
+        text = "\n".join(wf._format_validation_report(synthesis))
+        assert "Notable Discordances" in text
+        assert "CDK7" in text
+
+    def test_validation_report_no_discordance_section_when_empty(self, wf):
+        text = "\n".join(wf._format_validation_report(self._validation_synthesis()))
+        assert "Notable Discordances" not in text
+
+
+# ---------------------------------------------------------------------------
 # Integration test — skipped unless ORCHESTRA_INTEGRATION_TESTS=1
 # ---------------------------------------------------------------------------
 

@@ -4,6 +4,7 @@ Orchestra: LangGraph workflow for MCP-over-MCP orchestration.
 Issue #2 implemented: effector path (APC→CTNNB1 proof of concept)
 Issue #3 implemented: TF path (TP53, BRD4→MYC — parallel RegNetAgents + CASCADE)
 Issue #4 implemented: therapeutic target validation (MYC→BRD4 via super-enhancers + PPI)
+Issue #9 implemented: cross-system discordance reporting (discordance_flags in synthesis layer)
 """
 
 import asyncio
@@ -621,6 +622,9 @@ class OrchestraWorkflow:
         )
 
         errors = state.get("errors", {})
+        discordance_flags = self._compute_tf_discordance_flags(
+            multi_source_genes, rna_targets, cross_system_hits
+        )
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
@@ -642,6 +646,7 @@ class OrchestraWorkflow:
             "regnetagents_target_count": len(rna_targets),
             "regnetagents_available": bool(network) and "network" not in errors,
             "cascade_available": bool(perturbation) and "perturbation" not in errors,
+            "discordance_flags": discordance_flags,
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -688,6 +693,7 @@ class OrchestraWorkflow:
             "network_context": network_summary,
             "regnetagents_available": bool(network) and "network" not in errors,
             "cascade_available": bool(perturbation) and "perturbation" not in errors,
+            "discordance_flags": [],
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -830,6 +836,104 @@ class OrchestraWorkflow:
             "corroboration_denominator": 7,
         }
 
+    def _compute_tf_discordance_flags(
+        self,
+        multi_source_genes: list,
+        rna_targets: set,
+        cross_system_hits: list,
+    ) -> list:
+        """
+        Detect discordances between CASCADE experimental evidence and RegNetAgents
+        network topology for the TF analysis path.
+
+        Two patterns:
+        - Genes with CASCADE experimental support absent from the regulatory network
+          (experimentally active but not a classical TF target in this context).
+        - Large regulatory network with no experimentally corroborated targets
+          (topological predictions without experimental validation).
+        """
+        flags = []
+
+        cascade_only = [
+            g for g in multi_source_genes if g["symbol"] not in rna_targets
+        ][:5]
+        if cascade_only:
+            flags.append({
+                "type": "experimentally_active_not_in_network",
+                "description": (
+                    "Experimentally supported by CASCADE but absent from RegNetAgents "
+                    "regulatory network — may act through non-transcriptional mechanisms"
+                ),
+                "genes": [
+                    {"symbol": g["symbol"], "source_count": g["source_count"],
+                     "sources": g["sources"]}
+                    for g in cascade_only
+                ],
+            })
+
+        if rna_targets and multi_source_genes and not cross_system_hits:
+            flags.append({
+                "type": "network_topology_without_experimental_support",
+                "description": (
+                    f"RegNetAgents identifies {len(rna_targets)} downstream network targets "
+                    "but none overlap with CASCADE multi-source experimental data — "
+                    "may reflect cell context differences or stale network edges"
+                ),
+                "genes": [],
+            })
+
+        return flags
+
+    def _compute_validation_discordance_flags(self, evidence_table: list) -> list:
+        """
+        Detect per-candidate discordances in the validation path evidence table.
+
+        Two patterns:
+        - High network rank (PageRank) with no CASCADE experimental support →
+          topological hub not experimentally validated.
+        - CASCADE experimental support with no network rank →
+          experimentally active but absent from ARACNe network (BRD4 pattern).
+        """
+        flags = []
+
+        for row in evidence_table:
+            gene_name = row["gene"]
+            experimental_support = any([
+                row["lincs_knockdown"],
+                row["depmap_essentiality"],
+                row["super_enhancer"],
+                row["dorothea_tier"],
+                row["cbio_expression"],
+            ])
+
+            if row["pagerank_rank"] and not experimental_support:
+                flags.append({
+                    "type": "topological_hub_not_validated",
+                    "gene": gene_name,
+                    "description": (
+                        f"{gene_name} ranks in the regulatory network (PageRank) "
+                        "but has no experimental support from CASCADE — "
+                        "may be topologically central but not functionally essential "
+                        "in this cell type"
+                    ),
+                    "genes": [],
+                })
+
+            if experimental_support and not row["pagerank_rank"]:
+                flags.append({
+                    "type": "experimentally_active_not_in_network",
+                    "gene": gene_name,
+                    "description": (
+                        f"{gene_name} has CASCADE experimental support but is absent "
+                        "from the ARACNe regulatory network — likely acts through "
+                        "a non-transcriptional mechanism (e.g., epigenetic regulation, "
+                        "chromatin remodeling)"
+                    ),
+                    "genes": [],
+                })
+
+        return flags
+
     def _synthesize_validation_path(self, state: OrchestraState) -> OrchestraState:
         """
         Validation path synthesis: builds per-candidate 7-source corroboration table
@@ -868,6 +972,7 @@ class OrchestraWorkflow:
             for c in validated_targets
         )
 
+        discordance_flags = self._compute_validation_discordance_flags(evidence_table)
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
@@ -877,6 +982,7 @@ class OrchestraWorkflow:
             "network_context": network_summary,
             "regnetagents_available": regnetagents_available,
             "cascade_available": cascade_available,
+            "discordance_flags": discordance_flags,
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -1007,6 +1113,19 @@ class OrchestraWorkflow:
             lines.append("### RegNetAgents Network Context")
             lines.append(str(network_ctx)[:600])
 
+        discordance_flags = synthesis.get("discordance_flags", [])
+        if discordance_flags:
+            lines.append("")
+            lines.append("### Notable Discordances")
+            for flag in discordance_flags:
+                lines.append(f"- **{flag['description']}**")
+                for g in flag.get("genes", [])[:5]:
+                    sym = g.get("symbol", "?")
+                    sc = g.get("source_count", "")
+                    srcs = g.get("sources", [])
+                    detail = f"{sc} sources ({', '.join(srcs)})" if sc else ""
+                    lines.append(f"  - {sym}: {detail}" if detail else f"  - {sym}")
+
         if errors:
             lines.append("")
             lines.append("### Partial Data Warnings")
@@ -1066,6 +1185,19 @@ class OrchestraWorkflow:
             lines.append("")
             lines.append("### RegNetAgents Network Context")
             lines.append(str(network_ctx)[:600])
+
+        discordance_flags = synthesis.get("discordance_flags", [])
+        if discordance_flags:
+            lines.append("")
+            lines.append("### Notable Discordances")
+            for flag in discordance_flags:
+                lines.append(f"- **{flag['description']}**")
+                for g in flag.get("genes", [])[:5]:
+                    sym = g.get("symbol", "?")
+                    sc = g.get("source_count", "")
+                    srcs = g.get("sources", [])
+                    detail = f"{sc} sources ({', '.join(srcs)})" if sc else ""
+                    lines.append(f"  - {sym}: {detail}" if detail else f"  - {sym}")
 
         if errors:
             lines.append("")
@@ -1176,6 +1308,13 @@ class OrchestraWorkflow:
             if downstream:
                 lines.append(f"**Top downstream genes (CASCADE):** {', '.join(downstream[:8])}")
 
+            lines.append("")
+
+        discordance_flags = synthesis.get("discordance_flags", [])
+        if discordance_flags:
+            lines.append("### Notable Discordances")
+            for flag in discordance_flags:
+                lines.append(f"- **{flag['description']}**")
             lines.append("")
 
         if errors:
