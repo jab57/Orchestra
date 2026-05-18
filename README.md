@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes three tools — analytical capabilities that require both child servers and cannot be replicated by either alone:
+Orchestra exposes four tools — analytical capabilities that require both child servers and cannot be replicated by either alone:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -80,6 +80,10 @@ Ranks upstream regulators by PageRank centrality (RegNetAgents), combines with d
 ### `effector_analysis(gene, cell_type)`
 
 Handles scaffold/effector genes (e.g. APC) that have no direct transcriptional targets. Detects effector role, finds TF partners via protein-protein interactions (CASCADE), simulates the TF partner, and enriches the downstream cascade against Reactome pathways (RegNetAgents).
+
+### `analyze_gene_signature(genes, cell_type)`
+
+Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with signature coverage % and cross-system corroboration count.
 
 ## How It Works
 
@@ -279,7 +283,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The three Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The four Orchestra tools will appear in the tools list.
 
 ## Usage
 
@@ -384,7 +388,7 @@ LLM_MODEL=claude-haiku-4-5-20251001
 
 ```
 Orchestra/
-├── orchestra_mcp_server.py          # MCP server — exposes 3 composite tools to Claude Desktop
+├── orchestra_mcp_server.py          # MCP server — exposes 4 composite tools to Claude Desktop
 ├── orchestra_langgraph_workflow.py  # LangGraph DAG, OrchestraState, all analysis paths
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
