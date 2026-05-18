@@ -16,14 +16,16 @@ from contextlib import AsyncExitStack
 from datetime import timedelta
 from typing import Any
 
+from anyio import BrokenResourceError
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 
 # Per-tool timeouts (seconds) matching the plan's latency budget
-TIMEOUT_PERTURBATION = 60.0   # comprehensive_perturbation_analysis
-TIMEOUT_PPI = 15.0            # get_protein_interactions
-TIMEOUT_NETWORK = 60.0        # comprehensive_gene_analysis, pathway_focused_analysis
+TIMEOUT_PERTURBATION = 60.0       # comprehensive_perturbation_analysis
+TIMEOUT_PPI = 15.0                # get_protein_interactions
+TIMEOUT_NETWORK = 60.0            # comprehensive_gene_analysis, pathway_focused_analysis
+TIMEOUT_MASTER_REGULATORS = 300.0 # find_master_regulators — includes server lazy-load on first call (~60-90s) + Fisher's exact test
 TIMEOUT_DEFAULT = 30.0
 
 
@@ -67,7 +69,14 @@ class MCPClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self._exit_stack is not None:
-            result = await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+            try:
+                result = await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+            except BaseException as cleanup_err:
+                # Suppress MCP stdio cleanup races (server writes to stdout after the
+                # client has closed the read stream) when no original exception exists.
+                if exc_type is not None or not _is_broken_resource_only(cleanup_err):
+                    raise
+                result = None
             self._exit_stack = None
             self._session = None
             return result
@@ -123,6 +132,15 @@ class MCPClient:
             )
         result = await self._session.list_tools()
         return [t.name for t in result.tools]
+
+
+def _is_broken_resource_only(err: BaseException) -> bool:
+    """Return True if err is (or is a group containing only) BrokenResourceError."""
+    if isinstance(err, BrokenResourceError):
+        return True
+    if isinstance(err, BaseExceptionGroup):
+        return all(_is_broken_resource_only(sub) for sub in err.exceptions)
+    return False
 
 
 def _extract_text(content: list) -> str:

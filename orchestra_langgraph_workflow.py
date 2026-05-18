@@ -5,6 +5,7 @@ Issue #2 implemented: effector path (APC→CTNNB1 proof of concept)
 Issue #3 implemented: TF path (TP53, BRD4→MYC — parallel RegNetAgents + CASCADE)
 Issue #4 implemented: therapeutic target validation (MYC→BRD4 via super-enhancers + PPI)
 Issue #9 implemented: cross-system discordance reporting (discordance_flags in synthesis layer)
+Issue #10 implemented: gene signature driver analysis (analyze_gene_signature — DEG list → ranked TF drivers)
 """
 
 import asyncio
@@ -18,6 +19,7 @@ from langgraph.graph import END, StateGraph
 load_dotenv()
 
 from mcp_client import (
+    TIMEOUT_MASTER_REGULATORS,
     TIMEOUT_NETWORK,
     TIMEOUT_PERTURBATION,
     TIMEOUT_PPI,
@@ -52,6 +54,10 @@ class OrchestraState(TypedDict):
     ppi_interactions: Optional[dict]
     lincs_effects: Optional[dict]
     depmap_essentiality: Optional[dict]
+
+    # Gene signature analysis (Issue #10)
+    gene_signature: Optional[list]    # input DEG list for analyze_gene_signature
+    master_regulators: Optional[dict] # RegNetAgents find_master_regulators output
 
     # Composite results
     validated_targets: Optional[list]
@@ -240,6 +246,7 @@ class OrchestraWorkflow:
         graph.add_node("run_tf_path", self._run_tf_path)
         graph.add_node("run_effector_path", self._run_effector_path)
         graph.add_node("run_validation_path", self._run_validation_path)
+        graph.add_node("run_signature_path", self._run_signature_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("generate_report", self._generate_report)
 
@@ -253,11 +260,13 @@ class OrchestraWorkflow:
                 "tf_path": "run_tf_path",
                 "effector_path": "run_effector_path",
                 "validation_path": "run_validation_path",
+                "signature_path": "run_signature_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
         graph.add_edge("run_effector_path", "synthesize")
         graph.add_edge("run_validation_path", "synthesize")
+        graph.add_edge("run_signature_path", "synthesize")
         graph.add_edge("synthesize", "generate_report")
         graph.add_edge("generate_report", END)
 
@@ -268,6 +277,8 @@ class OrchestraWorkflow:
     # ------------------------------------------------------------------
 
     def _routing_decision(self, state: OrchestraState) -> str:
+        if state.get("analysis_type") == "gene_signature":
+            return "signature_path"
         if state.get("analysis_type") == "therapeutic_validation":
             return "validation_path"
         role = state.get("gene_role") or "isolated"
@@ -286,6 +297,10 @@ class OrchestraWorkflow:
 
     async def _classify_gene(self, state: OrchestraState) -> OrchestraState:
         """Call CASCADE get_gene_metadata to determine gene role and routing."""
+        # Signature analysis has no single gene to classify — skip directly to routing.
+        if state.get("analysis_type") == "gene_signature":
+            state["completed_steps"].append("classify_gene")
+            return state
         try:
             meta = await self._cascade.call_tool(
                 "get_gene_metadata",
@@ -425,6 +440,76 @@ class OrchestraWorkflow:
         if not tf_candidates:
             return None
         return max(tf_candidates, key=lambda x: x[1])[0]
+
+    async def _run_signature_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Gene signature driver analysis path (Issue #10).
+
+        1. RegNetAgents find_master_regulators — ranks TFs by Fisher enrichment in the
+           input gene set; uses ARACNe regulon overlap, not MR inference.
+        2. Parallel CASCADE comprehensive_perturbation_analysis on the top 3 TFs —
+           adds experimental validation (LINCS, DepMap, super-enhancers, etc.).
+
+        Synthesis in _synthesize_signature_path combines:
+          - Signature coverage % (overlap_count / signature_size, from RegNetAgents)
+          - 7-source corroboration count (from CASCADE evidence_synthesis)
+        to produce a ranked driver table neither system alone can generate.
+        """
+        gene_signature = state.get("gene_signature") or []
+        cell_type = state["cell_type"]
+
+        if not gene_signature:
+            state["errors"]["signature_path"] = "gene_signature is empty"
+            state["completed_steps"].append("run_signature_path")
+            return state
+
+        # Step 1: RegNetAgents master regulator enrichment analysis
+        try:
+            mr_result = await self._regnetagents.call_tool(
+                "find_master_regulators",
+                {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10},
+                timeout_seconds=TIMEOUT_MASTER_REGULATORS,
+            )
+            state["master_regulators"] = mr_result
+        except Exception as e:
+            state["errors"]["master_regulators"] = str(e)
+            state["completed_steps"].append("run_signature_path")
+            return state
+
+        # Step 2: parallel CASCADE validation on top 3 enriched TFs
+        top_tfs = [
+            r["gene"]
+            for r in (mr_result.get("master_regulators") or [])[:3]
+        ]
+        if top_tfs:
+            validation_results = await asyncio.gather(
+                *[
+                    self._cascade.call_tool(
+                        "comprehensive_perturbation_analysis",
+                        {"gene": tf, "cell_type": cell_type},
+                        timeout_seconds=TIMEOUT_PERTURBATION,
+                    )
+                    for tf in top_tfs
+                ],
+                return_exceptions=True,
+            )
+            # Attach CASCADE evidence back onto the master regulator entries
+            mr_list = mr_result.get("master_regulators") or []
+            for i, (tf, result) in enumerate(zip(top_tfs, validation_results)):
+                entry = mr_list[i] if i < len(mr_list) else None
+                if entry is None:
+                    continue
+                if isinstance(result, Exception):
+                    entry["cascade_error"] = str(result)
+                else:
+                    ev = (result or {}).get("evidence_synthesis") or {}
+                    entry["key_findings"] = ev.get("key_findings", [])
+                    entry["multi_source_genes"] = [
+                        g["symbol"] for g in (ev.get("multi_source_genes") or [])[:10]
+                    ]
+
+        state["completed_steps"].append("run_signature_path")
+        return state
 
     async def _run_validation_path(self, state: OrchestraState) -> OrchestraState:
         """
@@ -574,6 +659,8 @@ class OrchestraWorkflow:
     # ------------------------------------------------------------------
 
     def _synthesize(self, state: OrchestraState) -> OrchestraState:
+        if state.get("analysis_type") == "gene_signature":
+            return self._synthesize_signature_path(state)
         if state.get("analysis_type") == "therapeutic_validation":
             return self._synthesize_validation_path(state)
         role = state.get("gene_role") or "effector"
@@ -934,6 +1021,99 @@ class OrchestraWorkflow:
 
         return flags
 
+    def _synthesize_signature_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Signature path synthesis: combines RegNetAgents Fisher enrichment (network
+        coverage of the input signature) with CASCADE experimental corroboration
+        (7-source evidence table) for each candidate TF driver.
+
+        Ranking: primary = overlap_count (signature genes in TF regulon),
+                 secondary = corroboration_count (CASCADE experimental support).
+        Reuses _score_candidate_evidence and _compute_validation_discordance_flags.
+        """
+        gene_signature = state.get("gene_signature") or []
+        mr_result = state.get("master_regulators") or {}
+        errors = state.get("errors", {})
+        mr_list = mr_result.get("master_regulators") or []
+        query_summary = mr_result.get("query_summary") or {}
+
+        signature_size = len(gene_signature)
+
+        # Build ranked_drivers list — one entry per TF candidate
+        ranked_drivers = []
+        evidence_table = []
+        for entry in mr_list:
+            overlap_count = entry.get("overlap_count", 0)
+            coverage_pct = round(overlap_count / signature_size * 100, 1) if signature_size else 0.0
+
+            # Build a candidate dict compatible with _score_candidate_evidence.
+            # enrichment_score > 0 acts as the "network" signal (maps to pagerank_rank flag).
+            candidate = {
+                "gene": entry["gene"],
+                "source": "regnetagents_enrichment",
+                "pagerank": entry.get("enrichment_score", 0),  # > 0 → pagerank_rank=True
+                "key_findings": entry.get("key_findings", []),
+            }
+            scores = self._score_candidate_evidence(candidate, {})
+
+            row = {
+                "gene": entry["gene"],
+                "overlap_count": overlap_count,
+                "coverage_pct": coverage_pct,
+                "regulon_size": entry.get("regulon_size", 0),
+                "enrichment_score": entry.get("enrichment_score", 0),
+                "p_value": entry.get("p_value", 1.0),
+                "overlapping_genes": entry.get("overlapping_genes", []),
+                **scores,
+            }
+            evidence_table.append(row)
+
+            ranked_drivers.append({
+                "gene": entry["gene"],
+                "overlap_count": overlap_count,
+                "coverage_pct": coverage_pct,
+                "enrichment_score": entry.get("enrichment_score", 0),
+                "p_value": entry.get("p_value", 1.0),
+                "corroboration_count": scores["corroboration_count"],
+                "corroboration_denominator": scores["corroboration_denominator"],
+                "overlapping_genes": entry.get("overlapping_genes", []),
+                "cascade_key_findings": entry.get("key_findings", []),
+                "multi_source_genes": entry.get("multi_source_genes", []),
+                "cascade_error": entry.get("cascade_error"),
+            })
+
+        # Sort by overlap_count desc, corroboration_count desc as tiebreaker
+        ranked_drivers.sort(key=lambda x: (-x["overlap_count"], -x["corroboration_count"]))
+        evidence_table.sort(key=lambda x: (-x["overlap_count"], -x.get("corroboration_count", 0)))
+
+        regnetagents_available = bool(mr_list) and "master_regulators" not in errors
+        cascade_available = any(
+            "key_findings" in entry and "cascade_error" not in entry
+            for entry in mr_list
+        )
+
+        discordance_flags = self._compute_validation_discordance_flags(evidence_table)
+
+        state["synthesis"] = {
+            "gene": "",
+            "cell_type": state["cell_type"],
+            "routing": "signature",
+            "gene_signature": gene_signature,
+            "signature_size": signature_size,
+            "genes_found_in_network": query_summary.get("genes_found_in_network", 0),
+            "genes_not_found": query_summary.get("genes_not_found", []),
+            "network_size": query_summary.get("network_size", 0),
+            "total_regulators_tested": query_summary.get("total_regulators_tested", 0),
+            "ranked_drivers": ranked_drivers,
+            "evidence_table": evidence_table,
+            "regnetagents_available": regnetagents_available,
+            "cascade_available": cascade_available,
+            "discordance_flags": discordance_flags,
+            "errors": errors,
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
     def _synthesize_validation_path(self, state: OrchestraState) -> OrchestraState:
         """
         Validation path synthesis: builds per-candidate 7-source corroboration table
@@ -1010,7 +1190,7 @@ class OrchestraWorkflow:
         routing = synthesis.get("routing", "effector")
         llm_trigger = (
             bool(synthesis.get("tf_partner")) if routing == "effector"
-            else routing in ("tf", "validation")
+            else routing in ("tf", "validation", "signature")
         )
 
         if self.llm_available and llm_trigger:
@@ -1030,6 +1210,8 @@ class OrchestraWorkflow:
             return self._format_tf_report(synthesis)
         if routing == "validation":
             return self._format_validation_report(synthesis)
+        if routing == "signature":
+            return self._format_signature_report(synthesis)
         return self._format_effector_report(synthesis)
 
     def _format_tf_report(self, synthesis: dict) -> list[str]:
@@ -1207,6 +1389,119 @@ class OrchestraWorkflow:
 
         return lines
 
+    def _format_signature_report(self, synthesis: dict) -> list[str]:
+        cell_type = synthesis.get("cell_type", "unknown")
+        gene_signature = synthesis.get("gene_signature") or []
+        signature_size = synthesis.get("signature_size", len(gene_signature))
+        genes_found = synthesis.get("genes_found_in_network", 0)
+        genes_not_found = synthesis.get("genes_not_found", [])
+        total_tested = synthesis.get("total_regulators_tested", 0)
+        ranked_drivers = synthesis.get("ranked_drivers") or []
+        evidence_table = synthesis.get("evidence_table") or []
+        errors = synthesis.get("errors", {})
+        regnetagents_available = synthesis.get("regnetagents_available", True)
+        cascade_available = synthesis.get("cascade_available", True)
+
+        lines = [
+            f"## Orchestra Gene Signature Driver Analysis — {cell_type}",
+            f"**Signature size:** {signature_size} genes  |  "
+            f"**Found in network:** {genes_found}  |  "
+            f"**Regulators tested:** {total_tested}",
+            "",
+        ]
+
+        if not regnetagents_available:
+            lines.append("> ⚠️ **RegNetAgents unavailable** — master regulator enrichment missing.")
+            lines.append("")
+        if not cascade_available:
+            lines.append("> ⚠️ **CASCADE unavailable** — experimental validation missing; showing network enrichment only.")
+            lines.append("")
+
+        if not ranked_drivers:
+            lines.append("No master regulators identified for this gene signature.")
+            if genes_not_found:
+                lines.append(f"Genes not found in network: {', '.join(genes_not_found[:10])}")
+            if errors:
+                lines.append("")
+                lines.append("### Errors")
+                for k, v in errors.items():
+                    lines.append(f"- {k}: {v}")
+            return lines
+
+        # Corroboration + coverage table
+        if evidence_table:
+            lines.append("### Ranked TF Drivers")
+            lines.append("")
+            lines.append(
+                "| TF Driver | Coverage | Overlap | Enrichment | p-value"
+                " | PageRank | Pathway | LINCS | DepMap | SE | DoRothEA | cBio | Score |"
+            )
+            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+
+            def flag(v: bool) -> str:
+                return "✓" if v else "-"
+
+            for row in evidence_table:
+                lines.append(
+                    f"| {row['gene']} "
+                    f"| {row['coverage_pct']}% "
+                    f"| {row['overlap_count']}/{row.get('regulon_size', '?')} "
+                    f"| {row['enrichment_score']:.2f} "
+                    f"| {row['p_value']:.2e} "
+                    f"| {flag(row['pagerank_rank'])} "
+                    f"| {flag(row['pathway_member'])} "
+                    f"| {flag(row['lincs_knockdown'])} "
+                    f"| {flag(row['depmap_essentiality'])} "
+                    f"| {flag(row['super_enhancer'])} "
+                    f"| {flag(row['dorothea_tier'])} "
+                    f"| {flag(row['cbio_expression'])} "
+                    f"| **{row['corroboration_count']}/{row['corroboration_denominator']}** |"
+                )
+            lines.append("")
+            lines.append(
+                "_Coverage = signature genes in TF regulon. "
+                "PageRank/Pathway = RegNetAgents enrichment. "
+                "LINCS, DepMap, SE, DoRothEA, cBio = CASCADE sources._"
+            )
+            lines.append("")
+
+        # Per-driver detail for top 3
+        lines.append("### Driver Details")
+        for i, d in enumerate(ranked_drivers[:3], 1):
+            lines.append(f"**{i}. {d['gene']}** — {d['coverage_pct']}% coverage "
+                         f"({d['overlap_count']} signature genes), "
+                         f"enrichment={d['enrichment_score']:.2f}, "
+                         f"p={d['p_value']:.2e}")
+            if d.get("overlapping_genes"):
+                lines.append(f"   Overlapping: {', '.join(d['overlapping_genes'][:10])}")
+            cascade_findings = d.get("cascade_key_findings") or []
+            if cascade_findings:
+                lines.append("   CASCADE evidence:")
+                for f in cascade_findings[:3]:
+                    lines.append(f"   - {f}")
+            elif d.get("cascade_error"):
+                lines.append(f"   CASCADE validation error: {d['cascade_error']}")
+            lines.append("")
+
+        if genes_not_found:
+            lines.append(f"_Genes not found in network ({len(genes_not_found)}): "
+                         f"{', '.join(genes_not_found[:10])}_")
+            lines.append("")
+
+        discordance_flags = synthesis.get("discordance_flags", [])
+        if discordance_flags:
+            lines.append("### Notable Discordances")
+            for flag_entry in discordance_flags:
+                lines.append(f"- **{flag_entry['description']}**")
+            lines.append("")
+
+        if errors:
+            lines.append("### Partial Data Warnings")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
     # ------------------------------------------------------------------
     # LLM synthesis
     # ------------------------------------------------------------------
@@ -1330,6 +1625,8 @@ class OrchestraWorkflow:
             return await self._call_llm_tf_synthesis(synthesis)
         if routing == "validation":
             return await self._call_llm_validation_synthesis(synthesis)
+        if routing == "signature":
+            return await self._call_llm_signature_synthesis(synthesis)
         return await self._call_llm_effector_synthesis(synthesis)
 
     async def _call_llm_tf_synthesis(self, synthesis: dict) -> str:
@@ -1396,6 +1693,38 @@ class OrchestraWorkflow:
         )
         return await self._call_llm(prompt, system_prompt)
 
+    async def _call_llm_signature_synthesis(self, synthesis: dict) -> str:
+        cell_type = synthesis.get("cell_type", "unknown")
+        signature_size = synthesis.get("signature_size", 0)
+        genes_found = synthesis.get("genes_found_in_network", 0)
+        ranked_drivers = synthesis.get("ranked_drivers") or []
+
+        driver_lines = []
+        for d in ranked_drivers[:5]:
+            findings_str = "; ".join((d.get("cascade_key_findings") or [])[:2]) or "no CASCADE data"
+            driver_lines.append(
+                f"- {d['gene']}: {d['coverage_pct']}% coverage "
+                f"({d['overlap_count']} genes), enrichment={d['enrichment_score']:.2f}, "
+                f"corroboration={d['corroboration_count']}/7, CASCADE: {findings_str}"
+            )
+
+        prompt = (
+            f"Gene signature driver analysis in {cell_type}.\n"
+            f"Signature: {signature_size} genes ({genes_found} found in network).\n\n"
+            "Top TF drivers (ranked by signature coverage + cross-system corroboration):\n"
+            + "\n".join(driver_lines)
+            + "\n\nWrite a concise 2-3 sentence biological interpretation identifying "
+            "which transcription factors most likely drive this gene signature, "
+            "which have the strongest cross-system evidence (both network enrichment "
+            "and CASCADE experimental support), and what this suggests about the "
+            "regulatory mechanism. Be specific."
+        )
+        system_prompt = (
+            "You are Orchestra, a bioinformatics analysis system. "
+            "Narrate structured evidence concisely. Do not speculate beyond the data provided."
+        )
+        return await self._call_llm(prompt, system_prompt)
+
     async def _call_llm_effector_synthesis(self, synthesis: dict) -> str:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
@@ -1430,6 +1759,7 @@ class OrchestraWorkflow:
         cell_type: str,
         analysis_type: str = "causal_chain",
         analysis_depth: str = "comprehensive",
+        gene_signature: Optional[list] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
         initial_state = OrchestraState(
@@ -1449,6 +1779,8 @@ class OrchestraWorkflow:
             depmap_essentiality=None,
             validated_targets=None,
             causal_chain=None,
+            gene_signature=gene_signature,
+            master_regulators=None,
             synthesis=None,
             completed_steps=[],
             errors={},

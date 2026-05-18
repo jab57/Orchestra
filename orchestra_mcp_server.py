@@ -4,11 +4,12 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Three composite tools:
-  causal_chain_analysis      — TF path (parallel RegNetAgents + CASCADE) or
-                               effector path (PPI → TF partner → simulate)
+Four composite tools:
+  causal_chain_analysis        — TF path (parallel RegNetAgents + CASCADE) or
+                                 effector path (PPI → TF partner → simulate)
   validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
-  effector_analysis           — scaffold/effector routing (APC→CTNNB1 pattern)
+  effector_analysis            — scaffold/effector routing (APC→CTNNB1 pattern)
+  analyze_gene_signature       — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
 """
 
 import asyncio
@@ -77,25 +78,65 @@ async def list_tools() -> list[Tool]:
                 "required": ["gene", "cell_type"],
             },
         ),
+        Tool(
+            name="analyze_gene_signature",
+            description=(
+                "Identify which transcription factors are most likely driving a gene "
+                "signature (e.g. a list of differentially expressed genes). "
+                "Uses RegNetAgents Fisher enrichment to rank TFs by regulon overlap with "
+                "the input gene set, then validates top candidates via CASCADE perturbation "
+                "simulation and experimental data (LINCS, DepMap, super-enhancers). "
+                "Returns a ranked driver table with signature coverage % and 7-source "
+                "corroboration score — a cross-system result neither RegNetAgents nor "
+                "CASCADE can produce alone."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "genes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of gene symbols (e.g. differentially expressed genes)",
+                        "minItems": 2,
+                    },
+                    "cell_type": {
+                        "type": "string",
+                        "description": "Cell type context for network and perturbation analysis (e.g. epithelial_cell)",
+                    },
+                },
+                "required": ["genes", "cell_type"],
+            },
+        ),
     ]
 
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    gene = arguments.get("gene", "")
     cell_type = arguments.get("cell_type", "")
-    depth = arguments.get("analysis_depth", "comprehensive")
 
-    result = await workflow.run_analysis(
-        gene=gene,
-        cell_type=cell_type,
-        analysis_type=name,
-        analysis_depth=depth,
-    )
+    if name == "analyze_gene_signature":
+        genes = arguments.get("genes", [])
+        result = await workflow.run_analysis(
+            gene="",
+            cell_type=cell_type,
+            analysis_type="gene_signature",
+            gene_signature=genes,
+        )
+        label = f"Gene signature ({len(genes)} genes) in {cell_type}"
+    else:
+        gene = arguments.get("gene", "")
+        depth = arguments.get("analysis_depth", "comprehensive")
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type=cell_type,
+            analysis_type=name,
+            analysis_depth=depth,
+        )
+        label = f"{gene} in {cell_type}"
 
     return [TextContent(
         type="text",
-        text=f"Orchestra analysis for {gene} in {cell_type}: {result.get('final_report', 'In progress — implementation pending.')}"
+        text=f"Orchestra analysis for {label}: {result.get('final_report', 'In progress — implementation pending.')}"
     )]
 
 
