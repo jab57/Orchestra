@@ -14,7 +14,7 @@ authors:
 affiliations:
   - name: Bird AI Solutions
     index: 1
-date: 1 September 2026
+date: 1 September 2026  # TODO: update to actual submission date
 archive_doi: 10.5281/zenodo.TBD
 bibliography: paper.bib
 ---
@@ -23,7 +23,7 @@ bibliography: paper.bib
 
 Orchestra is a Python orchestration layer that composes two specialized bioinformatics MCP servers — RegNetAgents [@bird2026regnetagents] and CASCADE [@bird2026cascade] — via the Model Context Protocol [@mcp], enabling multi-system causal reasoning from a single query. A LangGraph-based workflow [@langgraph] classifies each gene's regulatory role, routes to an appropriate analysis strategy, and executes coordinated tool calls to both child servers in parallel before synthesizing their outputs into a unified evidence report.
 
-Orchestra exposes three composite tools that require both child servers and cannot be replicated by either alone. `causal_chain_analysis` runs regulatory network analysis (RegNetAgents) and perturbation simulation (CASCADE) in parallel and identifies targets corroborated by both computational network topology and experimental evidence. `validate_therapeutic_targets` ranks upstream regulators by PageRank centrality (RegNetAgents), then validates top candidates against LINCS knockdown data, super-enhancer evidence, and DepMap essentiality (CASCADE). `effector_analysis` handles scaffold proteins with no transcriptional targets by detecting this dead-end condition, finding transcription factor partners via protein-protein interactions, and routing the analysis through the TF partner.
+Orchestra exposes four composite tools that require both child servers and cannot be replicated by either alone. `causal_chain_analysis` runs regulatory network analysis (RegNetAgents) and perturbation simulation (CASCADE) in parallel and identifies targets corroborated by both computational network topology and experimental evidence. `validate_therapeutic_targets` ranks upstream regulators by PageRank centrality (RegNetAgents), then validates top candidates against LINCS knockdown data, super-enhancer evidence, and DepMap essentiality (CASCADE). `effector_analysis` handles scaffold proteins with no transcriptional targets by detecting this dead-end condition, finding transcription factor partners via protein-protein interactions, and routing the analysis through the TF partner. `analyze_gene_signature` accepts a user-supplied gene list, applies Fisher's exact test enrichment via RegNetAgents to identify the master regulators most significantly overrepresented in the signature, and validates the top candidates with CASCADE perturbation analysis — bridging expression-based pattern discovery and mechanistic perturbation evidence.
 
 # Statement of Need
 
@@ -35,7 +35,7 @@ General bioinformatics workflow managers (Nextflow, Snakemake) orchestrate file-
 
 # Architecture
 
-Orchestra follows a three-layer design (\autoref{fig:architecture}). The **decision layer** classifies each gene's regulatory role — master regulator, transcription factor, effector, or isolated — via a CASCADE metadata call and routes to one of three analysis paths. The **evidence layer** executes coordinated MCP tool calls to RegNetAgents and CASCADE, always in parallel where calls are independent, and accumulates results in a typed LangGraph state object. The **explanation layer** synthesizes outputs from both systems: for each candidate target, it counts how many independent sources agree — network topology rank and pathway membership from RegNetAgents; LINCS knockdown, DepMap essentiality, super-enhancer status, DoRothEA TF confidence, STRING PPI, and cBioPortal tumor expression from CASCADE's pre-synthesized evidence block. An optional LLM synthesis node narrates the scored evidence table without altering the structured output.
+Orchestra follows a three-layer design (\autoref{fig:architecture}). The **decision layer** classifies each gene's regulatory role — master regulator, transcription factor, effector, or isolated — via a CASCADE metadata call and routes to one of four analysis paths. The **evidence layer** executes coordinated MCP tool calls to RegNetAgents and CASCADE, always in parallel where calls are independent, and accumulates results in a typed LangGraph state object. The **explanation layer** synthesizes outputs from both systems: for each candidate target, it counts how many independent sources agree — network topology rank and pathway membership from RegNetAgents; LINCS knockdown, DepMap essentiality, super-enhancer status, DoRothEA TF confidence, STRING PPI, and cBioPortal tumor expression from CASCADE's pre-synthesized evidence block. An optional LLM synthesis node narrates the scored evidence table without altering the structured output.
 
 ![Orchestra architecture. Claude Desktop sends a query to the Orchestra MCP server. The decision layer classifies the gene and selects an analysis path. The evidence layer executes parallel MCP calls to RegNetAgents and CASCADE. The explanation layer identifies cross-system hits — targets corroborated by both network topology and experimental evidence — and returns a structured report.\label{fig:architecture}](figure_architecture.png)
 
@@ -49,7 +49,7 @@ cp .env.example .env   # configure paths to RegNetAgents and CASCADE
 python orchestra_mcp_server.py
 ```
 
-Once running, any MCP-compatible client can call Orchestra's three composite tools.
+Once running, any MCP-compatible client can call Orchestra's four composite tools.
 
 For a transcription factor, `causal_chain_analysis(gene="TP53", cell_type="epithelial_cell")` classifies TP53 as a master regulator, executes RegNetAgents network analysis and CASCADE perturbation simulation in parallel, and reports targets corroborated by both systems — genes appearing in RegNetAgents' downstream network topology AND in CASCADE's multi-source experimental evidence. These cross-system hits carry higher confidence than targets supported by either system alone.
 
@@ -57,19 +57,24 @@ For a therapeutic target query, `validate_therapeutic_targets(gene="MYC", cell_t
 
 For an effector gene, `effector_analysis(gene="APC", cell_type="epithelial_cell")` detects the empty perturbation condition automatically, identifies CTNNB1 as the highest-influence TF partner via STRING PPI, runs CASCADE perturbation analysis and RegNetAgents pathway enrichment in parallel on CTNNB1, and returns an integrated APC→CTNNB1→Wnt causal explanation. This path is unreachable by either child server: CASCADE dead-ends on empty results; RegNetAgents has no PPI data to bridge from scaffold protein to TF partner.
 
+For a gene signature, `analyze_gene_signature(genes=["MYC","TP53","CDKN1A",...], cell_type="epithelial_cell")` applies Fisher's exact test enrichment against the RegNetAgents regulatory network to rank master regulators by how significantly they are overrepresented as upstream drivers of the input gene set. Orchestra then passes the top three transcription factors to CASCADE for independent perturbation validation, and reports which regulators are supported by both enrichment statistics and experimental evidence. This path addresses a common discovery scenario — a differentially expressed gene list from an experiment — where the question is not "what does this gene do?" but "which regulator is driving this whole pattern?"
+
 # Results
 
-Three biological validation cases confirm that Orchestra's routing, evidence coordination, and synthesis layers function correctly (Table 1).
+Four biological validation cases confirm that Orchestra's routing, evidence coordination, and synthesis layers function correctly (Table 1).
 
-| Tool | Gene | Cell type | Key result |
+| Tool | Gene / Input | Cell type | Key result |
 |---|---|---|---|
 | `effector_analysis` | APC | epithelial_cell | CTNNB1 identified (STRING score 0.999); hub regulator, 310 downstream targets |
 | `causal_chain_analysis` | TP53 | epithelial_cell | CDKN1A: 3-source corroboration (DoRothEA, LINCS, STRING); 2 cross-system hits |
 | `validate_therapeutic_targets` | MYC | cd4_t_cells | BRD4: 1/7 sources (super-enhancer ✓; absent from ARACNe TF network — expected) |
+| `analyze_gene_signature` | 20-gene TP53 stress-response signature | epithelial_cell | KLF5: rank 1 (Fisher p=5×10⁻⁶, 5/9 overlap); DoRothEA-A + super-enhancer (12 GI/epithelial cell types) + DepMap GI essentiality |
 
-Table: Validation results across three canonical biological cases.
+Table: Validation results across four composite tools.
 
 In the APC case, neither child server alone completes the analysis — CASCADE returns empty perturbation results for the scaffold protein; RegNetAgents has no PPI data to bridge from APC to a transcription factor partner. This is the clearest demonstration that Orchestra's coordinated routing is necessary, not merely convenient. In the MYC case, BRD4 scores 1/7 evidence sources: CASCADE's super-enhancer analysis identifies it as a BET inhibitor target while its absence from RegNetAgents' ARACNe-inferred network is a biologically informative finding — BRD4 acts through chromatin co-activation, not direct mRNA regulation, and is not expected in ARACNe networks. Orchestra presents both views simultaneously, producing a more complete picture than either child server alone.
+
+In the gene signature case, 20 canonical TP53 stress-response target genes are submitted as input. Fisher enrichment against the epithelial_cell ARACNe regulon ranks KLF5 first (p=5×10⁻⁶; 5 of 9 network-resolved genes fall within its regulon). CASCADE independently validates KLF5 via three orthogonal evidence types: DoRothEA confidence A (the highest tier, combining literature, ChIP-seq, and motif evidence), super-enhancer associations in 12 gastrointestinal and epithelial cell types (colon crypt, esophagus), and DepMap essentiality in bowel and GI lineages. The second- and third-ranked regulators by Fisher p-value (SERTAD2, NCOA7) lack DoRothEA validation and have no GI-relevant DepMap essentiality, illustrating how cross-system scoring correctly deprioritizes high-enrichment candidates that are not independently confirmed as transcription factors.
 
 # Limitations
 
@@ -77,9 +82,11 @@ RegNetAgents regulatory networks are inferred from the CellxGene corpus via GREm
 
 TF partner selection in the effector path is heuristic — Orchestra selects the PPI partner with the highest downstream target count. This works reliably for canonical scaffold genes like APC, where CTNNB1 dominates unambiguously. For scaffold proteins with competing TF partners of similar network centrality, the heuristic may not select the most biologically relevant partner, and domain knowledge may be required.
 
+Fisher enrichment in the `analyze_gene_signature` path is sensitive to gene list quality and size. Short or low-quality input lists (fewer than ~20 genes) may produce unreliable enrichment statistics, and only the top three candidate regulators are carried forward for CASCADE validation. Users should treat the ranked output as a hypothesis-generation tool rather than a definitive identification of causal drivers.
+
 # Software Availability
 
-Orchestra is available at [https://github.com/jab57/Orchestra](https://github.com/jab57/Orchestra) under the MIT license. The repository includes automated tests covering workflow routing, cross-system synthesis, effector path TF partner selection, and graceful degradation when one child server is unavailable, with continuous integration via GitHub Actions.
+Orchestra is available at [https://github.com/jab57/Orchestra](https://github.com/jab57/Orchestra) under the MIT license. The repository includes 151 unit tests and 17 integration tests covering workflow routing, cross-system synthesis, effector path TF partner selection, gene signature enrichment, and graceful degradation when one child server is unavailable, with continuous integration via GitHub Actions. Bug reports and feature requests are tracked via the GitHub issue tracker.
 
 # AI Usage Disclosure
 

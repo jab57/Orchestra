@@ -27,6 +27,7 @@ Thumbs.db
 
 # Temporary
 tmp/
+outputs/
 FUTURE_ROADMAP.md
 JOSS_development_plan.md
 PROJECT_STATUS.md
