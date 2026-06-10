@@ -451,16 +451,18 @@ INTEGRATION = pytest.mark.skipif(
     reason="Set ORCHESTRA_INTEGRATION_TESTS=1 to run integration tests",
 )
 
-# Machine-specific skip: RegNetAgents gene_id_mapper calls requests.get(..., timeout=10) for
-# each ARACNe network Ensembl ID absent from the ensembl_to_symbol cache. On this machine
-# corporate SSL inspection causes those calls to hang until the OS-level TCP timeout fires
-# (~10s each × ~30 missing IDs = ~300s), consistently exceeding TIMEOUT_MASTER_REGULATORS.
-# The 151 unit tests cover all Orchestra routing, synthesis, and formatting logic.
+# Machine-specific skip: gene_id_mapper in RegNetAgents calls requests.get(..., timeout=10)
+# for each ARACNe network Ensembl ID absent from the local cache. On this machine corporate
+# SSL inspection causes each call to hang for ~10s; with ~43 missing IDs the total exceeds
+# any reasonable TIMEOUT_MASTER_REGULATORS value (~430s observed). RegNetAgents Issue #20
+# (fixed Jun 9 2026) ensures the timeout fires cleanly rather than hanging indefinitely.
+# Fix: add ORCHESTRA_SSL_NO_VERIFY support to gene_id_mapper.py (post-JOSS-review).
 INTEGRATION_LIVE = pytest.mark.skip(
     reason=(
-        "MCP find_master_regulators times out on this machine: gene_id_mapper "
-        "Ensembl REST lookups hang under corporate SSL inspection (~300s per call). "
-        "All Orchestra logic is covered by unit tests."
+        "gene_id_mapper Ensembl REST lookups take ~430s under corporate SSL inspection "
+        "(~43 ARACNe network IDs × 10s each), exceeding TIMEOUT_MASTER_REGULATORS. "
+        "Timeout fires cleanly (RegNetAgents #20 fixed Jun 9 2026) but returns no drivers. "
+        "Fix: add ORCHESTRA_SSL_NO_VERIFY support to gene_id_mapper.py post-JOSS-review."
     )
 )
 
@@ -468,17 +470,13 @@ INTEGRATION_LIVE = pytest.mark.skip(
 @INTEGRATION
 @INTEGRATION_LIVE
 class TestSignatureIntegration:
-    """20-gene Wnt target signature — end-to-end pipeline smoke test.
+    """19-gene Wnt target signature — end-to-end pipeline smoke test.
 
     Runs run_analysis() once and asserts on drivers, report header, and errors.
-    CTNNB1-as-top-hit is not asserted: only ~10/20 Wnt genes resolve to real ARACNe
+    CTNNB1-as-top-hit is not asserted: only ~10/19 Wnt genes resolve to real ARACNe
     network Ensembl IDs in the local cache, so top-hit varies by network coverage.
     """
 
-    # DKK4 is absent from the RegNetAgents local gene-ID cache and triggers an
-    # Ensembl REST API lookup that hangs under corporate SSL inspection.
-    # All remaining 19 genes are in the local cache (10 with real Ensembl IDs,
-    # 9 with ENSG_CACHED_* placeholders) — no external API calls needed.
     WNT_SIGNATURE = [
         "AXIN2", "MYC", "CCND1", "CDH1", "VEGFA", "LEF1", "TCF7",
         "LGR5", "ASCL2", "SP5", "NKD1", "RNF43", "ZNRF3", "DKK1",
