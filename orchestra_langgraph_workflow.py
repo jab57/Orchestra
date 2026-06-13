@@ -1024,8 +1024,9 @@ class OrchestraWorkflow:
             flags.append({
                 "type": "experimentally_active_not_in_network",
                 "description": (
-                    "Experimentally supported by CASCADE but absent from RegNetAgents "
-                    "regulatory network — may act through non-transcriptional mechanisms"
+                    "Experimentally supported by CASCADE but absent from the ARACNe/GREmLN "
+                    "mRNA regulatory network — regulatory mechanism uncharacterized; "
+                    "absence from the mRNA network does not imply non-transcriptional biology"
                 ),
                 "genes": [
                     {"symbol": g["symbol"], "source_count": g["source_count"],
@@ -1088,9 +1089,9 @@ class OrchestraWorkflow:
                     "gene": gene_name,
                     "description": (
                         f"{gene_name} has CASCADE experimental support but is absent "
-                        "from the ARACNe regulatory network — likely acts through "
-                        "a non-transcriptional mechanism (e.g., epigenetic regulation, "
-                        "chromatin remodeling)"
+                        "from the ARACNe/GREmLN mRNA regulatory network — regulatory "
+                        "mechanism uncharacterized; absence from the mRNA network does "
+                        "not imply non-transcriptional biology"
                     ),
                     "genes": [],
                 })
@@ -1894,8 +1895,10 @@ class OrchestraWorkflow:
                 )
             lines.append("")
             lines.append(
-                "_PageRank, Pathway = RegNetAgents sources. "
-                "LINCS, DepMap, SuperEnhancer, DoRothEA, cBioPortal = CASCADE sources._"
+                "_PageRank, Pathway = RegNetAgents sources (ARACNe/GREmLN mRNA network). "
+                "LINCS, DepMap, SuperEnhancer, DoRothEA, cBioPortal = CASCADE sources. "
+                "Methodologically independent of mRNA network: LINCS knockdown, DepMap CRISPR, SuperEnhancer. "
+                "Partially shared biological priors with mRNA network: STRING PPI, DoRothEA, cBioPortal._"
             )
             lines.append("")
 
