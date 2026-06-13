@@ -160,10 +160,16 @@ def _venv_python(server_dir: str) -> str:
 
 
 def _child_env(extra: dict[str, str] | None = None) -> dict[str, str]:
-    """Build subprocess env: inherit current environment, optionally propagate SSL bypass."""
+    """Build subprocess env: inherit current environment, propagate SSL bypass flags."""
     env = dict(os.environ)
     if os.environ.get("ORCHESTRA_SSL_NO_VERIFY") == "1":
         env["ORCHESTRA_SSL_NO_VERIFY"] = "1"
+        # Disable SSL verification at the Python HTTP stack level so child-server
+        # outbound calls (e.g. RegNetAgents Ensembl lookups) are not blocked by
+        # corporate SSL inspection proxies.
+        env["PYTHONHTTPSVERIFY"] = "0"
+        env["REQUESTS_CA_BUNDLE"] = ""
+        env["CURL_CA_BUNDLE"] = ""
     if extra:
         env.update(extra)
     return env
@@ -187,4 +193,5 @@ def make_regnetagents_client(cwd: str = r"c:\Dev\RegNetAgents") -> MCPClient:
         command=_venv_python(cwd),
         args=["regnetagents_langgraph_mcp_server.py"],
         cwd=cwd,
+        env=_child_env(),
     )
