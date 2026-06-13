@@ -14,10 +14,12 @@ Five composite tools:
 """
 
 import asyncio
+from contextlib import AsyncExitStack
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from orchestra_langgraph_workflow import OrchestraWorkflow
+from mcp_client import make_cascade_client, make_regnetagents_client, TIMEOUT_SERVER_WARMUP
 
 app = Server("orchestra")
 workflow = OrchestraWorkflow()
@@ -202,9 +204,35 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     )]
 
 
+async def _warmup_regnetagents(client) -> None:
+    try:
+        await client.call_tool(
+            "query_network",
+            {"gene": "TP53", "cell_type": "epithelial_cell"},
+            timeout_seconds=TIMEOUT_SERVER_WARMUP,
+        )
+    except Exception:
+        pass
+
+
 async def main():
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream, app.create_initialization_options())
+    async with AsyncExitStack() as stack:
+        # Open persistent connections once — eliminates per-call cold starts (~60-90s each)
+        cascade = await stack.enter_async_context(make_cascade_client())
+        regnetagents = await stack.enter_async_context(make_regnetagents_client())
+        workflow._persistent_cascade = cascade
+        workflow._persistent_regnetagents = regnetagents
+
+        # Pre-warm RegNetAgents in background so the network cache is ready before
+        # the first tool call arrives. Cancelled cleanly when the server exits.
+        warmup_task = asyncio.create_task(_warmup_regnetagents(regnetagents))
+        stack.callback(warmup_task.cancel)
+
+        async with stdio_server() as (read_stream, write_stream):
+            await app.run(read_stream, write_stream, app.create_initialization_options())
+
+    workflow._persistent_cascade = None
+    workflow._persistent_regnetagents = None
 
 
 if __name__ == "__main__":
