@@ -1067,7 +1067,9 @@ class TestScoreCellTypeEvidence:
 
     def _net(self, is_hub=False, pathways=None):
         return {
-            "network_summary": {"is_hub": is_hub},
+            "network_analysis": {
+                "regulatory_role": "hub_regulator" if is_hub else "weakly_regulated",
+            },
             "pathway_enrichment": {"enriched_pathways": pathways or []},
         }
 
@@ -1153,7 +1155,7 @@ class TestSynthesizeComparisonPath:
             assert src in scores
 
     def test_conserved_when_present_in_all(self, wf):
-        net = {"network_summary": {"is_hub": True}, "pathway_enrichment": {"enriched_pathways": []}}
+        net = {"network_analysis": {"regulatory_role": "hub_regulator"}, "pathway_enrichment": {"enriched_pathways": []}}
         perturb = {"evidence_synthesis": {"key_findings": []}}
         comparison = {
             "epithelial_cell": {"network": net, "perturbation": perturb,
@@ -1171,7 +1173,7 @@ class TestSynthesizeComparisonPath:
         assert result["synthesis"]["conservation_scores"]["pagerank_rank"]["label"] == "conserved"
 
     def test_absent_when_never_present(self, wf):
-        net = {"network_summary": {"is_hub": False}, "pathway_enrichment": {"enriched_pathways": []}}
+        net = {"network_analysis": {"regulatory_role": "weakly_regulated"}, "pathway_enrichment": {"enriched_pathways": []}}
         perturb = {"evidence_synthesis": {"key_findings": []}}
         comparison = {
             "epithelial_cell": {"network": net, "perturbation": perturb,
@@ -1185,8 +1187,8 @@ class TestSynthesizeComparisonPath:
         assert result["synthesis"]["conservation_scores"]["pagerank_rank"]["label"] == "absent"
 
     def test_cell_type_specific_when_one_of_three(self, wf):
-        net_hub = {"network_summary": {"is_hub": True}, "pathway_enrichment": {"enriched_pathways": []}}
-        net_no = {"network_summary": {"is_hub": False}, "pathway_enrichment": {"enriched_pathways": []}}
+        net_hub = {"network_analysis": {"regulatory_role": "hub_regulator"}, "pathway_enrichment": {"enriched_pathways": []}}
+        net_no = {"network_analysis": {"regulatory_role": "weakly_regulated"}, "pathway_enrichment": {"enriched_pathways": []}}
         perturb = {"evidence_synthesis": {"key_findings": []}}
         comparison = {
             "epithelial_cell": {"network": net_hub, "perturbation": perturb,

@@ -23,6 +23,7 @@ load_dotenv()
 from mcp_client import (
     TIMEOUT_MASTER_REGULATORS,
     TIMEOUT_NETWORK,
+    TIMEOUT_NETWORK_COMPARISON,
     TIMEOUT_PERTURBATION,
     TIMEOUT_PPI,
     make_cascade_client,
@@ -687,7 +688,7 @@ class OrchestraWorkflow:
                 self._regnetagents.call_tool(
                     "comprehensive_gene_analysis",
                     {"gene": gene, "cell_type": ct},
-                    timeout_seconds=TIMEOUT_NETWORK,
+                    timeout_seconds=TIMEOUT_NETWORK_COMPARISON,
                 ),
                 self._cascade.call_tool(
                     "comprehensive_perturbation_analysis",
@@ -1323,15 +1324,12 @@ class OrchestraWorkflow:
         same keyword signals as _score_candidate_evidence.
         """
         net = network_result or {}
-        net_summary = (
-            net.get("network_summary")
-            or net.get("summary")
-            or net.get("workflow_summary")
-            or {}
-        )
-        pagerank_rank = bool(net_summary.get("is_hub")) or (
-            float((net.get("centrality_metrics") or {}).get("pagerank") or 0) > 0
-        )
+        # comprehensive_gene_analysis returns network_analysis = state['gene_info']
+        # which has regulatory_role ("hub_regulator", ...) and pagerank (float)
+        net_analysis = net.get("network_analysis") or {}
+        regulatory_role = net_analysis.get("regulatory_role") or ""
+        pagerank_rank = regulatory_role == "hub_regulator"
+
         enriched_pathways = (
             (net.get("pathway_enrichment") or {}).get("enriched_pathways")
             or (net.get("pathway_enrichment") or {}).get("pathways")
