@@ -497,20 +497,6 @@ class OrchestraWorkflow:
             state["completed_steps"].append("run_signature_path")
             return state
 
-        # Warm up RegNetAgents before the Fisher test timer starts. The server
-        # lazy-loads its network cache on first call (~60-90s); absorbing that
-        # cost here gives find_master_regulators its full 300s for the actual
-        # Fisher computation. Non-fatal — proceed even if the warm-up times out.
-        await self._emit(f"[Orchestra] Warming up RegNetAgents network server for {cell_type}...")
-        try:
-            await self._regnetagents.call_tool(
-                "query_network",
-                {"gene": gene_signature[0], "cell_type": cell_type},
-                timeout_seconds=TIMEOUT_SERVER_WARMUP,
-            )
-        except Exception:
-            pass
-
         # Step 1: RegNetAgents master regulator enrichment analysis
         await self._emit(
             f"[Orchestra] Running Fisher enrichment across all regulators "
