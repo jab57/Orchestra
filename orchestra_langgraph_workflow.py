@@ -26,6 +26,7 @@ from mcp_client import (
     TIMEOUT_NETWORK_COMPARISON,
     TIMEOUT_PERTURBATION,
     TIMEOUT_PPI,
+    TIMEOUT_SERVER_WARMUP,
     make_cascade_client,
     make_regnetagents_client,
 )
@@ -474,6 +475,19 @@ class OrchestraWorkflow:
             state["errors"]["signature_path"] = "gene_signature is empty"
             state["completed_steps"].append("run_signature_path")
             return state
+
+        # Warm up RegNetAgents before the Fisher test timer starts. The server
+        # lazy-loads its network cache on first call (~60-90s); absorbing that
+        # cost here gives find_master_regulators its full 300s for the actual
+        # Fisher computation. Non-fatal — proceed even if the warm-up times out.
+        try:
+            await self._regnetagents.call_tool(
+                "query_network",
+                {"gene": gene_signature[0], "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_SERVER_WARMUP,
+            )
+        except Exception:
+            pass
 
         # Step 1: RegNetAgents master regulator enrichment analysis
         try:

@@ -26,7 +26,8 @@ TIMEOUT_PERTURBATION = 60.0            # comprehensive_perturbation_analysis
 TIMEOUT_PPI = 15.0                     # get_protein_interactions
 TIMEOUT_NETWORK = 60.0                 # comprehensive_gene_analysis, pathway_focused_analysis
 TIMEOUT_NETWORK_COMPARISON = 180.0    # compare_cell_contexts path — hub genes (e.g. MYC) can have 400+ targets
-TIMEOUT_MASTER_REGULATORS = 300.0     # find_master_regulators — includes server lazy-load on first call (~60-90s) + Fisher's exact test
+TIMEOUT_MASTER_REGULATORS = 300.0     # find_master_regulators — Fisher's exact test across all regulators
+TIMEOUT_SERVER_WARMUP = 120.0         # warm-up query to absorb server cold-start (~60-90s lazy load)
 TIMEOUT_DEFAULT = 30.0
 
 
