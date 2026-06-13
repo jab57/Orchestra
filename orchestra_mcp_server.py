@@ -145,6 +145,22 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    # Capture session once at request start so the callback is safe to call
+    # from asyncio sub-tasks (gather) without re-entering the ContextVar lookup.
+    _session = app.request_context.session
+    _request_id = app.request_context.request_id
+
+    async def progress(msg: str) -> None:
+        try:
+            await _session.send_log_message(
+                level="info",
+                data=msg,
+                logger="orchestra",
+                related_request_id=_request_id,
+            )
+        except Exception:
+            pass
+
     cell_type = arguments.get("cell_type", "")
 
     if name == "analyze_gene_signature":
@@ -154,6 +170,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cell_type=cell_type,
             analysis_type="gene_signature",
             gene_signature=genes,
+            progress=progress,
         )
         label = f"Gene signature ({len(genes)} genes) in {cell_type}"
     elif name == "compare_cell_contexts":
@@ -164,6 +181,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cell_type="",
             analysis_type="cell_context_comparison",
             cell_types=cell_types,
+            progress=progress,
         )
         label = f"{gene} across {', '.join(cell_types)}"
     else:
@@ -174,6 +192,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cell_type=cell_type,
             analysis_type=name,
             analysis_depth=depth,
+            progress=progress,
         )
         label = f"{gene} in {cell_type}"
 

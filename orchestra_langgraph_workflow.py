@@ -13,6 +13,8 @@ import asyncio
 import logging
 import math
 import os
+from collections.abc import Callable, Coroutine
+from contextvars import ContextVar
 from typing import Any, Optional, TypedDict
 
 from dotenv import load_dotenv
@@ -32,6 +34,11 @@ from mcp_client import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Task-local progress callback — inherited by asyncio sub-tasks (gather), safe for concurrent calls.
+_progress_cb: ContextVar[Callable[[str], Coroutine] | None] = ContextVar(
+    "_progress_cb", default=None
+)
 
 
 class OrchestraState(TypedDict):
@@ -178,6 +185,14 @@ class OrchestraWorkflow:
         except Exception as e:
             logger.error(f"Anthropic provider initialization failed: {e}")
             return False
+
+    async def _emit(self, msg: str) -> None:
+        cb = _progress_cb.get()
+        if cb is not None:
+            try:
+                await cb(msg)
+            except Exception:
+                pass
 
     async def _call_llm(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         provider = os.getenv("LLM_PROVIDER", "ollama").lower()
@@ -342,6 +357,7 @@ class OrchestraWorkflow:
         gene = state["gene"]
         cell_type = state["cell_type"]
 
+        await self._emit(f"[Orchestra] Running RegNetAgents + CASCADE in parallel for {gene} in {cell_type}...")
         rna_result, cascade_result = await asyncio.gather(
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
@@ -378,6 +394,7 @@ class OrchestraWorkflow:
         cell_type = state["cell_type"]
 
         # Step 1: get PPI partners and find the most influential TF
+        await self._emit(f"[Orchestra] Finding TF partner for {gene} via STRING PPI...")
         try:
             ppi = await self._cascade.call_tool(
                 "get_protein_interactions",
@@ -398,6 +415,7 @@ class OrchestraWorkflow:
             return state
 
         # Step 2: parallel CASCADE perturbation + RegNetAgents network analysis on TF partner
+        await self._emit(f"[Orchestra] Running parallel CASCADE + RegNetAgents for TF partner {tf_partner}...")
         cascade_result, rna_result = await asyncio.gather(
             self._cascade.call_tool(
                 "comprehensive_perturbation_analysis",
@@ -480,6 +498,7 @@ class OrchestraWorkflow:
         # lazy-loads its network cache on first call (~60-90s); absorbing that
         # cost here gives find_master_regulators its full 300s for the actual
         # Fisher computation. Non-fatal — proceed even if the warm-up times out.
+        await self._emit(f"[Orchestra] Warming up RegNetAgents network server for {cell_type}...")
         try:
             await self._regnetagents.call_tool(
                 "query_network",
@@ -490,6 +509,11 @@ class OrchestraWorkflow:
             pass
 
         # Step 1: RegNetAgents master regulator enrichment analysis
+        await self._emit(
+            f"[Orchestra] Running Fisher enrichment across all regulators "
+            f"for {len(gene_signature)}-gene signature in {cell_type} "
+            f"(this may take several minutes)..."
+        )
         try:
             mr_result = await self._regnetagents.call_tool(
                 "find_master_regulators",
@@ -508,6 +532,7 @@ class OrchestraWorkflow:
             for r in (mr_result.get("master_regulators") or [])[:3]
         ]
         if top_tfs:
+            await self._emit(f"[Orchestra] Validating top TFs via CASCADE: {', '.join(top_tfs)}")
             validation_results = await asyncio.gather(
                 *[
                     self._cascade.call_tool(
@@ -555,6 +580,7 @@ class OrchestraWorkflow:
 
         import re
 
+        await self._emit(f"[Orchestra] Querying RegNetAgents PageRank + CASCADE drug discovery for {gene} in {cell_type}...")
         # Step 1: parallel — RegNetAgents network analysis + CASCADE drug discovery + CASCADE PPI
         # Three calls cover complementary layers: network topology, drug db, protein interactions.
         # The two CASCADE calls serialize within the same subprocess but are fast.
@@ -650,6 +676,7 @@ class OrchestraWorkflow:
         # Step 3: validate top 3 unique candidates via CASCADE comprehensive perturbation
         top = candidates[:3]
         if top:
+            await self._emit(f"[Orchestra] Validating top candidates via CASCADE: {', '.join(c['gene'] for c in top)}")
             validation_results = await asyncio.gather(
                 *[
                     self._cascade.call_tool(
@@ -697,6 +724,10 @@ class OrchestraWorkflow:
             state["completed_steps"].append("run_comparison_path")
             return state
 
+        await self._emit(
+            f"[Orchestra] Running parallel RegNetAgents + CASCADE for {gene} "
+            f"across {len(cell_types)} cell types: {', '.join(cell_types)}"
+        )
         async def _analyze_one(ct: str):
             rna, casc = await asyncio.gather(
                 self._regnetagents.call_tool(
@@ -2107,8 +2138,10 @@ class OrchestraWorkflow:
         analysis_depth: str = "comprehensive",
         gene_signature: Optional[list] = None,
         cell_types: Optional[list] = None,
+        progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
+        token = _progress_cb.set(progress)
         initial_state = OrchestraState(
             gene=gene,
             cell_type=cell_type,
@@ -2136,13 +2169,16 @@ class OrchestraWorkflow:
             final_report=None,
         )
 
-        async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
-            self._cascade = cascade
-            self._regnetagents = regnetagents
-            try:
-                result = await self.graph.ainvoke(initial_state)
-            finally:
-                self._cascade = None
-                self._regnetagents = None
+        try:
+            async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
+                self._cascade = cascade
+                self._regnetagents = regnetagents
+                try:
+                    result = await self.graph.ainvoke(initial_state)
+                finally:
+                    self._cascade = None
+                    self._regnetagents = None
+        finally:
+            _progress_cb.reset(token)
 
         return result
