@@ -217,19 +217,29 @@ async def _warmup_regnetagents(client) -> None:
 
 async def main():
     async with AsyncExitStack() as stack:
-        # Open persistent connections once — eliminates per-call cold starts (~60-90s each)
-        cascade = await stack.enter_async_context(make_cascade_client())
-        regnetagents = await stack.enter_async_context(make_regnetagents_client())
-        workflow._persistent_cascade = cascade
-        workflow._persistent_regnetagents = regnetagents
-
-        # Pre-warm RegNetAgents in background so the network cache is ready before
-        # the first tool call arrives. Cancelled cleanly when the server exits.
-        warmup_task = asyncio.create_task(_warmup_regnetagents(regnetagents))
-        stack.callback(warmup_task.cancel)
-
+        # Start stdio_server FIRST so Claude Desktop can connect immediately.
+        # Persistent connections are opened in a background task so they never
+        # block Orchestra's own MCP handshake.
         async with stdio_server() as (read_stream, write_stream):
-            await app.run(read_stream, write_stream, app.create_initialization_options())
+
+            async def _init_persistent() -> None:
+                try:
+                    cascade = await stack.enter_async_context(make_cascade_client())
+                    regnetagents = await stack.enter_async_context(make_regnetagents_client())
+                    workflow._persistent_cascade = cascade
+                    workflow._persistent_regnetagents = regnetagents
+                    # Pre-warm RegNetAgents network cache (~90s); non-fatal if cancelled
+                    await _warmup_regnetagents(regnetagents)
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    pass  # fall back to per-call connections silently
+
+            init_task = asyncio.create_task(_init_persistent())
+            try:
+                await app.run(read_stream, write_stream, app.create_initialization_options())
+            finally:
+                init_task.cancel()
 
     workflow._persistent_cascade = None
     workflow._persistent_regnetagents = None
