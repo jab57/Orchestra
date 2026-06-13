@@ -4,12 +4,13 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Four composite tools:
+Five composite tools:
   causal_chain_analysis        — TF path (parallel RegNetAgents + CASCADE) or
                                  effector path (PPI → TF partner → simulate)
   validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
   effector_analysis            — scaffold/effector routing (APC→CTNNB1 pattern)
   analyze_gene_signature       — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
+  compare_cell_contexts        — 7-source evidence heatmap across N cell types (Issue #11)
 """
 
 import asyncio
@@ -107,6 +108,38 @@ async def list_tools() -> list[Tool]:
                 "required": ["genes", "cell_type"],
             },
         ),
+        Tool(
+            name="compare_cell_contexts",
+            description=(
+                "Compare a gene's regulatory evidence across multiple cell types. "
+                "Runs RegNetAgents network analysis and CASCADE perturbation analysis "
+                "for each cell type in parallel, then produces a 7-source evidence heatmap "
+                "showing which findings are conserved across cell types vs. cell-type-specific. "
+                "Use this to determine tissue specificity of a regulatory relationship before "
+                "selecting a therapeutic context."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol to compare across cell types (e.g. MYC)",
+                    },
+                    "cell_types": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "List of cell type contexts to compare (e.g. [\"epithelial_cell\", \"cd4_t_cells\", \"nk_cells\"]). "
+                            "Available: cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, "
+                            "nk_cells, nkt_cells, cd20_b_cells, monocyte-derived_dendritic_cells, "
+                            "erythrocytes, epithelial_cell"
+                        ),
+                        "minItems": 2,
+                    },
+                },
+                "required": ["gene", "cell_types"],
+            },
+        ),
     ]
 
 
@@ -123,6 +156,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             gene_signature=genes,
         )
         label = f"Gene signature ({len(genes)} genes) in {cell_type}"
+    elif name == "compare_cell_contexts":
+        gene = arguments.get("gene", "")
+        cell_types = arguments.get("cell_types", [])
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type="",
+            analysis_type="cell_context_comparison",
+            cell_types=cell_types,
+        )
+        label = f"{gene} across {', '.join(cell_types)}"
     else:
         gene = arguments.get("gene", "")
         depth = arguments.get("analysis_depth", "comprehensive")

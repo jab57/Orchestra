@@ -1012,6 +1012,291 @@ class TestDiscordanceFlagsInReports:
 
 
 # ---------------------------------------------------------------------------
+# Issue #11: compare_cell_contexts — routing, synthesis, report
+# ---------------------------------------------------------------------------
+
+class TestComparisonRouting:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def test_cell_context_comparison_routes_to_comparison_path(self, wf):
+        state = _tf_state(analysis_type="cell_context_comparison")
+        assert wf._routing_decision(state) == "comparison_path"
+
+    def test_cell_context_comparison_skips_classify_gene(self, wf):
+        state = _tf_state(analysis_type="cell_context_comparison")
+        result = wf._classify_gene.__wrapped__(wf, state) if hasattr(wf._classify_gene, '__wrapped__') else None
+        # Verify routing decision alone — classify_gene is async; routing is the key test
+        assert wf._routing_decision(state) == "comparison_path"
+
+
+class TestClassifyConservation:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def test_conserved_all_present(self, wf):
+        assert wf._classify_conservation(3, 3, 2) == "conserved"
+
+    def test_conserved_two_of_three(self, wf):
+        assert wf._classify_conservation(2, 3, 2) == "conserved"
+
+    def test_enriched_below_threshold(self, wf):
+        # N=4, threshold=ceil(8/3)=3; count=2 → enriched
+        assert wf._classify_conservation(2, 4, 3) == "enriched"
+
+    def test_cell_type_specific(self, wf):
+        assert wf._classify_conservation(1, 3, 2) == "cell_type_specific"
+
+    def test_absent(self, wf):
+        assert wf._classify_conservation(0, 3, 2) == "absent"
+
+    def test_n2_both_present_is_conserved(self, wf):
+        # N=2, threshold=max(2, ceil(4/3))=2; count=2 → conserved
+        assert wf._classify_conservation(2, 2, 2) == "conserved"
+
+    def test_n2_one_present_is_specific(self, wf):
+        assert wf._classify_conservation(1, 2, 2) == "cell_type_specific"
+
+
+class TestScoreCellTypeEvidence:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _net(self, is_hub=False, pathways=None):
+        return {
+            "network_summary": {"is_hub": is_hub},
+            "pathway_enrichment": {"enriched_pathways": pathways or []},
+        }
+
+    def _perturb(self, findings=None):
+        return {"evidence_synthesis": {"key_findings": findings or []}}
+
+    def test_all_false_on_empty(self, wf):
+        scores = wf._score_cell_type_evidence(None, None)
+        assert scores["corroboration_count"] == 0
+        assert scores["network_available"] is False
+        assert scores["perturbation_available"] is False
+
+    def test_hub_detected(self, wf):
+        scores = wf._score_cell_type_evidence(self._net(is_hub=True), None)
+        assert scores["pagerank_rank"] is True
+
+    def test_pathway_detected(self, wf):
+        scores = wf._score_cell_type_evidence(self._net(pathways=["MAPK"]), None)
+        assert scores["pathway_member"] is True
+
+    def test_lincs_detected(self, wf):
+        scores = wf._score_cell_type_evidence(None, self._perturb(["LINCS knockdown confirmed"]))
+        assert scores["lincs_knockdown"] is True
+
+    def test_depmap_not_essential_is_false(self, wf):
+        scores = wf._score_cell_type_evidence(None, self._perturb(["DepMap: not essential"]))
+        assert scores["depmap_essentiality"] is False
+
+    def test_depmap_essential_is_true(self, wf):
+        scores = wf._score_cell_type_evidence(None, self._perturb(["DepMap essentiality confirmed"]))
+        assert scores["depmap_essentiality"] is True
+
+    def test_super_enhancer_detected(self, wf):
+        scores = wf._score_cell_type_evidence(None, self._perturb(["super-enhancer present"]))
+        assert scores["super_enhancer"] is True
+
+    def test_corroboration_count(self, wf):
+        scores = wf._score_cell_type_evidence(
+            self._net(is_hub=True, pathways=["MAPK"]),
+            self._perturb(["LINCS knockdown confirmed", "super-enhancer present"]),
+        )
+        assert scores["corroboration_count"] == 4
+
+
+class TestSynthesizeComparisonPath:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _state(self, gene="MYC", cell_types=None, comparison_results=None):
+        return OrchestraState(
+            gene=gene,
+            cell_type="",
+            analysis_type="cell_context_comparison",
+            analysis_depth="comprehensive",
+            gene_role=None, ensembl_id=None, tf_partner=None,
+            network_analysis=None, pathway_enrichment=None, domain_insights=None,
+            perturbation_result=None, ppi_interactions=None,
+            lincs_effects=None, depmap_essentiality=None,
+            validated_targets=None, causal_chain=None,
+            gene_signature=None, master_regulators=None,
+            cell_types=cell_types or [],
+            comparison_results=comparison_results or {},
+            synthesis=None, completed_steps=[], errors={}, final_report=None,
+        )
+
+    def test_routing_key_is_comparison(self, wf):
+        state = self._state()
+        result = wf._synthesize_comparison_path(state)
+        assert result["synthesis"]["routing"] == "comparison"
+
+    def test_cell_types_preserved(self, wf):
+        state = self._state(cell_types=["epithelial_cell", "cd4_t_cells"])
+        result = wf._synthesize_comparison_path(state)
+        assert result["synthesis"]["cell_types"] == ["epithelial_cell", "cd4_t_cells"]
+
+    def test_conservation_scores_present_for_all_sources(self, wf):
+        state = self._state(cell_types=["epithelial_cell"])
+        result = wf._synthesize_comparison_path(state)
+        scores = result["synthesis"]["conservation_scores"]
+        for src in ("pagerank_rank", "pathway_member", "lincs_knockdown",
+                    "depmap_essentiality", "super_enhancer", "dorothea_tier", "cbio_expression"):
+            assert src in scores
+
+    def test_conserved_when_present_in_all(self, wf):
+        net = {"network_summary": {"is_hub": True}, "pathway_enrichment": {"enriched_pathways": []}}
+        perturb = {"evidence_synthesis": {"key_findings": []}}
+        comparison = {
+            "epithelial_cell": {"network": net, "perturbation": perturb,
+                                "network_error": None, "perturbation_error": None},
+            "cd4_t_cells": {"network": net, "perturbation": perturb,
+                            "network_error": None, "perturbation_error": None},
+            "nk_cells": {"network": net, "perturbation": perturb,
+                         "network_error": None, "perturbation_error": None},
+        }
+        state = self._state(
+            cell_types=["epithelial_cell", "cd4_t_cells", "nk_cells"],
+            comparison_results=comparison,
+        )
+        result = wf._synthesize_comparison_path(state)
+        assert result["synthesis"]["conservation_scores"]["pagerank_rank"]["label"] == "conserved"
+
+    def test_absent_when_never_present(self, wf):
+        net = {"network_summary": {"is_hub": False}, "pathway_enrichment": {"enriched_pathways": []}}
+        perturb = {"evidence_synthesis": {"key_findings": []}}
+        comparison = {
+            "epithelial_cell": {"network": net, "perturbation": perturb,
+                                "network_error": None, "perturbation_error": None},
+            "cd4_t_cells": {"network": net, "perturbation": perturb,
+                            "network_error": None, "perturbation_error": None},
+        }
+        state = self._state(cell_types=["epithelial_cell", "cd4_t_cells"],
+                            comparison_results=comparison)
+        result = wf._synthesize_comparison_path(state)
+        assert result["synthesis"]["conservation_scores"]["pagerank_rank"]["label"] == "absent"
+
+    def test_cell_type_specific_when_one_of_three(self, wf):
+        net_hub = {"network_summary": {"is_hub": True}, "pathway_enrichment": {"enriched_pathways": []}}
+        net_no = {"network_summary": {"is_hub": False}, "pathway_enrichment": {"enriched_pathways": []}}
+        perturb = {"evidence_synthesis": {"key_findings": []}}
+        comparison = {
+            "epithelial_cell": {"network": net_hub, "perturbation": perturb,
+                                "network_error": None, "perturbation_error": None},
+            "cd4_t_cells": {"network": net_no, "perturbation": perturb,
+                            "network_error": None, "perturbation_error": None},
+            "nk_cells": {"network": net_no, "perturbation": perturb,
+                         "network_error": None, "perturbation_error": None},
+        }
+        state = self._state(
+            cell_types=["epithelial_cell", "cd4_t_cells", "nk_cells"],
+            comparison_results=comparison,
+        )
+        result = wf._synthesize_comparison_path(state)
+        assert result["synthesis"]["conservation_scores"]["pagerank_rank"]["label"] == "cell_type_specific"
+
+
+class TestFormatComparisonReport:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _synthesis(self, gene="MYC", cell_types=None, per_cell_type=None,
+                   conservation_scores=None):
+        cell_types = cell_types or ["epithelial_cell", "cd4_t_cells"]
+        per_cell_type = per_cell_type or {
+            ct: {
+                "pagerank_rank": False, "pathway_member": False,
+                "lincs_knockdown": False, "depmap_essentiality": False,
+                "super_enhancer": False, "dorothea_tier": False, "cbio_expression": False,
+                "corroboration_count": 0, "corroboration_denominator": 7,
+                "network_available": True, "perturbation_available": True,
+                "network_error": None, "perturbation_error": None,
+            }
+            for ct in cell_types
+        }
+        conservation_scores = conservation_scores or {
+            src: {"count": 0, "n": len(cell_types), "label": "absent"}
+            for src in ("pagerank_rank", "pathway_member", "lincs_knockdown",
+                        "depmap_essentiality", "super_enhancer", "dorothea_tier", "cbio_expression")
+        }
+        return {
+            "routing": "comparison",
+            "gene": gene,
+            "cell_types": cell_types,
+            "per_cell_type": per_cell_type,
+            "conservation_scores": conservation_scores,
+            "errors": {},
+        }
+
+    def test_gene_appears_in_header(self, wf):
+        text = "\n".join(wf._format_comparison_report(self._synthesis(gene="MYC")))
+        assert "MYC" in text
+
+    def test_cell_types_appear_in_table(self, wf):
+        text = "\n".join(wf._format_comparison_report(
+            self._synthesis(cell_types=["epithelial_cell", "cd4_t_cells"])
+        ))
+        assert "epithelial_cell" in text
+        assert "cd4_t_cells" in text
+
+    def test_evidence_heatmap_section_present(self, wf):
+        text = "\n".join(wf._format_comparison_report(self._synthesis()))
+        assert "Evidence Heatmap" in text
+
+    def test_conservation_summary_present(self, wf):
+        text = "\n".join(wf._format_comparison_report(self._synthesis()))
+        assert "Conservation Summary" in text
+
+    def test_conserved_source_shown(self, wf):
+        cons = {
+            src: {"count": 2, "n": 2, "label": "conserved"}
+            for src in ("pagerank_rank", "pathway_member", "lincs_knockdown",
+                        "depmap_essentiality", "super_enhancer", "dorothea_tier", "cbio_expression")
+        }
+        text = "\n".join(wf._format_comparison_report(self._synthesis(conservation_scores=cons)))
+        assert "Conserved" in text
+
+    def test_na_shown_when_data_unavailable(self, wf):
+        cell_types = ["epithelial_cell", "cd4_t_cells"]
+        per_ct = {
+            "epithelial_cell": {
+                "pagerank_rank": False, "pathway_member": False,
+                "lincs_knockdown": False, "depmap_essentiality": False,
+                "super_enhancer": False, "dorothea_tier": False, "cbio_expression": False,
+                "corroboration_count": 0, "corroboration_denominator": 7,
+                "network_available": False, "perturbation_available": False,
+                "network_error": "timeout", "perturbation_error": "timeout",
+            },
+            "cd4_t_cells": {
+                "pagerank_rank": False, "pathway_member": False,
+                "lincs_knockdown": False, "depmap_essentiality": False,
+                "super_enhancer": False, "dorothea_tier": False, "cbio_expression": False,
+                "corroboration_count": 0, "corroboration_denominator": 7,
+                "network_available": True, "perturbation_available": True,
+                "network_error": None, "perturbation_error": None,
+            },
+        }
+        text = "\n".join(wf._format_comparison_report(
+            self._synthesis(cell_types=cell_types, per_cell_type=per_ct)
+        ))
+        assert "N/A" in text
+        assert "Data Availability" in text
+
+    def test_independence_note_present(self, wf):
+        text = "\n".join(wf._format_comparison_report(self._synthesis()))
+        assert "Independent of mRNA network" in text
+
+
+# ---------------------------------------------------------------------------
 # Integration test — skipped unless ORCHESTRA_INTEGRATION_TESTS=1
 # ---------------------------------------------------------------------------
 

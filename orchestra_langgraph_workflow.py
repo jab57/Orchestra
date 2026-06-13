@@ -6,10 +6,12 @@ Issue #3 implemented: TF path (TP53, BRD4→MYC — parallel RegNetAgents + CASC
 Issue #4 implemented: therapeutic target validation (MYC→BRD4 via super-enhancers + PPI)
 Issue #9 implemented: cross-system discordance reporting (discordance_flags in synthesis layer)
 Issue #10 implemented: gene signature driver analysis (analyze_gene_signature — DEG list → ranked TF drivers)
+Issue #11 implemented: cross-cell-type context comparison (compare_cell_contexts — 7-source heatmap across N cell types)
 """
 
 import asyncio
 import logging
+import math
 import os
 from typing import Any, Optional, TypedDict
 
@@ -58,6 +60,10 @@ class OrchestraState(TypedDict):
     # Gene signature analysis (Issue #10)
     gene_signature: Optional[list]    # input DEG list for analyze_gene_signature
     master_regulators: Optional[dict] # RegNetAgents find_master_regulators output
+
+    # Cross-cell-type comparison (Issue #11)
+    cell_types: Optional[list]        # input list of cell types for compare_cell_contexts
+    comparison_results: Optional[dict] # per-cell-type {network, perturbation} results
 
     # Composite results
     validated_targets: Optional[list]
@@ -247,6 +253,7 @@ class OrchestraWorkflow:
         graph.add_node("run_effector_path", self._run_effector_path)
         graph.add_node("run_validation_path", self._run_validation_path)
         graph.add_node("run_signature_path", self._run_signature_path)
+        graph.add_node("run_comparison_path", self._run_comparison_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("generate_report", self._generate_report)
 
@@ -261,12 +268,14 @@ class OrchestraWorkflow:
                 "effector_path": "run_effector_path",
                 "validation_path": "run_validation_path",
                 "signature_path": "run_signature_path",
+                "comparison_path": "run_comparison_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
         graph.add_edge("run_effector_path", "synthesize")
         graph.add_edge("run_validation_path", "synthesize")
         graph.add_edge("run_signature_path", "synthesize")
+        graph.add_edge("run_comparison_path", "synthesize")
         graph.add_edge("synthesize", "generate_report")
         graph.add_edge("generate_report", END)
 
@@ -279,6 +288,8 @@ class OrchestraWorkflow:
     def _routing_decision(self, state: OrchestraState) -> str:
         if state.get("analysis_type") == "gene_signature":
             return "signature_path"
+        if state.get("analysis_type") == "cell_context_comparison":
+            return "comparison_path"
         if state.get("analysis_type") == "therapeutic_validation":
             return "validation_path"
         role = state.get("gene_role") or "isolated"
@@ -297,8 +308,8 @@ class OrchestraWorkflow:
 
     async def _classify_gene(self, state: OrchestraState) -> OrchestraState:
         """Call CASCADE get_gene_metadata to determine gene role and routing."""
-        # Signature analysis has no single gene to classify — skip directly to routing.
-        if state.get("analysis_type") == "gene_signature":
+        # Signature and comparison analyses have no single cell_type to classify — skip.
+        if state.get("analysis_type") in ("gene_signature", "cell_context_comparison"):
             state["completed_steps"].append("classify_gene")
             return state
         try:
@@ -654,6 +665,69 @@ class OrchestraWorkflow:
         state["completed_steps"].append("run_validation_path")
         return state
 
+    async def _run_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Cross-cell-type comparison path (Issue #11).
+
+        For each cell type in cell_types, runs RegNetAgents comprehensive_gene_analysis
+        and CASCADE comprehensive_perturbation_analysis in parallel (2N total calls).
+        Results are stored per-cell-type in comparison_results for conservation scoring
+        in _synthesize_comparison_path.
+        """
+        gene = state["gene"]
+        cell_types = state.get("cell_types") or []
+
+        if not cell_types:
+            state["errors"]["comparison"] = "cell_types list is empty"
+            state["completed_steps"].append("run_comparison_path")
+            return state
+
+        async def _analyze_one(ct: str):
+            rna, casc = await asyncio.gather(
+                self._regnetagents.call_tool(
+                    "comprehensive_gene_analysis",
+                    {"gene": gene, "cell_type": ct},
+                    timeout_seconds=TIMEOUT_NETWORK,
+                ),
+                self._cascade.call_tool(
+                    "comprehensive_perturbation_analysis",
+                    {"gene": gene, "cell_type": ct},
+                    timeout_seconds=TIMEOUT_PERTURBATION,
+                ),
+                return_exceptions=True,
+            )
+            return (
+                ct,
+                rna if not isinstance(rna, Exception) else None,
+                str(rna) if isinstance(rna, Exception) else None,
+                casc if not isinstance(casc, Exception) else None,
+                str(casc) if isinstance(casc, Exception) else None,
+            )
+
+        all_results = await asyncio.gather(
+            *[_analyze_one(ct) for ct in cell_types],
+            return_exceptions=True,
+        )
+
+        comparison_results: dict = {}
+        for i, item in enumerate(all_results):
+            ct = cell_types[i] if i < len(cell_types) else f"cell_type_{i}"
+            if isinstance(item, Exception):
+                comparison_results[ct] = {
+                    "network": None, "network_error": str(item),
+                    "perturbation": None, "perturbation_error": str(item),
+                }
+            else:
+                ct_name, net, net_err, perturb, perturb_err = item
+                comparison_results[ct_name] = {
+                    "network": net, "network_error": net_err,
+                    "perturbation": perturb, "perturbation_error": perturb_err,
+                }
+
+        state["comparison_results"] = comparison_results
+        state["completed_steps"].append("run_comparison_path")
+        return state
+
     # ------------------------------------------------------------------
     # Synthesis
     # ------------------------------------------------------------------
@@ -661,6 +735,8 @@ class OrchestraWorkflow:
     def _synthesize(self, state: OrchestraState) -> OrchestraState:
         if state.get("analysis_type") == "gene_signature":
             return self._synthesize_signature_path(state)
+        if state.get("analysis_type") == "cell_context_comparison":
+            return self._synthesize_comparison_path(state)
         if state.get("analysis_type") == "therapeutic_validation":
             return self._synthesize_validation_path(state)
         role = state.get("gene_role") or "effector"
@@ -1168,6 +1244,132 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
+    def _synthesize_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Cross-cell-type comparison synthesis (Issue #11).
+
+        Scores each cell type against the 7-source evidence framework, then classifies
+        each source by conservation level using the 2/3-majority threshold (min 2):
+          conserved        — present in >= ceil(2/3 * N) cell types
+          enriched         — present in 2 to threshold-1 cell types
+          cell_type_specific — present in exactly 1 cell type
+          absent           — present in 0 cell types
+        """
+        gene = state["gene"]
+        cell_types = state.get("cell_types") or []
+        comparison_results = state.get("comparison_results") or {}
+
+        _SOURCES = [
+            "pagerank_rank", "pathway_member", "lincs_knockdown",
+            "depmap_essentiality", "super_enhancer", "dorothea_tier", "cbio_expression",
+        ]
+
+        per_cell_type: dict = {}
+        for ct in cell_types:
+            ct_data = comparison_results.get(ct) or {}
+            scores = self._score_cell_type_evidence(
+                ct_data.get("network"), ct_data.get("perturbation")
+            )
+            scores["network_error"] = ct_data.get("network_error")
+            scores["perturbation_error"] = ct_data.get("perturbation_error")
+            per_cell_type[ct] = scores
+
+        n = len(cell_types)
+        threshold = max(2, math.ceil(2 / 3 * n))
+
+        conservation_scores: dict = {}
+        for src in _SOURCES:
+            count = sum(
+                1 for ct in cell_types
+                if per_cell_type.get(ct, {}).get(src, False)
+            )
+            conservation_scores[src] = {
+                "count": count,
+                "n": n,
+                "label": self._classify_conservation(count, n, threshold),
+            }
+
+        state["synthesis"] = {
+            "routing": "comparison",
+            "gene": gene,
+            "cell_types": cell_types,
+            "per_cell_type": per_cell_type,
+            "conservation_scores": conservation_scores,
+            "errors": state.get("errors") or {},
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
+    def _classify_conservation(self, count: int, n: int, threshold: int) -> str:
+        if count == 0:
+            return "absent"
+        if count == 1:
+            return "cell_type_specific"
+        if count >= threshold:
+            return "conserved"
+        return "enriched"
+
+    def _score_cell_type_evidence(
+        self,
+        network_result: Optional[dict],
+        perturbation_result: Optional[dict],
+    ) -> dict:
+        """
+        Score regulatory evidence for the query gene in one cell type context.
+
+        RegNetAgents sources: hub status (pagerank_rank) and pathway enrichment.
+        CASCADE sources: extracted from evidence_synthesis.key_findings text —
+        same keyword signals as _score_candidate_evidence.
+        """
+        net = network_result or {}
+        net_summary = (
+            net.get("network_summary")
+            or net.get("summary")
+            or net.get("workflow_summary")
+            or {}
+        )
+        pagerank_rank = bool(net_summary.get("is_hub")) or (
+            float((net.get("centrality_metrics") or {}).get("pagerank") or 0) > 0
+        )
+        enriched_pathways = (
+            (net.get("pathway_enrichment") or {}).get("enriched_pathways")
+            or (net.get("pathway_enrichment") or {}).get("pathways")
+            or []
+        )
+        pathway_member = bool(enriched_pathways)
+
+        perturb = perturbation_result or {}
+        ev = (perturb.get("evidence_synthesis") or {})
+        key_findings = ev.get("key_findings") or []
+        findings_text = "\n".join(str(f) for f in key_findings).lower()
+
+        lincs_hit = "lincs" in findings_text
+        depmap_hit = "depmap" in findings_text and "not essential" not in findings_text
+        se_hit = (
+            "super-enhancer" in findings_text
+            or "super_enhancer" in findings_text
+            or "bet inhibitor" in findings_text
+        )
+        dorothea_hit = "dorothea" in findings_text
+        cbio_hit = "cbioportal" in findings_text or "cbio" in findings_text
+
+        flags: dict = {
+            "pagerank_rank": pagerank_rank,
+            "pathway_member": pathway_member,
+            "lincs_knockdown": lincs_hit,
+            "depmap_essentiality": depmap_hit,
+            "super_enhancer": se_hit,
+            "dorothea_tier": dorothea_hit,
+            "cbio_expression": cbio_hit,
+        }
+        return {
+            **flags,
+            "corroboration_count": sum(1 for v in flags.values() if v),
+            "corroboration_denominator": 7,
+            "network_available": network_result is not None,
+            "perturbation_available": perturbation_result is not None,
+        }
+
     # ------------------------------------------------------------------
     # Report generation
     # ------------------------------------------------------------------
@@ -1190,7 +1392,7 @@ class OrchestraWorkflow:
         routing = synthesis.get("routing", "effector")
         llm_trigger = (
             bool(synthesis.get("tf_partner")) if routing == "effector"
-            else routing in ("tf", "validation", "signature")
+            else routing in ("tf", "validation", "signature", "comparison")
         )
 
         if self.llm_available and llm_trigger:
@@ -1212,6 +1414,8 @@ class OrchestraWorkflow:
             return self._format_validation_report(synthesis)
         if routing == "signature":
             return self._format_signature_report(synthesis)
+        if routing == "comparison":
+            return self._format_comparison_report(synthesis)
         return self._format_effector_report(synthesis)
 
     def _format_tf_report(self, synthesis: dict) -> list[str]:
@@ -1502,6 +1706,133 @@ class OrchestraWorkflow:
 
         return lines
 
+    def _format_comparison_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        cell_types = synthesis.get("cell_types") or []
+        per_cell_type = synthesis.get("per_cell_type") or {}
+        conservation_scores = synthesis.get("conservation_scores") or {}
+        errors = synthesis.get("errors") or {}
+
+        _SOURCE_LABELS = {
+            "pagerank_rank": "PageRank hub",
+            "pathway_member": "Pathway enrichment",
+            "lincs_knockdown": "LINCS knockdown",
+            "depmap_essentiality": "DepMap essentiality",
+            "super_enhancer": "Super-enhancer",
+            "dorothea_tier": "DoRothEA TF",
+            "cbio_expression": "cBioPortal",
+        }
+        _CONSERVATION_SYMBOLS = {
+            "conserved": "conserved",
+            "enriched": "enriched",
+            "cell_type_specific": "cell-type-specific",
+            "absent": "absent",
+        }
+
+        lines: list[str] = []
+        lines.append(f"## Cross-Cell-Type Context Comparison: {gene}")
+        lines.append("")
+        lines.append(f"**Cell types compared:** {', '.join(cell_types)}")
+        lines.append(f"**Conservation threshold:** ≥ ⌈2/3 × {len(cell_types)}⌉ = "
+                     f"{max(2, math.ceil(2 / 3 * len(cell_types)))} cell types")
+        lines.append("")
+
+        if not cell_types:
+            lines.append("> ⚠️ No cell types provided.")
+            return lines
+
+        # Evidence heatmap table
+        lines.append("### Evidence Heatmap")
+        lines.append("")
+        header = "| Source | " + " | ".join(cell_types) + " | Conservation |"
+        separator = "|---|" + "|".join(["---"] * len(cell_types)) + "|---|"
+        lines.append(header)
+        lines.append(separator)
+
+        for src, label in _SOURCE_LABELS.items():
+            cons = conservation_scores.get(src) or {}
+            count = cons.get("count", 0)
+            n = cons.get("n", len(cell_types))
+            cons_label = _CONSERVATION_SYMBOLS.get(cons.get("label", "absent"), "absent")
+            cells = []
+            for ct in cell_types:
+                score = per_cell_type.get(ct) or {}
+                present = score.get(src, False)
+                net_avail = score.get("network_available", False)
+                perturb_avail = score.get("perturbation_available", False)
+                if src in ("pagerank_rank", "pathway_member"):
+                    avail = net_avail
+                else:
+                    avail = perturb_avail
+                if not avail:
+                    cells.append("N/A")
+                elif present:
+                    cells.append("✓")
+                else:
+                    cells.append("—")
+            cons_cell = f"{cons_label} ({count}/{n})"
+            lines.append(f"| {label} | " + " | ".join(cells) + f" | {cons_cell} |")
+
+        lines.append("")
+        lines.append(
+            "_PageRank hub, Pathway enrichment = RegNetAgents sources (ARACNe/GREmLN). "
+            "LINCS, DepMap, SuperEnhancer, DoRothEA, cBioPortal = CASCADE sources. "
+            "Independent of mRNA network: LINCS knockdown, DepMap essentiality, SuperEnhancer._"
+        )
+        lines.append("")
+
+        # Conservation summary
+        lines.append("### Conservation Summary")
+        lines.append("")
+        by_label: dict = {"conserved": [], "enriched": [], "cell_type_specific": [], "absent": []}
+        for src, cons in conservation_scores.items():
+            by_label.setdefault(cons.get("label", "absent"), []).append(
+                _SOURCE_LABELS.get(src, src)
+            )
+
+        if by_label.get("conserved"):
+            lines.append(f"**Conserved (≥2/3 cell types):** {', '.join(by_label['conserved'])}")
+        if by_label.get("enriched"):
+            lines.append(f"**Enriched (majority):** {', '.join(by_label['enriched'])}")
+        if by_label.get("cell_type_specific"):
+            # Find which cell type for each specific source
+            specifics = []
+            for src, cons in conservation_scores.items():
+                if cons.get("label") == "cell_type_specific":
+                    for ct in cell_types:
+                        if (per_cell_type.get(ct) or {}).get(src, False):
+                            specifics.append(f"{_SOURCE_LABELS.get(src, src)} ({ct} only)")
+                            break
+            lines.append(f"**Cell-type-specific:** {', '.join(specifics)}")
+        if by_label.get("absent"):
+            lines.append(f"**Absent across all cell types:** {', '.join(by_label['absent'])}")
+
+        lines.append("")
+
+        # Data availability warnings
+        unavailable = [
+            ct for ct in cell_types
+            if not (per_cell_type.get(ct) or {}).get("network_available", True)
+            or not (per_cell_type.get(ct) or {}).get("perturbation_available", True)
+        ]
+        if unavailable:
+            lines.append("### Data Availability")
+            lines.append("")
+            for ct in unavailable:
+                scores = per_cell_type.get(ct) or {}
+                if scores.get("network_error"):
+                    lines.append(f"> ⚠️ **{ct}**: RegNetAgents unavailable — {scores['network_error']}")
+                if scores.get("perturbation_error"):
+                    lines.append(f"> ⚠️ **{ct}**: CASCADE unavailable — {scores['perturbation_error']}")
+            lines.append("")
+
+        if errors:
+            lines.append("### Errors")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
     # ------------------------------------------------------------------
     # LLM synthesis
     # ------------------------------------------------------------------
@@ -1760,6 +2091,7 @@ class OrchestraWorkflow:
         analysis_type: str = "causal_chain",
         analysis_depth: str = "comprehensive",
         gene_signature: Optional[list] = None,
+        cell_types: Optional[list] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
         initial_state = OrchestraState(
@@ -1781,6 +2113,8 @@ class OrchestraWorkflow:
             causal_chain=None,
             gene_signature=gene_signature,
             master_regulators=None,
+            cell_types=cell_types,
+            comparison_results=None,
             synthesis=None,
             completed_steps=[],
             errors={},
