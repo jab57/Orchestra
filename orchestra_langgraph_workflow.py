@@ -110,6 +110,9 @@ class OrchestraWorkflow:
         # Persistent connections set by MCP server at startup to avoid per-call cold starts
         self._persistent_cascade: Any = None
         self._persistent_regnetagents: Any = None
+        # Event set when persistent connections are ready — callers wait on this
+        # instead of spawning a second subprocess during cold start
+        self._persistent_ready: asyncio.Event = asyncio.Event()
 
         # Optional LLM synthesis — disabled by default
         self.use_llm = os.getenv("USE_LLM_SYNTHESIS", "false").lower() == "true"
@@ -2167,14 +2170,26 @@ class OrchestraWorkflow:
                     self._cascade = None
                     self._regnetagents = None
             else:
-                async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
-                    self._cascade = cascade
-                    self._regnetagents = regnetagents
+                # Wait for background _init_persistent to finish rather than
+                # spawning a second subprocess — avoids memory contention on cold start.
+                await asyncio.wait_for(self._persistent_ready.wait(), timeout=120.0)
+                if self._persistent_cascade is not None and self._persistent_regnetagents is not None:
+                    self._cascade = self._persistent_cascade
+                    self._regnetagents = self._persistent_regnetagents
                     try:
                         result = await self.graph.ainvoke(initial_state)
                     finally:
                         self._cascade = None
                         self._regnetagents = None
+                else:
+                    async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
+                        self._cascade = cascade
+                        self._regnetagents = regnetagents
+                        try:
+                            result = await self.graph.ainvoke(initial_state)
+                        finally:
+                            self._cascade = None
+                            self._regnetagents = None
         finally:
             _progress_cb.reset(token)
 

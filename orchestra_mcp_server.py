@@ -223,10 +223,11 @@ async def main():
                     # with per-call connections on cold starts.
                     workflow._persistent_cascade = cascade
                     workflow._persistent_regnetagents = regnetagents
+                    workflow._persistent_ready.set()
                 except asyncio.CancelledError:
                     pass
                 except Exception:
-                    pass  # fall back to per-call connections silently
+                    workflow._persistent_ready.set()  # unblock waiters even on failure
 
             init_task = asyncio.create_task(_init_persistent())
             try:
