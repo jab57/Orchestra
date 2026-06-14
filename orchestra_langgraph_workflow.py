@@ -506,10 +506,15 @@ class OrchestraWorkflow:
             f"(this may take several minutes)..."
         )
         try:
-            mr_result = await self._regnetagents.call_tool(
-                "find_master_regulators",
-                {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10},
-                timeout_seconds=TIMEOUT_MASTER_REGULATORS,
+            # asyncio.wait_for enforces the cut independently of the MCP library's
+            # read_timeout_seconds, which does not reliably cancel hung stdio calls.
+            mr_result = await asyncio.wait_for(
+                self._regnetagents.call_tool(
+                    "find_master_regulators",
+                    {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10},
+                    timeout_seconds=TIMEOUT_MASTER_REGULATORS,
+                ),
+                timeout=90.0,
             )
             state["master_regulators"] = mr_result
         except Exception as e:
@@ -526,10 +531,13 @@ class OrchestraWorkflow:
             await self._emit(f"[Orchestra] Validating top TFs via CASCADE: {', '.join(top_tfs)}")
             validation_results = await asyncio.gather(
                 *[
-                    self._cascade.call_tool(
-                        "comprehensive_perturbation_analysis",
-                        {"gene": tf, "cell_type": cell_type},
-                        timeout_seconds=TIMEOUT_PERTURBATION,
+                    asyncio.wait_for(
+                        self._cascade.call_tool(
+                            "comprehensive_perturbation_analysis",
+                            {"gene": tf, "cell_type": cell_type},
+                            timeout_seconds=TIMEOUT_PERTURBATION,
+                        ),
+                        timeout=TIMEOUT_PERTURBATION,
                     )
                     for tf in top_tfs
                 ],

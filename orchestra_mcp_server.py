@@ -14,12 +14,40 @@ Five composite tools:
 """
 
 import asyncio
+import subprocess
 from contextlib import AsyncExitStack
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from orchestra_langgraph_workflow import OrchestraWorkflow
 from mcp_client import make_cascade_client, make_regnetagents_client
+
+
+def _kill_orphaned_servers() -> None:
+    """Kill orphaned child server processes left by a previous Orchestra crash.
+
+    On Windows, child processes spawned via stdio are not automatically killed
+    when the parent dies. Without cleanup they accumulate across restarts,
+    consuming several GB of RAM and causing swap-induced hangs.
+    """
+    try:
+        result = subprocess.run(
+            ["wmic", "process", "where",
+             "CommandLine like '%regnetagents_langgraph_mcp_server%' or "
+             "CommandLine like '%cascade_langgraph_mcp_server%'",
+             "get", "ProcessId"],
+            capture_output=True, text=True, timeout=5,
+        )
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.isdigit():
+                try:
+                    subprocess.run(["taskkill", "/F", "/PID", line],
+                                   capture_output=True, timeout=3)
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 app = Server("orchestra")
 workflow = OrchestraWorkflow()
@@ -205,6 +233,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 
 async def main():
+    _kill_orphaned_servers()
     async with AsyncExitStack() as stack:
         # Start stdio_server FIRST so Claude Desktop can connect immediately.
         # Persistent connections are opened in a background task so they never
