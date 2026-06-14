@@ -215,14 +215,24 @@ async def main():
                 try:
                     cascade = await stack.enter_async_context(make_cascade_client())
                     regnetagents = await stack.enter_async_context(make_regnetagents_client())
-                    # Mark connections ready immediately after the MCP handshake.
-                    # The handshake already waits for the full network load (~90s),
-                    # so the server is warm by the time these are set. The extra
-                    # query_network warm-up call was adding 30-120s of unnecessary
-                    # LLM/Reactome time and causing a second subprocess to race
-                    # with per-call connections on cold starts.
                     workflow._persistent_cascade = cascade
                     workflow._persistent_regnetagents = regnetagents
+                    # Trigger RegNetAgents GeneIDMapper lazy initialization.
+                    # find_master_regulators creates GeneIDMapper on first call, which
+                    # runs _populate_from_uniprot() -> get_complete_gene_service().
+                    # Under SSL proxy that network call hangs ~120s before failing.
+                    # Running it here absorbs the wait so user tool calls are fast.
+                    try:
+                        await asyncio.wait_for(
+                            regnetagents.call_tool(
+                                "find_master_regulators",
+                                {"gene_set": ["TP53"], "cell_type": "epithelial_cell", "top_n": 1},
+                                timeout_seconds=200,
+                            ),
+                            timeout=200.0,
+                        )
+                    except Exception:
+                        pass  # init may fail under SSL proxy; subsequent call will be fast
                     workflow._persistent_ready.set()
                 except asyncio.CancelledError:
                     pass

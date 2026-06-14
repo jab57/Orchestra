@@ -2185,8 +2185,8 @@ class OrchestraWorkflow:
                     result = {
                         **initial_state,
                         "final_report": (
-                            "Orchestra is warming up: RegNetAgents is loading network data "
-                            "(~90 seconds on cold start). Please retry this request in about 90 seconds."
+                            "Orchestra is warming up: loading network data and initializing "
+                            "analysis modules (~2 minutes on first use). Please retry in 2 minutes."
                         ),
                     }
                 else:
