@@ -2170,18 +2170,19 @@ class OrchestraWorkflow:
                     self._cascade = None
                     self._regnetagents = None
             else:
-                # Wait for background _init_persistent to finish rather than
-                # spawning a second subprocess — avoids memory contention on cold start.
-                await asyncio.wait_for(self._persistent_ready.wait(), timeout=120.0)
-                if self._persistent_cascade is not None and self._persistent_regnetagents is not None:
-                    self._cascade = self._persistent_cascade
-                    self._regnetagents = self._persistent_regnetagents
-                    try:
-                        result = await self.graph.ainvoke(initial_state)
-                    finally:
-                        self._cascade = None
-                        self._regnetagents = None
+                # Persistent connections not ready yet (cold start: RegNetAgents loads ~90s).
+                # Waiting here would push total time past Claude Desktop's ~120s timeout.
+                # Fail fast with a clear retry message; the background task keeps loading.
+                if not self._persistent_ready.is_set():
+                    result = {
+                        **initial_state,
+                        "final_report": (
+                            "Orchestra is warming up: RegNetAgents is loading network data "
+                            "(~90 seconds on cold start). Please retry this request in about 90 seconds."
+                        ),
+                    }
                 else:
+                    # Event set but connections None — _init_persistent failed. Fall back to per-call.
                     async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
                         self._cascade = cascade
                         self._regnetagents = regnetagents
