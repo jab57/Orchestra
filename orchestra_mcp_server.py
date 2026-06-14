@@ -226,11 +226,12 @@ async def main():
                 try:
                     cascade = await stack.enter_async_context(make_cascade_client())
                     regnetagents = await stack.enter_async_context(make_regnetagents_client())
-                    # Pre-warm RegNetAgents BEFORE marking connections as available.
-                    # Setting _persistent_regnetagents before the warm-up completes
-                    # lets analyze_gene_signature queue find_master_regulators behind
-                    # the in-flight query_network call, making both block indefinitely.
-                    await _warmup_regnetagents(regnetagents)
+                    # Mark connections ready immediately after the MCP handshake.
+                    # The handshake already waits for the full network load (~90s),
+                    # so the server is warm by the time these are set. The extra
+                    # query_network warm-up call was adding 30-120s of unnecessary
+                    # LLM/Reactome time and causing a second subprocess to race
+                    # with per-call connections on cold starts.
                     workflow._persistent_cascade = cascade
                     workflow._persistent_regnetagents = regnetagents
                 except asyncio.CancelledError:
