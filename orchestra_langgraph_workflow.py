@@ -507,14 +507,16 @@ class OrchestraWorkflow:
         )
         try:
             # asyncio.wait_for enforces the cut independently of the MCP library's
-            # read_timeout_seconds, which does not reliably cancel hung stdio calls.
+            # read_timeout_seconds, which does not reliably cancel hung stdio calls on Windows.
+            # 200s gives RegNetAgents room to complete (TIMEOUT_MASTER_REGULATORS=300s)
+            # while staying under Claude Desktop's ~240s hard timeout.
             mr_result = await asyncio.wait_for(
                 self._regnetagents.call_tool(
                     "find_master_regulators",
                     {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10},
                     timeout_seconds=TIMEOUT_MASTER_REGULATORS,
                 ),
-                timeout=90.0,
+                timeout=200.0,
             )
             state["master_regulators"] = mr_result
         except Exception as e:
