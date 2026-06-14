@@ -204,17 +204,6 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     )]
 
 
-async def _warmup_regnetagents(client) -> None:
-    try:
-        await client.call_tool(
-            "query_network",
-            {"gene": "TP53", "cell_type": "epithelial_cell"},
-            timeout_seconds=TIMEOUT_SERVER_WARMUP,
-        )
-    except Exception:
-        pass
-
-
 async def main():
     async with AsyncExitStack() as stack:
         # Start stdio_server FIRST so Claude Desktop can connect immediately.
