@@ -500,10 +500,11 @@ class OrchestraWorkflow:
             return state
 
         # Step 1: RegNetAgents master regulator enrichment analysis
+        conn_mode = "persistent" if self._regnetagents is self._persistent_regnetagents else "per-call"
         await self._emit(
             f"[Orchestra] Running Fisher enrichment across all regulators "
             f"for {len(gene_signature)}-gene signature in {cell_type} "
-            f"(this may take several minutes)..."
+            f"[connection: {conn_mode}] (this may take several minutes)..."
         )
         try:
             # asyncio.wait_for enforces the cut independently of the MCP library's
@@ -520,6 +521,7 @@ class OrchestraWorkflow:
             )
             state["master_regulators"] = mr_result
         except Exception as e:
+            await self._emit(f"[Orchestra] find_master_regulators failed: {type(e).__name__}: {e}")
             state["errors"]["master_regulators"] = str(e)
             state["completed_steps"].append("run_signature_path")
             return state
