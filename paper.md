@@ -74,7 +74,7 @@ Six biological validation cases confirm that Orchestra's routing, evidence coord
 | `validate_therapeutic_targets` | MYC | cd4_t_cells | BRD4: 1/7 sources (super-enhancer ✓; absent from ARACNe TF network — expected) |
 | `analyze_gene_signature` | 20-gene TP53 stress-response signature | epithelial_cell | KLF5: rank 1 (Fisher p=5×10⁻⁶, 5/9 overlap); DoRothEA-A + super-enhancer (12 GI/epithelial cell types) + DepMap GI essentiality |
 | `compare_cell_contexts` | GATA3 | cd4_t_cells, cd8_t_cells, epithelial_cell | DoRothEA TF: conserved (3/3); hub regulator + pathway enrichment: enriched (2/3, cd4+epithelial); CD8 T cells show reduced network centrality — consistent with GATA3's role as Th2/CD4 master regulator |
-| `compare_network_contexts` | FOXM1 | epithelial_cell (GREmLN) vs TCGA HNSC | HIGH rewiring (4.2% conserved regulators; 1/24 HNSC regulators shared with GREmLN); TOP2A conserved in both networks; 23 HNSC tumor-acquired regulatory inputs absent from population-averaged wiring |
+| `compare_network_contexts` | FOXM1 | epithelial_cell (GREmLN, population-averaged) vs TCGA HNSC (tumor-state) | HIGH rewiring (4.2% conserved regulators; 1/24 HNSC regulators shared with GREmLN); TOP2A conserved in both networks; 23 HNSC tumor-acquired regulatory inputs absent from population-averaged wiring |
 
 Table: Validation results across Orchestra's composite tools (six tools implemented; six validated cases shown).
 

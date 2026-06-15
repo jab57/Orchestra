@@ -164,7 +164,7 @@ The core of what Orchestra produces is a **corroboration count** per candidate �
 
 | Evidence source | System | What it captures |
 |---|---|---|
-| PageRank rank | RegNetAgents | Topological centrality in ARACNe/GREmLN network |
+| PageRank rank | RegNetAgents | Topological centrality in GREmLN population-averaged network |
 | Pathway membership | RegNetAgents | Reactome enrichment membership |
 | LINCS knockdown | CASCADE | Experimental CRISPR knockdown response |
 | DepMap essentiality | CASCADE | Fitness dependency across cancer cell lines |
@@ -172,7 +172,7 @@ The core of what Orchestra produces is a **corroboration count** per candidate �
 | DoRothEA tier | CASCADE | Curated TF-regulon confidence (A–E) |
 | cBioPortal expression | CASCADE | Primary tumor expression from TCGA/ICGC |
 
-**Important limitation:** RegNetAgents networks are inferred from heterogeneous cell states (GREmLN corpus, healthy + disease cells). CASCADE LINCS/DepMap data are from cancer cell lines. Agreement between systems is methodologically independent but does not imply a matched biological context — it is a hypothesis generator, not experimental validation.
+**Important limitation:** RegNetAgents networks are population-averaged (GREmLN corpus — heterogeneous mix of healthy and disease/cancer-infiltrating cell states; not purely normal). CASCADE LINCS/DepMap data are from cancer cell lines. Agreement between systems is methodologically independent but does not imply a matched biological context — it is a hypothesis generator, not experimental validation.
 
 ## Why Orchestra
 
