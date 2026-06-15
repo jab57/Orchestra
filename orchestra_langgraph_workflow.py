@@ -7,6 +7,7 @@ Issue #4 implemented: therapeutic target validation (MYC→BRD4 via super-enhanc
 Issue #9 implemented: cross-system discordance reporting (discordance_flags in synthesis layer)
 Issue #10 implemented: gene signature driver analysis (analyze_gene_signature — DEG list → ranked TF drivers)
 Issue #11 implemented: cross-cell-type context comparison (compare_cell_contexts — 7-source heatmap across N cell types)
+Issue #13 implemented: GREmLN vs TCGA network context comparison (compare_network_contexts — conservation + CASCADE validation)
 """
 
 import asyncio
@@ -72,6 +73,10 @@ class OrchestraState(TypedDict):
     # Cross-cell-type comparison (Issue #11)
     cell_types: Optional[list]        # input list of cell types for compare_cell_contexts
     comparison_results: Optional[dict] # per-cell-type {network, perturbation} results
+
+    # GREmLN vs TCGA network context comparison (Issue #13)
+    cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
+    network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
 
     # Composite results
     validated_targets: Optional[list]
@@ -276,6 +281,7 @@ class OrchestraWorkflow:
         graph.add_node("run_validation_path", self._run_validation_path)
         graph.add_node("run_signature_path", self._run_signature_path)
         graph.add_node("run_comparison_path", self._run_comparison_path)
+        graph.add_node("run_network_comparison_path", self._run_network_comparison_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("generate_report", self._generate_report)
 
@@ -291,6 +297,7 @@ class OrchestraWorkflow:
                 "validation_path": "run_validation_path",
                 "signature_path": "run_signature_path",
                 "comparison_path": "run_comparison_path",
+                "network_comparison_path": "run_network_comparison_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
@@ -298,6 +305,7 @@ class OrchestraWorkflow:
         graph.add_edge("run_validation_path", "synthesize")
         graph.add_edge("run_signature_path", "synthesize")
         graph.add_edge("run_comparison_path", "synthesize")
+        graph.add_edge("run_network_comparison_path", "synthesize")
         graph.add_edge("synthesize", "generate_report")
         graph.add_edge("generate_report", END)
 
@@ -312,6 +320,8 @@ class OrchestraWorkflow:
             return "signature_path"
         if state.get("analysis_type") == "cell_context_comparison":
             return "comparison_path"
+        if state.get("analysis_type") == "network_comparison":
+            return "network_comparison_path"
         if state.get("analysis_type") == "therapeutic_validation":
             return "validation_path"
         role = state.get("gene_role") or "isolated"
@@ -777,6 +787,82 @@ class OrchestraWorkflow:
         state["completed_steps"].append("run_comparison_path")
         return state
 
+    async def _run_network_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        GREmLN vs TCGA network context comparison path (Issue #13).
+
+        1. RegNetAgents compare_network_contexts — returns conserved, population-averaged-only,
+           and tumor-state-only regulator sets with rewiring classification.
+        2. CASCADE comprehensive_perturbation_analysis on top 3 conserved regulators in
+           parallel — provides experimental corroboration for the conserved program.
+
+        Synthesis classifies each conserved regulator as:
+          Conserved + CASCADE-validated  → highest confidence therapeutic candidates
+          Conserved, not CASCADE-validated → regulatory inference without experimental support
+        Tumor-state-only regulators are reported without CASCADE validation (shown as
+        emerging in tumor context, not yet experimentally corroborated here).
+        """
+        gene = state["gene"]
+        cell_type = state.get("cell_type") or "epithelial_cell"
+        cancer_type = state.get("cancer_type") or ""
+
+        if not cancer_type:
+            state["errors"]["network_comparison"] = "cancer_type is required for network_comparison analysis"
+            state["completed_steps"].append("run_network_comparison_path")
+            return state
+
+        await self._emit(
+            f"[Orchestra] Comparing network contexts for {gene}: "
+            f"{cell_type} (GREmLN) vs TCGA {cancer_type.upper()}..."
+        )
+
+        # Step 1: RegNetAgents compare_network_contexts
+        try:
+            context_result = await self._regnetagents.call_tool(
+                "compare_network_contexts",
+                {"gene": gene, "cancer_type": cancer_type, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_NETWORK,
+            )
+        except Exception as e:
+            state["errors"]["network_comparison"] = str(e)
+            state["completed_steps"].append("run_network_comparison_path")
+            return state
+
+        if context_result.get("error"):
+            state["errors"]["network_comparison"] = context_result.get(
+                "message", "compare_network_contexts failed"
+            )
+            state["completed_steps"].append("run_network_comparison_path")
+            return state
+
+        # Step 2: CASCADE validation on top 3 conserved regulators
+        conserved = context_result.get("regulators", {}).get("conserved", [])[:3]
+
+        cascade_validation: dict = {}
+        if conserved:
+            await self._emit(
+                f"[Orchestra] Running CASCADE validation on {len(conserved)} conserved regulators: "
+                f"{', '.join(conserved)}..."
+            )
+            tasks = [
+                self._cascade.call_tool(
+                    "comprehensive_perturbation_analysis",
+                    {"gene": reg, "cell_type": cell_type},
+                    timeout_seconds=TIMEOUT_PERTURBATION,
+                )
+                for reg in conserved
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for reg, res in zip(conserved, results):
+                cascade_validation[reg] = (
+                    {"error": str(res)} if isinstance(res, Exception) else res
+                )
+
+        context_result["cascade_validation"] = cascade_validation
+        state["network_comparison"] = context_result
+        state["completed_steps"].append("run_network_comparison_path")
+        return state
+
     # ------------------------------------------------------------------
     # Synthesis
     # ------------------------------------------------------------------
@@ -786,6 +872,8 @@ class OrchestraWorkflow:
             return self._synthesize_signature_path(state)
         if state.get("analysis_type") == "cell_context_comparison":
             return self._synthesize_comparison_path(state)
+        if state.get("analysis_type") == "network_comparison":
+            return self._synthesize_network_comparison_path(state)
         if state.get("analysis_type") == "therapeutic_validation":
             return self._synthesize_validation_path(state)
         role = state.get("gene_role") or "effector"
@@ -1350,6 +1438,79 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
+    def _synthesize_network_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        GREmLN vs TCGA network context comparison synthesis (Issue #13).
+
+        Reads RegNetAgents compare_network_contexts output and CASCADE validation results
+        for conserved regulators. Classifies each conserved regulator by evidence tier:
+          - conserved_cascade_validated: in both networks + CASCADE experimental support
+          - conserved_not_validated: in both networks, no CASCADE experimental support
+        Tumor-state-only regulators are listed separately (no CASCADE validation here).
+        """
+        gene = state["gene"]
+        cell_type = state.get("cell_type") or "epithelial_cell"
+        cancer_type = state.get("cancer_type") or ""
+        nc = state.get("network_comparison") or {}
+        errors = state.get("errors") or {}
+
+        reg_data = nc.get("regulators") or {}
+        tgt_data = nc.get("targets") or {}
+        interp = nc.get("interpretation") or {}
+        cascade_validation = nc.get("cascade_validation") or {}
+
+        conserved_regs = reg_data.get("conserved") or []
+        tumor_only_regs = reg_data.get("tumor_state_only") or []
+        pop_only_regs = reg_data.get("population_averaged_only") or []
+
+        # Score CASCADE evidence for each validated conserved regulator
+        validated_conserved = []
+        for reg in conserved_regs[:3]:
+            casc = cascade_validation.get(reg) or {}
+            if casc.get("error"):
+                tier = "conserved_not_validated"
+                key_findings = []
+            else:
+                ev = (casc.get("evidence_synthesis") or {})
+                key_findings = ev.get("key_findings") or []
+                findings_text = "\n".join(str(f) for f in key_findings).lower()
+                has_cascade = any(
+                    kw in findings_text
+                    for kw in ("lincs", "depmap", "super-enhancer", "dorothea", "cbioportal")
+                )
+                tier = "conserved_cascade_validated" if has_cascade else "conserved_not_validated"
+
+            validated_conserved.append({
+                "gene": reg,
+                "tier": tier,
+                "cascade_key_findings": key_findings,
+                "cascade_error": casc.get("error"),
+            })
+
+        state["synthesis"] = {
+            "routing": "network_comparison",
+            "gene": gene,
+            "cell_type": cell_type,
+            "cancer_type": cancer_type,
+            "tumor_state_context": nc.get("tumor_state_context", f"tcga_{cancer_type}"),
+            "rewiring_classification": interp.get("regulatory_rewiring", "unknown"),
+            "reg_conserved_fraction": reg_data.get("conserved_fraction", 0.0),
+            "reg_pop_total": reg_data.get("population_averaged_total", 0),
+            "reg_tumor_total": reg_data.get("tumor_state_total", 0),
+            "conserved_regulators": conserved_regs,
+            "tumor_state_only_regulators": tumor_only_regs,
+            "population_averaged_only_regulators": pop_only_regs,
+            "validated_conserved": validated_conserved,
+            "tgt_conserved_count": tgt_data.get("conserved_count", 0),
+            "tgt_conserved_fraction": tgt_data.get("conserved_fraction", 0.0),
+            "tgt_tumor_only": tgt_data.get("tumor_state_only") or [],
+            "regnetagents_available": bool(nc) and "network_comparison" not in errors,
+            "cascade_available": bool(cascade_validation),
+            "errors": errors,
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
     def _classify_conservation(self, count: int, n: int, threshold: int) -> str:
         if count == 0:
             return "absent"
@@ -1439,7 +1600,7 @@ class OrchestraWorkflow:
         routing = synthesis.get("routing", "effector")
         llm_trigger = (
             bool(synthesis.get("tf_partner")) if routing == "effector"
-            else routing in ("tf", "validation", "signature", "comparison")
+            else routing in ("tf", "validation", "signature", "comparison", "network_comparison")
         )
 
         if self.llm_available and llm_trigger:
@@ -1463,6 +1624,8 @@ class OrchestraWorkflow:
             return self._format_signature_report(synthesis)
         if routing == "comparison":
             return self._format_comparison_report(synthesis)
+        if routing == "network_comparison":
+            return self._format_network_comparison_report(synthesis)
         return self._format_effector_report(synthesis)
 
     def _format_tf_report(self, synthesis: dict) -> list[str]:
@@ -1880,6 +2043,136 @@ class OrchestraWorkflow:
 
         return lines
 
+    def _format_network_comparison_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "epithelial_cell")
+        cancer_type = synthesis.get("cancer_type", "unknown")
+        tumor_ctx = synthesis.get("tumor_state_context", f"tcga_{cancer_type}")
+        rewiring = synthesis.get("rewiring_classification", "unknown")
+        reg_frac = synthesis.get("reg_conserved_fraction", 0.0)
+        reg_pop_total = synthesis.get("reg_pop_total", 0)
+        reg_tumor_total = synthesis.get("reg_tumor_total", 0)
+        conserved_regs = synthesis.get("conserved_regulators") or []
+        tumor_only_regs = synthesis.get("tumor_state_only_regulators") or []
+        pop_only_regs = synthesis.get("population_averaged_only_regulators") or []
+        validated_conserved = synthesis.get("validated_conserved") or []
+        tgt_conserved_count = synthesis.get("tgt_conserved_count", 0)
+        tgt_conserved_fraction = synthesis.get("tgt_conserved_fraction", 0.0)
+        tgt_tumor_only = synthesis.get("tgt_tumor_only") or []
+        errors = synthesis.get("errors") or {}
+        regnetagents_available = synthesis.get("regnetagents_available", True)
+        cascade_available = synthesis.get("cascade_available", True)
+
+        lines: list[str] = []
+        lines.append(f"## Network Context Comparison: {gene}")
+        lines.append(f"**Population-averaged context:** {cell_type} (GREmLN ARACNe)")
+        lines.append(f"**Tumor-state context:** {tumor_ctx} (TCGA ARACNe)")
+        lines.append("")
+
+        if not regnetagents_available:
+            lines.append("> ⚠️ **RegNetAgents unavailable** — network comparison could not be completed.")
+            if errors:
+                for k, v in errors.items():
+                    lines.append(f"- {k}: {v}")
+            return lines
+
+        # Rewiring summary
+        lines.append("### Regulatory Rewiring")
+        lines.append("")
+        lines.append(f"**Rewiring classification:** {rewiring.upper()}")
+        lines.append(
+            f"**Conserved regulator fraction:** {reg_frac:.2%} "
+            f"({len(conserved_regs)} conserved / {reg_pop_total} GREmLN / {reg_tumor_total} TCGA)"
+        )
+        rewiring_note = {
+            "low":      "Stable regulatory program — core upstream wiring is preserved in the tumor context.",
+            "moderate": "Partial rewiring — some regulators shift between normal and tumor contexts.",
+            "high":     "Substantial rewiring — tumor-state regulatory program differs markedly from population-averaged.",
+        }.get(rewiring, "")
+        if rewiring_note:
+            lines.append(f"_{rewiring_note}_")
+        lines.append("")
+
+        # Conserved regulators + CASCADE validation
+        lines.append("### Conserved Regulators (present in both networks)")
+        lines.append("")
+        if not conserved_regs:
+            lines.append("_No conserved regulators found._")
+        else:
+            lines.append(f"**{len(conserved_regs)} conserved upstream regulators** — "
+                         f"top 3 validated by CASCADE:")
+            lines.append("")
+            for entry in validated_conserved:
+                reg = entry["gene"]
+                tier = entry["tier"]
+                findings = entry.get("cascade_key_findings") or []
+                err = entry.get("cascade_error")
+                tier_label = (
+                    "**Conserved + CASCADE-validated** ✓" if tier == "conserved_cascade_validated"
+                    else "Conserved (no CASCADE experimental support)"
+                )
+                lines.append(f"#### {reg}  —  {tier_label}")
+                if err:
+                    lines.append(f"  _CASCADE error: {err}_")
+                elif findings:
+                    for f in findings[:3]:
+                        lines.append(f"  - {f}")
+                else:
+                    lines.append("  _No CASCADE key findings._")
+                lines.append("")
+            remaining = [r for r in conserved_regs if r not in {e["gene"] for e in validated_conserved}]
+            if remaining:
+                lines.append(f"**Additional conserved regulators (not CASCADE-validated):** "
+                             f"{', '.join(remaining)}")
+                lines.append("")
+
+        # Tumor-state-only regulators
+        lines.append("### Tumor-State-Only Regulators (emerging in TCGA, absent from GREmLN)")
+        lines.append("")
+        if tumor_only_regs:
+            lines.append(", ".join(tumor_only_regs[:15]))
+            if len(tumor_only_regs) > 15:
+                lines.append(f"_…and {len(tumor_only_regs) - 15} more_")
+        else:
+            lines.append("_None identified._")
+        lines.append("")
+
+        # Population-averaged-only regulators
+        lines.append("### Population-Averaged-Only Regulators (lost in tumor context)")
+        lines.append("")
+        if pop_only_regs:
+            lines.append(", ".join(pop_only_regs[:15]))
+            if len(pop_only_regs) > 15:
+                lines.append(f"_…and {len(pop_only_regs) - 15} more_")
+        else:
+            lines.append("_None identified._")
+        lines.append("")
+
+        # Target overlap summary
+        lines.append("### Downstream Target Overlap")
+        lines.append("")
+        lines.append(
+            f"**Conserved targets:** {tgt_conserved_count} ({tgt_conserved_fraction:.2%} of union)"
+        )
+        if tgt_tumor_only:
+            lines.append(
+                f"**Tumor-state-only targets (first 10):** {', '.join(tgt_tumor_only[:10])}"
+            )
+        lines.append("")
+
+        if not cascade_available:
+            lines.append(
+                "> ⚠️ **CASCADE unavailable** — conserved regulators shown without experimental validation."
+            )
+            lines.append("")
+
+        if errors:
+            lines.append("### Errors")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
     # ------------------------------------------------------------------
     # LLM synthesis
     # ------------------------------------------------------------------
@@ -2141,6 +2434,7 @@ class OrchestraWorkflow:
         analysis_depth: str = "comprehensive",
         gene_signature: Optional[list] = None,
         cell_types: Optional[list] = None,
+        cancer_type: Optional[str] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -2166,6 +2460,8 @@ class OrchestraWorkflow:
             master_regulators=None,
             cell_types=cell_types,
             comparison_results=None,
+            cancer_type=cancer_type,
+            network_comparison=None,
             synthesis=None,
             completed_steps=[],
             errors={},

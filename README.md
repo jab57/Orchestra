@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes four tools — analytical capabilities that require both child servers and cannot be replicated by either alone:
+Orchestra exposes six tools — analytical capabilities that require both child servers and cannot be replicated by either alone:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -84,6 +84,16 @@ Handles scaffold/effector genes (e.g. APC) that have no direct transcriptional t
 ### `analyze_gene_signature(genes, cell_type)`
 
 Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with signature coverage % and cross-system corroboration count.
+
+### `compare_cell_contexts(gene, cell_types)`
+
+Compares a gene's regulatory evidence across multiple cell types. Runs RegNetAgents network analysis and CASCADE perturbation analysis for each cell type in parallel (2N total MCP calls), then produces a 7-source evidence heatmap classifying each source as conserved (≥ 2/3 of cell types), enriched, cell-type-specific, or absent. Use this to determine tissue specificity before selecting a therapeutic context.
+
+### `compare_network_contexts(gene, cancer_type, cell_type="epithelial_cell")`
+
+Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only).
+
+Available TCGA cancer types: `brca`, `coad`, `hnsc`, `luad`, `lusc`, `ov`, `prad`, `ucec`. HNSC (head/neck squamous) is the closest available proxy for HPV-associated cervical squamous carcinoma.
 
 ## How It Works
 
@@ -252,7 +262,7 @@ Key variables:
 pytest tests/
 ```
 
-108 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+208 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -283,7 +293,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The four Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The six Orchestra tools will appear in the tools list.
 
 ## Usage
 
@@ -388,7 +398,7 @@ LLM_MODEL=claude-haiku-4-5-20251001
 
 ```
 Orchestra/
-├── orchestra_mcp_server.py          # MCP server — exposes 4 composite tools to Claude Desktop
+├── orchestra_mcp_server.py          # MCP server — exposes 6 composite tools to Claude Desktop
 ├── orchestra_langgraph_workflow.py  # LangGraph DAG, OrchestraState, all analysis paths
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
@@ -412,7 +422,9 @@ Orchestra/
     ├── test_mcp_client.py           # MCP client lifecycle and tool call tests (17 tests)
     ├── test_graceful_degradation.py # Degradation with mock clients (17 unit tests)
     ├── test_effector_analysis.py    # APC integration test (8 tests; requires child servers)
-    └── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
+    ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
+    ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
+    └── test_network_comparison.py   # GREmLN vs TCGA network comparison (27 unit tests + 1 integration)
 ```
 
 ## Performance
@@ -457,7 +469,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (108) run without live child servers. Integration tests (17) require RegNetAgents and CASCADE:
+Unit tests (208) run without live child servers. Integration tests (2) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1

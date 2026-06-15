@@ -451,24 +451,12 @@ INTEGRATION = pytest.mark.skipif(
     reason="Set ORCHESTRA_INTEGRATION_TESTS=1 to run integration tests",
 )
 
-# Machine-specific skip: gene_id_mapper in RegNetAgents calls requests.get(..., timeout=10)
-# for each ARACNe network Ensembl ID absent from the local cache. On this machine corporate
-# SSL inspection causes each call to hang for ~10s; with ~43 missing IDs the total exceeds
-# any reasonable TIMEOUT_MASTER_REGULATORS value (~430s observed). RegNetAgents Issue #20
-# (fixed Jun 9 2026) ensures the timeout fires cleanly rather than hanging indefinitely.
-# Fix: add ORCHESTRA_SSL_NO_VERIFY support to gene_id_mapper.py (post-JOSS-review).
-INTEGRATION_LIVE = pytest.mark.skip(
-    reason=(
-        "gene_id_mapper Ensembl REST lookups take ~430s under corporate SSL inspection "
-        "(~43 ARACNe network IDs × 10s each), exceeding TIMEOUT_MASTER_REGULATORS. "
-        "Timeout fires cleanly (RegNetAgents #20 fixed Jun 9 2026) but returns no drivers. "
-        "Fix: add ORCHESTRA_SSL_NO_VERIFY support to gene_id_mapper.py post-JOSS-review."
-    )
-)
+# Issue #14 (2026-06-13): Ensembl REST API fallback removed from GeneIDMapper entirely.
+# Both symbol_to_ensembl() and ensembl_to_symbol() now return from local cache only.
+# Root cause resolved — INTEGRATION_LIVE skip no longer needed.
 
 
 @INTEGRATION
-@INTEGRATION_LIVE
 class TestSignatureIntegration:
     """19-gene Wnt target signature — end-to-end pipeline smoke test.
 
@@ -485,13 +473,27 @@ class TestSignatureIntegration:
 
     async def test_pipeline_end_to_end(self):
         """Single call: verify drivers returned, report header present, no hard errors."""
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+        from mcp_client import make_cascade_client, make_regnetagents_client
+        from contextlib import AsyncExitStack
+
         wf = OrchestraWorkflow()
-        result = await wf.run_analysis(
-            gene="",
-            cell_type="epithelial_cell",
-            analysis_type="gene_signature",
-            gene_signature=self.WNT_SIGNATURE,
-        )
+        async with AsyncExitStack() as stack:
+            cascade = await stack.enter_async_context(make_cascade_client())
+            regnetagents = await stack.enter_async_context(make_regnetagents_client())
+            wf._persistent_cascade = cascade
+            wf._persistent_regnetagents = regnetagents
+            wf._persistent_ready.set()
+
+            result = await wf.run_analysis(
+                gene="",
+                cell_type="epithelial_cell",
+                analysis_type="gene_signature",
+                gene_signature=self.WNT_SIGNATURE,
+            )
+
         syn = result.get("synthesis") or {}
         drivers = syn.get("ranked_drivers") or []
 

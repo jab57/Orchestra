@@ -4,13 +4,14 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Five composite tools:
+Six composite tools:
   causal_chain_analysis        — TF path (parallel RegNetAgents + CASCADE) or
                                  effector path (PPI → TF partner → simulate)
   validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
   effector_analysis            — scaffold/effector routing (APC→CTNNB1 pattern)
   analyze_gene_signature       — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
   compare_cell_contexts        — 7-source evidence heatmap across N cell types (Issue #11)
+  compare_network_contexts     — GREmLN vs TCGA regulatory rewiring + CASCADE validation (Issue #13)
 """
 
 import asyncio
@@ -142,6 +143,51 @@ async def list_tools() -> list[Tool]:
                 "required": ["gene", "cell_types"],
             },
         ),
+        Tool(
+            name="compare_network_contexts",
+            description=(
+                "Compare a gene's regulatory wiring between population-averaged (GREmLN ARACNe) "
+                "and tumor-state (TCGA ARACNe) networks, then validate conserved regulators via "
+                "CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). "
+                "Returns three regulator tiers: conserved + CASCADE-validated (highest confidence "
+                "therapeutic candidates), conserved without CASCADE support (regulatory inference), "
+                "and tumor-state-only (emerging in cancer, not present in population-averaged wiring). "
+                "Rewiring classification (low/moderate/high) quantifies how different the tumor "
+                "regulatory program is from population-averaged. "
+                "TCGA cancer types available: brca, coad, hnsc, luad, lusc, ov, prad, ucec."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol (e.g. FOXM1, STAT3, MYC)",
+                    },
+                    "cancer_type": {
+                        "type": "string",
+                        "enum": ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"],
+                        "description": (
+                            "TCGA cancer type for the tumor-state network. "
+                            "brca=breast, coad=colon, hnsc=head/neck squamous (HPV-associated, "
+                            "closest proxy for cervical), luad=lung adenocarcinoma, "
+                            "lusc=lung squamous, ov=ovarian, prad=prostate, ucec=uterine."
+                        ),
+                    },
+                    "cell_type": {
+                        "type": "string",
+                        "description": (
+                            "GREmLN population-averaged cell type for the reference network "
+                            "(default: epithelial_cell). "
+                            "Available: cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, "
+                            "nk_cells, nkt_cells, cd20_b_cells, monocyte-derived_dendritic_cells, "
+                            "erythrocytes, epithelial_cell"
+                        ),
+                        "default": "epithelial_cell",
+                    },
+                },
+                "required": ["gene", "cancer_type"],
+            },
+        ),
     ]
 
 
@@ -165,7 +211,19 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     cell_type = arguments.get("cell_type", "")
 
-    if name == "analyze_gene_signature":
+    if name == "compare_network_contexts":
+        gene = arguments.get("gene", "")
+        cancer_type = arguments.get("cancer_type", "")
+        cell_type = arguments.get("cell_type", "epithelial_cell")
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type=cell_type,
+            analysis_type="network_comparison",
+            cancer_type=cancer_type,
+            progress=progress,
+        )
+        label = f"{gene}: {cell_type} (GREmLN) vs TCGA {cancer_type.upper()}"
+    elif name == "analyze_gene_signature":
         genes = arguments.get("genes", [])
         result = await workflow.run_analysis(
             gene="",
