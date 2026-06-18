@@ -41,6 +41,18 @@ _progress_cb: ContextVar[Callable[[str], Coroutine] | None] = ContextVar(
 )
 
 
+_TCGA_TO_CANCER_CONTEXT: dict[str, str] = {
+    "hnsc": "head and neck squamous",
+    "coad": "colorectal",
+    "brca": "breast cancer",
+    "luad": "lung adenocarcinoma",
+    "lusc": "lung squamous cell carcinoma",
+    "ov": "ovarian cancer",
+    "prad": "prostate cancer",
+    "ucec": "endometrial cancer",
+}
+
+
 class OrchestraState(TypedDict):
     # Input
     gene: str
@@ -82,6 +94,7 @@ class OrchestraState(TypedDict):
     cancer_context: Optional[str]     # plain-text cancer context for PubMed queries (e.g. "head and neck squamous")
     gene2: Optional[str]              # optional second gene for gene-pair novelty queries
     novelty_result: Optional[dict]    # structured result from pubmed_client.novelty_assessment
+    edge_novelty_results: Optional[list]  # list of pair novelty dicts from Issue #16
 
     # Composite results
     validated_targets: Optional[list]
@@ -289,6 +302,7 @@ class OrchestraWorkflow:
         graph.add_node("run_network_comparison_path", self._run_network_comparison_path)
         graph.add_node("run_novelty_path", self._run_novelty_path)
         graph.add_node("synthesize", self._synthesize)
+        graph.add_node("run_edge_novelty", self._run_edge_novelty)
         graph.add_node("generate_report", self._generate_report)
 
         graph.set_entry_point("initialize")
@@ -314,7 +328,8 @@ class OrchestraWorkflow:
         graph.add_edge("run_comparison_path", "synthesize")
         graph.add_edge("run_network_comparison_path", "synthesize")
         graph.add_edge("run_novelty_path", "synthesize")
-        graph.add_edge("synthesize", "generate_report")
+        graph.add_edge("synthesize", "run_edge_novelty")
+        graph.add_edge("run_edge_novelty", "generate_report")
         graph.add_edge("generate_report", END)
 
         return graph.compile()
@@ -904,6 +919,102 @@ class OrchestraWorkflow:
         state["completed_steps"].append("run_novelty_path")
         return state
 
+    async def _run_edge_novelty(self, state: OrchestraState) -> OrchestraState:
+        """
+        Issue #16: query PubMed for regulatory edge pair novelty after synthesis.
+
+        Extracts the top 5 gene pairs from the synthesis result (analysis-type-specific),
+        queries pubmed_client.novelty_assessment concurrently, and stores the results in
+        synthesis["edge_novelty_results"] so the report formatters can append a
+        "Regulatory Pair Novelty" table.
+
+        Silently skips if:
+          - cancer_context cannot be determined (not provided and no TCGA mapping)
+          - analysis_type is not one of: tf, validation, network_comparison
+        """
+        from pubmed_client import novelty_assessment as _pubmed_novelty
+
+        synthesis = state.get("synthesis") or {}
+        routing = synthesis.get("routing", "")
+
+        # Resolve cancer_context: explicit param first, then TCGA mapping
+        cancer_context = state.get("cancer_context") or ""
+        if not cancer_context and routing == "network_comparison":
+            cancer_type = state.get("cancer_type") or ""
+            cancer_context = _TCGA_TO_CANCER_CONTEXT.get(cancer_type, cancer_type)
+
+        if not cancer_context or routing not in ("tf", "validation", "network_comparison"):
+            synthesis["edge_novelty_results"] = []
+            state["synthesis"] = synthesis
+            state["completed_steps"].append("run_edge_novelty")
+            return state
+
+        gene = state.get("gene", "")
+        pairs: list[tuple[str, str]] = []  # (gene1, gene2) for novelty_assessment calls
+
+        if routing == "tf":
+            # gene is the TF; pairs are gene → downstream_target
+            cross_hits = synthesis.get("cross_system_hits", [])
+            partners = [h["symbol"] for h in cross_hits[:5]]
+            if len(partners) < 5:
+                for sym in synthesis.get("network_targets_sample", []):
+                    if sym not in partners:
+                        partners.append(sym)
+                    if len(partners) >= 5:
+                        break
+            pairs = [(gene, p) for p in partners]
+
+        elif routing == "validation":
+            # gene is the target; evidence_table rows are upstream candidate regulators
+            evidence_table = synthesis.get("evidence_table", [])
+            pairs = [(row["gene"], gene) for row in evidence_table[:5]]
+
+        elif routing == "network_comparison":
+            # gene is the subject; conserved regulators are upstream of gene
+            validated_conserved = synthesis.get("validated_conserved", [])
+            conserved_regs = synthesis.get("conserved_regulators", [])
+            # Prioritise cascade-validated tier, then remaining conserved regulators
+            ordered: list[str] = [
+                e["gene"] for e in validated_conserved
+                if e.get("tier") == "conserved_cascade_validated"
+            ]
+            ordered_set = set(ordered)
+            for r in conserved_regs:
+                if r not in ordered_set:
+                    ordered.append(r)
+            pairs = [(reg, gene) for reg in ordered[:5]]
+
+        if not pairs:
+            synthesis["edge_novelty_results"] = []
+            state["synthesis"] = synthesis
+            state["completed_steps"].append("run_edge_novelty")
+            return state
+
+        await self._emit(
+            f"[Orchestra] Querying PubMed pair novelty for {len(pairs)} edges "
+            f"in '{cancer_context}'..."
+        )
+
+        async def _query(g1: str, g2: str) -> dict:
+            result = await _pubmed_novelty(g1, cancer_context, g2)
+            result = dict(result)
+            result["pair"] = f"{g1} → {g2}"
+            return result
+
+        raw = await asyncio.gather(*[_query(g1, g2) for g1, g2 in pairs], return_exceptions=True)
+
+        edge_novelty: list[dict] = []
+        for r in raw:
+            if isinstance(r, Exception):
+                logger.warning(f"[Orchestra] edge novelty query failed: {r}")
+            else:
+                edge_novelty.append(r)
+
+        synthesis["edge_novelty_results"] = edge_novelty
+        state["synthesis"] = synthesis
+        state["completed_steps"].append("run_edge_novelty")
+        return state
+
     # ------------------------------------------------------------------
     # Synthesis
     # ------------------------------------------------------------------
@@ -983,6 +1094,7 @@ class OrchestraWorkflow:
                 for g in multi_source_genes[:10]
             ],
             "cross_system_hits": cross_system_hits,
+            "network_targets_sample": list(rna_targets)[:10],
             "source_agreements": source_agreements,
             "source_disagreements": source_disagreements,
             "network_context": network_summary,
@@ -1637,6 +1749,34 @@ class OrchestraWorkflow:
     # Report generation
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _format_pair_novelty_section(synthesis: dict) -> list[str]:
+        """Return "Regulatory Pair Novelty" lines if edge_novelty_results is present and non-empty."""
+        results = synthesis.get("edge_novelty_results") or []
+        if not results:
+            return []
+        lines = [
+            "",
+            "## Regulatory Pair Novelty",
+            "",
+            "| Pair | PubMed hits | Experimental | Verdict |",
+            "|------|-------------|--------------|---------|",
+        ]
+        for r in results:
+            pair = r.get("pair", f"{r.get('gene', '?')} → {r.get('gene2', '?')}")
+            hits = r.get("pubmed_hits", 0)
+            exp = r.get("experimental_hits", 0)
+            verdict = r.get("novelty_verdict", "unknown").upper()
+            lines.append(f"| {pair} | {hits} | {exp} | {verdict} |")
+        lines.append("")
+        cancer_ctx = (results[0].get("cancer_context") or "") if results else ""
+        ctx_note = f" AND \"{cancer_ctx}\"" if cancer_ctx else ""
+        lines.append(
+            f'_Pair novelty queries: "gene1 AND gene2{ctx_note}"[tiab]. '
+            "Novel = <5 papers; Emerging = 5–20; Established = >20._"
+        )
+        return lines
+
     async def _generate_report(self, state: OrchestraState) -> OrchestraState:
         """
         Format the structured synthesis as a report.
@@ -1779,6 +1919,8 @@ class OrchestraWorkflow:
                     srcs = g.get("sources", [])
                     detail = f"{sc} sources ({', '.join(srcs)})" if sc else ""
                     lines.append(f"  - {sym}: {detail}" if detail else f"  - {sym}")
+
+        lines.extend(self._format_pair_novelty_section(synthesis))
 
         if errors:
             lines.append("")
@@ -2270,6 +2412,8 @@ class OrchestraWorkflow:
             )
             lines.append("")
 
+        lines.extend(self._format_pair_novelty_section(synthesis))
+
         if errors:
             lines.append("### Errors")
             for k, v in errors.items():
@@ -2306,6 +2450,7 @@ class OrchestraWorkflow:
 
         if not candidates:
             lines.append("No therapeutic target candidates identified.")
+            lines.extend(self._format_pair_novelty_section(synthesis))
             if errors:
                 lines.append("")
                 lines.append("### Errors")
@@ -2388,6 +2533,8 @@ class OrchestraWorkflow:
             for flag in discordance_flags:
                 lines.append(f"- **{flag['description']}**")
             lines.append("")
+
+        lines.extend(self._format_pair_novelty_section(synthesis))
 
         if errors:
             lines.append("### Partial Data Warnings")
@@ -2571,6 +2718,7 @@ class OrchestraWorkflow:
             cancer_context=cancer_context,
             gene2=gene2,
             novelty_result=None,
+            edge_novelty_results=None,
             synthesis=None,
             completed_steps=[],
             errors={},

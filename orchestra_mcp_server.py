@@ -47,6 +47,10 @@ async def list_tools() -> list[Tool]:
                         "enum": ["basic", "comprehensive"],
                         "default": "comprehensive"
                     },
+                    "cancer_context": {
+                        "type": "string",
+                        "description": "Plain-text cancer context for PubMed pair-novelty queries (e.g. 'cervical cancer', 'colorectal'). Optional — omit to skip pair novelty.",
+                    },
                 },
                 "required": ["gene", "cell_type"],
             },
@@ -63,6 +67,10 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "gene": {"type": "string"},
                     "cell_type": {"type": "string"},
+                    "cancer_context": {
+                        "type": "string",
+                        "description": "Plain-text cancer context for PubMed pair-novelty queries (e.g. 'cervical cancer', 'colorectal'). Optional — omit to skip pair novelty.",
+                    },
                 },
                 "required": ["gene", "cell_type"],
             },
@@ -290,11 +298,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     else:
         gene = arguments.get("gene", "")
         depth = arguments.get("analysis_depth", "comprehensive")
+        cancer_context = arguments.get("cancer_context") or None
         result = await workflow.run_analysis(
             gene=gene,
             cell_type=cell_type,
             analysis_type=name,
             analysis_depth=depth,
+            cancer_context=cancer_context,
             progress=progress,
         )
         label = f"{gene} in {cell_type}"

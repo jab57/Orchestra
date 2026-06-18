@@ -103,7 +103,9 @@ Queries PubMed via NCBI E-utilities for a gene (or gene pair) in a plain-text ca
 - **Emerging** — 5–20 papers: active area with supporting evidence
 - **Established** — more than 20 papers: well-characterised in this context
 
-Designed to be chained after other Orchestra tools: run `compare_network_contexts` to identify CASCADE-validated conserved regulators, then call `novelty_assessment` on each to gauge how well-studied the finding is before writing it up. Requires `NCBI_API_KEY` in `.env` for the 10 req/s rate limit (3 req/s without key).
+Requires `NCBI_API_KEY` in `.env` for the 10 req/s rate limit (3 req/s without key).
+
+**Embedded pair novelty** — `causal_chain_analysis`, `validate_therapeutic_targets`, and `compare_network_contexts` automatically embed pair-level PubMed queries when the optional `cancer_context` parameter is provided. For each of the top 5 edges identified during synthesis (TF → target, regulator → gene, or conserved regulator → subject gene), Orchestra queries PubMed for co-occurrence of both gene names and appends a "Regulatory Pair Novelty" table to the report. This surfaces edges with 0 experimental papers even when both individual genes are individually well-studied — the actionable gap `novelty_assessment` on single genes would miss.
 
 ## How It Works
 
@@ -273,7 +275,7 @@ Key variables:
 pytest tests/
 ```
 
-208 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+255 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -442,7 +444,7 @@ Orchestra/
     ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
     ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
     ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (27 unit tests + 1 integration)
-    └── test_novelty_assessment.py   # PubMed novelty assessment: mocked HTTP, verdict thresholds, workflow (28 unit tests)
+    └── test_novelty_assessment.py   # PubMed novelty assessment + edge pair novelty: mocked HTTP, verdict thresholds, workflow, edge extraction (47 unit tests)
 ```
 
 ## Performance
