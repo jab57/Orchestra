@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes six tools — analytical capabilities that require both child servers and cannot be replicated by either alone:
+Orchestra exposes seven composite tools:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -94,6 +94,16 @@ Compares a gene's regulatory evidence across multiple cell types. Runs RegNetAge
 Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only).
 
 Available TCGA cancer types: `brca`, `coad`, `hnsc`, `luad`, `lusc`, `ov`, `prad`, `ucec`. HNSC (head/neck squamous) is the closest available proxy for HPV-associated cervical squamous carcinoma.
+
+### `novelty_assessment(gene, cancer_context, gene2=None)`
+
+Queries PubMed via NCBI E-utilities for a gene (or gene pair) in a plain-text cancer context. Returns total hit count split into experimental vs. computational papers, most-recent publication year, and a structured novelty verdict:
+
+- **Novel** — fewer than 5 papers: limited prior characterisation, primary publication value
+- **Emerging** — 5–20 papers: active area with supporting evidence
+- **Established** — more than 20 papers: well-characterised in this context
+
+Designed to be chained after other Orchestra tools: run `compare_network_contexts` to identify CASCADE-validated conserved regulators, then call `novelty_assessment` on each to gauge how well-studied the finding is before writing it up. Requires `NCBI_API_KEY` in `.env` for the 10 req/s rate limit (3 req/s without key).
 
 ## How It Works
 
@@ -253,6 +263,7 @@ Key variables:
 | `USE_LLM_SYNTHESIS` | `false` | Enable LLM biological narrative in reports |
 | `LLM_PROVIDER` | `ollama` | `ollama` \| `anthropic` |
 | `ORCHESTRA_SSL_NO_VERIFY` | — | Set to `1` on networks with corporate SSL inspection |
+| `NCBI_API_KEY` | — | NCBI API key for `novelty_assessment` (10 req/s with key, 3 without) |
 | `REGNETAGENTS_TIMEOUT` | `20` | Per-tool timeout (seconds) |
 | `CASCADE_TIMEOUT` | `30` | Per-tool timeout (seconds) |
 
@@ -293,7 +304,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The six Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The seven Orchestra tools will appear in the tools list.
 
 ## Usage
 
@@ -355,6 +366,11 @@ See `examples/` for focused scripts: `apc_effector_analysis.py`, `tp53_causal_ch
 - "Find therapeutic targets for MYC in CD4 T cells using Orchestra"
 - "What are the druggable upstream regulators of CTNNB1 in epithelial cells?"
 
+**Novelty assessment:**
+- "How novel is EHF as a cervical cancer target? Use Orchestra novelty assessment."
+- "Check the PubMed literature for FOXM1 and TOP2A in head and neck squamous cancer"
+- "Examine candidates for cervical cancer treatment and report on the novelty"
+
 ### LLM Synthesis Configuration
 
 LLM synthesis is **off by default** (`USE_LLM_SYNTHESIS=false`). Orchestra returns structured text; Claude Desktop handles narrative interpretation. This is the recommended mode for MCP clients.
@@ -398,8 +414,9 @@ LLM_MODEL=claude-haiku-4-5-20251001
 
 ```
 Orchestra/
-├── orchestra_mcp_server.py          # MCP server — exposes 6 composite tools to Claude Desktop
+├── orchestra_mcp_server.py          # MCP server — exposes 7 composite tools to Claude Desktop
 ├── orchestra_langgraph_workflow.py  # LangGraph DAG, OrchestraState, all analysis paths
+├── pubmed_client.py                 # NCBI E-utilities client for novelty_assessment
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
 ├── generate_figure.py               # Architecture figure generator (JOSS paper)
@@ -424,7 +441,8 @@ Orchestra/
     ├── test_effector_analysis.py    # APC integration test (8 tests; requires child servers)
     ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
     ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
-    └── test_network_comparison.py   # GREmLN vs TCGA network comparison (27 unit tests + 1 integration)
+    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (27 unit tests + 1 integration)
+    └── test_novelty_assessment.py   # PubMed novelty assessment: mocked HTTP, verdict thresholds, workflow (28 unit tests)
 ```
 
 ## Performance
@@ -458,7 +476,7 @@ Orchestra/
 - Python 3.10+
 - [RegNetAgents](https://github.com/jab57/RegNetAgents) — regulatory network analysis
 - [CASCADE](https://github.com/jab57/CASCADE) — perturbation simulation and experimental corroboration
-- `mcp==1.9.1`, `langgraph==0.2.34`, `python-dotenv==1.0.1`
+- `mcp==1.9.1`, `langgraph==0.2.34`, `python-dotenv==1.0.1`, `requests==2.32.5`
 - `ollama==0.6.1` — required only when `USE_LLM_SYNTHESIS=true` and `LLM_PROVIDER=ollama`
 - `anthropic==0.97.0` — required only when `LLM_PROVIDER=anthropic`
 
@@ -469,7 +487,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (208) run without live child servers. Integration tests (2) require RegNetAgents and CASCADE:
+Unit tests (236) run without live child servers. Integration tests (2) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1
