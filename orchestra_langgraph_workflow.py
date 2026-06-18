@@ -78,6 +78,11 @@ class OrchestraState(TypedDict):
     cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
     network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
 
+    # PubMed novelty assessment (Issue #15)
+    cancer_context: Optional[str]     # plain-text cancer context for PubMed queries (e.g. "head and neck squamous")
+    gene2: Optional[str]              # optional second gene for gene-pair novelty queries
+    novelty_result: Optional[dict]    # structured result from pubmed_client.novelty_assessment
+
     # Composite results
     validated_targets: Optional[list]
     causal_chain: Optional[dict]
@@ -282,6 +287,7 @@ class OrchestraWorkflow:
         graph.add_node("run_signature_path", self._run_signature_path)
         graph.add_node("run_comparison_path", self._run_comparison_path)
         graph.add_node("run_network_comparison_path", self._run_network_comparison_path)
+        graph.add_node("run_novelty_path", self._run_novelty_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("generate_report", self._generate_report)
 
@@ -298,6 +304,7 @@ class OrchestraWorkflow:
                 "signature_path": "run_signature_path",
                 "comparison_path": "run_comparison_path",
                 "network_comparison_path": "run_network_comparison_path",
+                "novelty_path": "run_novelty_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
@@ -306,6 +313,7 @@ class OrchestraWorkflow:
         graph.add_edge("run_signature_path", "synthesize")
         graph.add_edge("run_comparison_path", "synthesize")
         graph.add_edge("run_network_comparison_path", "synthesize")
+        graph.add_edge("run_novelty_path", "synthesize")
         graph.add_edge("synthesize", "generate_report")
         graph.add_edge("generate_report", END)
 
@@ -322,6 +330,8 @@ class OrchestraWorkflow:
             return "comparison_path"
         if state.get("analysis_type") == "network_comparison":
             return "network_comparison_path"
+        if state.get("analysis_type") == "novelty_assessment":
+            return "novelty_path"
         if state.get("analysis_type") == "therapeutic_validation":
             return "validation_path"
         role = state.get("gene_role") or "isolated"
@@ -340,8 +350,8 @@ class OrchestraWorkflow:
 
     async def _classify_gene(self, state: OrchestraState) -> OrchestraState:
         """Call CASCADE get_gene_metadata to determine gene role and routing."""
-        # Signature and comparison analyses have no single cell_type to classify — skip.
-        if state.get("analysis_type") in ("gene_signature", "cell_context_comparison"):
+        # Signature, comparison, and novelty analyses have no single cell_type to classify — skip.
+        if state.get("analysis_type") in ("gene_signature", "cell_context_comparison", "novelty_assessment"):
             state["completed_steps"].append("classify_gene")
             return state
         try:
@@ -863,6 +873,37 @@ class OrchestraWorkflow:
         state["completed_steps"].append("run_network_comparison_path")
         return state
 
+    async def _run_novelty_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        PubMed novelty assessment path (Issue #15).
+
+        Queries NCBI E-utilities for a gene (or gene pair) in a cancer context
+        and returns a structured novelty verdict. Does not call RegNetAgents or CASCADE.
+        """
+        from pubmed_client import novelty_assessment as _pubmed_novelty
+
+        gene = state["gene"]
+        cancer_context = state.get("cancer_context") or ""
+        gene2 = state.get("gene2")
+
+        if not cancer_context:
+            state["errors"]["novelty_assessment"] = "cancer_context is required for novelty_assessment"
+            state["completed_steps"].append("run_novelty_path")
+            return state
+
+        subject = f"{gene}/{gene2}" if gene2 else gene
+        await self._emit(f"[Orchestra] Querying PubMed: {subject} in {cancer_context}...")
+
+        try:
+            result = await _pubmed_novelty(gene, cancer_context, gene2)
+            state["novelty_result"] = result
+        except Exception as e:
+            state["errors"]["novelty_assessment"] = str(e)
+            state["novelty_result"] = None
+
+        state["completed_steps"].append("run_novelty_path")
+        return state
+
     # ------------------------------------------------------------------
     # Synthesis
     # ------------------------------------------------------------------
@@ -874,6 +915,8 @@ class OrchestraWorkflow:
             return self._synthesize_comparison_path(state)
         if state.get("analysis_type") == "network_comparison":
             return self._synthesize_network_comparison_path(state)
+        if state.get("analysis_type") == "novelty_assessment":
+            return self._synthesize_novelty_path(state)
         if state.get("analysis_type") == "therapeutic_validation":
             return self._synthesize_validation_path(state)
         role = state.get("gene_role") or "effector"
@@ -1511,6 +1554,18 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
+    def _synthesize_novelty_path(self, state: OrchestraState) -> OrchestraState:
+        state["synthesis"] = {
+            "routing": "novelty",
+            "gene": state["gene"],
+            "gene2": state.get("gene2"),
+            "cancer_context": state.get("cancer_context", ""),
+            "novelty_result": state.get("novelty_result"),
+            "errors": state.get("errors", {}),
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
     def _classify_conservation(self, count: int, n: int, threshold: int) -> str:
         if count == 0:
             return "absent"
@@ -1601,6 +1656,7 @@ class OrchestraWorkflow:
         llm_trigger = (
             bool(synthesis.get("tf_partner")) if routing == "effector"
             else routing in ("tf", "validation", "signature", "comparison", "network_comparison")
+            # novelty path: no LLM synthesis — the verdict is already structured prose
         )
 
         if self.llm_available and llm_trigger:
@@ -1626,6 +1682,8 @@ class OrchestraWorkflow:
             return self._format_comparison_report(synthesis)
         if routing == "network_comparison":
             return self._format_network_comparison_report(synthesis)
+        if routing == "novelty":
+            return self._format_novelty_report(synthesis)
         return self._format_effector_report(synthesis)
 
     def _format_tf_report(self, synthesis: dict) -> list[str]:
@@ -2043,6 +2101,52 @@ class OrchestraWorkflow:
 
         return lines
 
+    def _format_novelty_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        gene2 = synthesis.get("gene2")
+        cancer_context = synthesis.get("cancer_context", "")
+        result = synthesis.get("novelty_result") or {}
+        errors = synthesis.get("errors", {})
+
+        subject = f"{gene}/{gene2}" if gene2 else gene
+        lines: list[str] = [
+            f"## PubMed Novelty Assessment: {subject} in {cancer_context}",
+            "",
+        ]
+
+        if not result:
+            lines.append("_PubMed query returned no result._")
+            if errors:
+                lines.append("")
+                lines.append("### Errors")
+                for k, v in errors.items():
+                    lines.append(f"- {k}: {v}")
+            return lines
+
+        verdict = result.get("novelty_verdict", "unknown").upper()
+        lines += [
+            f"**Verdict:** {verdict}",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
+            f"| PubMed hits | {result.get('pubmed_hits', 0)} |",
+            f"| Experimental papers | {result.get('experimental_hits', 0)} |",
+            f"| Computational papers | {result.get('computational_hits', 0)} |",
+            f"| Most recent year | {result.get('most_recent_year') or 'N/A'} |",
+            "",
+            f"**Rationale:** {result.get('verdict_rationale', '')}",
+            "",
+            "_Thresholds: >20 hits = established · 5–20 = emerging · <5 = novel_",
+        ]
+
+        if errors:
+            lines.append("")
+            lines.append("### Errors")
+            for k, v in errors.items():
+                lines.append(f"- {k}: {v}")
+
+        return lines
+
     def _format_network_comparison_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "epithelial_cell")
@@ -2435,6 +2539,8 @@ class OrchestraWorkflow:
         gene_signature: Optional[list] = None,
         cell_types: Optional[list] = None,
         cancer_type: Optional[str] = None,
+        cancer_context: Optional[str] = None,
+        gene2: Optional[str] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -2462,6 +2568,9 @@ class OrchestraWorkflow:
             comparison_results=None,
             cancer_type=cancer_type,
             network_comparison=None,
+            cancer_context=cancer_context,
+            gene2=gene2,
+            novelty_result=None,
             synthesis=None,
             completed_steps=[],
             errors={},

@@ -4,7 +4,7 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Six composite tools:
+Seven composite tools:
   causal_chain_analysis        — TF path (parallel RegNetAgents + CASCADE) or
                                  effector path (PPI → TF partner → simulate)
   validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
@@ -12,6 +12,7 @@ Six composite tools:
   analyze_gene_signature       — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
   compare_cell_contexts        — 7-source evidence heatmap across N cell types (Issue #11)
   compare_network_contexts     — GREmLN vs TCGA regulatory rewiring + CASCADE validation (Issue #13)
+  novelty_assessment           — PubMed hit count + novelty verdict for a gene in a cancer context (Issue #15)
 """
 
 import asyncio
@@ -144,6 +145,34 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="novelty_assessment",
+            description=(
+                "Query PubMed for a gene (or gene pair) in a cancer context and return "
+                "a structured novelty verdict: established (>20 papers), emerging (5–20), "
+                "or novel (<5). Reports total hit count split into experimental vs. computational "
+                "papers, and the most recent publication year. Use this to gauge how well-characterized "
+                "a finding is before writing it up, or to prioritize results from other Orchestra tools."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Primary gene symbol (e.g. FOXM1)",
+                    },
+                    "cancer_context": {
+                        "type": "string",
+                        "description": "Plain-text cancer context for the PubMed query (e.g. 'head and neck squamous', 'breast cancer', 'colorectal')",
+                    },
+                    "gene2": {
+                        "type": "string",
+                        "description": "Optional second gene for gene-pair queries (e.g. TOP2A). When provided, the query requires both genes to appear in the abstract.",
+                    },
+                },
+                "required": ["gene", "cancer_context"],
+            },
+        ),
+        Tool(
             name="compare_network_contexts",
             description=(
                 "Compare a gene's regulatory wiring between population-averaged (GREmLN ARACNe) "
@@ -211,7 +240,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     cell_type = arguments.get("cell_type", "")
 
-    if name == "compare_network_contexts":
+    if name == "novelty_assessment":
+        gene = arguments.get("gene", "")
+        cancer_context = arguments.get("cancer_context", "")
+        gene2 = arguments.get("gene2") or None
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type="",
+            analysis_type="novelty_assessment",
+            cancer_context=cancer_context,
+            gene2=gene2,
+            progress=progress,
+        )
+        subject = f"{gene}/{gene2}" if gene2 else gene
+        label = f"{subject} in {cancer_context}"
+    elif name == "compare_network_contexts":
         gene = arguments.get("gene", "")
         cancer_type = arguments.get("cancer_type", "")
         cell_type = arguments.get("cell_type", "epithelial_cell")
