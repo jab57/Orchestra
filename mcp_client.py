@@ -164,6 +164,7 @@ def _child_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     env = dict(os.environ)
     if os.environ.get("ORCHESTRA_SSL_NO_VERIFY") == "1":
         env["ORCHESTRA_SSL_NO_VERIFY"] = "1"
+        env["CASCADE_SSL_NO_VERIFY"] = "1"   # CASCADE cBioPortal client checks this flag
         # Disable SSL verification at the Python HTTP stack level so child-server
         # outbound calls (e.g. RegNetAgents Ensembl lookups) are not blocked by
         # corporate SSL inspection proxies.
