@@ -397,7 +397,7 @@ class TestFormatTfReport:
     def test_errors_section_when_present(self, wf):
         lines = wf._format_tf_report(self._synthesis(errors={"network": "timeout"}))
         text = "\n".join(lines)
-        assert "Partial Data Warnings" in text
+        assert "Data Gaps" in text
         assert "timeout" in text
 
     def test_returns_list_of_strings(self, wf):
@@ -512,6 +512,49 @@ class TestFormatValidationReport:
         ]
         text = "\n".join(wf._format_validation_report(self._synthesis(candidates)))
         assert "not run" in text
+
+    def _evidence_row(self, gene, cbio=False):
+        return {
+            "gene": gene, "pagerank_rank": False, "pathway_member": False,
+            "lincs_knockdown": False, "depmap_essentiality": False,
+            "super_enhancer": False, "dorothea_tier": False,
+            "cbio_expression": cbio, "corroboration_count": 0,
+            "corroboration_denominator": 7,
+        }
+
+    def test_cbio_gap_flagged_when_all_rows_empty(self, wf):
+        """Data Gaps section fires when cBioPortal returns nothing for all candidates."""
+        synthesis = self._synthesis(
+            [],
+            cascade_available=True,
+            evidence_table=[self._evidence_row("BRD4"), self._evidence_row("CDK9")],
+        )
+        text = "\n".join(wf._format_validation_report(synthesis))
+        assert "Data Gaps" in text
+        assert "cBioPortal" in text
+
+    def test_cbio_gap_suppressed_when_cascade_unavailable(self, wf):
+        """cBioPortal gap is not reported when CASCADE itself was down."""
+        synthesis = self._synthesis(
+            [],
+            cascade_available=False,
+            evidence_table=[self._evidence_row("BRD4")],
+        )
+        text = "\n".join(wf._format_validation_report(synthesis))
+        assert "cBioPortal" not in text
+
+    def test_cbio_gap_suppressed_when_some_rows_have_data(self, wf):
+        """No gap reported if at least one candidate has cBioPortal data."""
+        synthesis = self._synthesis(
+            [],
+            cascade_available=True,
+            evidence_table=[
+                self._evidence_row("BRD4", cbio=True),
+                self._evidence_row("CDK9", cbio=False),
+            ],
+        )
+        text = "\n".join(wf._format_validation_report(synthesis))
+        assert "Data Gaps" not in text
 
 
 # ---------------------------------------------------------------------------

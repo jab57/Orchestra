@@ -1922,11 +1922,7 @@ class OrchestraWorkflow:
 
         lines.extend(self._format_pair_novelty_section(synthesis))
 
-        if errors:
-            lines.append("")
-            lines.append("### Partial Data Warnings")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
@@ -1995,11 +1991,7 @@ class OrchestraWorkflow:
                     detail = f"{sc} sources ({', '.join(srcs)})" if sc else ""
                     lines.append(f"  - {sym}: {detail}" if detail else f"  - {sym}")
 
-        if errors:
-            lines.append("")
-            lines.append("### Partial Data Warnings")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
@@ -2035,11 +2027,7 @@ class OrchestraWorkflow:
             lines.append("No master regulators identified for this gene signature.")
             if genes_not_found:
                 lines.append(f"Genes not found in network: {', '.join(genes_not_found[:10])}")
-            if errors:
-                lines.append("")
-                lines.append("### Errors")
-                for k, v in errors.items():
-                    lines.append(f"- {k}: {v}")
+            lines.extend(self._format_data_gaps(synthesis))
             return lines
 
         # Corroboration + coverage table
@@ -2109,10 +2097,7 @@ class OrchestraWorkflow:
                 lines.append(f"- **{flag_entry['description']}**")
             lines.append("")
 
-        if errors:
-            lines.append("### Partial Data Warnings")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
@@ -2236,10 +2221,7 @@ class OrchestraWorkflow:
                     lines.append(f"> ⚠️ **{ct}**: CASCADE unavailable — {scores['perturbation_error']}")
             lines.append("")
 
-        if errors:
-            lines.append("### Errors")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
@@ -2258,11 +2240,7 @@ class OrchestraWorkflow:
 
         if not result:
             lines.append("_PubMed query returned no result._")
-            if errors:
-                lines.append("")
-                lines.append("### Errors")
-                for k, v in errors.items():
-                    lines.append(f"- {k}: {v}")
+            lines.extend(self._format_data_gaps(synthesis))
             return lines
 
         verdict = result.get("novelty_verdict", "unknown").upper()
@@ -2281,11 +2259,7 @@ class OrchestraWorkflow:
             "_Thresholds: >20 hits = established · 5–20 = emerging · <5 = novel_",
         ]
 
-        if errors:
-            lines.append("")
-            lines.append("### Errors")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
@@ -2414,16 +2388,57 @@ class OrchestraWorkflow:
 
         lines.extend(self._format_pair_novelty_section(synthesis))
 
-        if errors:
-            lines.append("### Errors")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
     # ------------------------------------------------------------------
     # LLM synthesis
     # ------------------------------------------------------------------
+
+    def _format_data_gaps(self, synthesis: dict) -> list[str]:
+        """Return a Data Gaps section for any missing or failed evidence sources.
+
+        Surfaces both explicit tool call failures (errors dict) and silent empty
+        results from external API sources — so Claude Desktop cannot silently fill
+        gaps from prior context.
+        """
+        errors = synthesis.get("errors") or {}
+        evidence_table = synthesis.get("evidence_table") or []
+        cascade_available = synthesis.get("cascade_available", True)
+
+        gaps = []
+
+        for k, v in errors.items():
+            gaps.append(f"**{k}**: {v}")
+
+        # Detect silent empty results from external CASCADE sources.
+        # Only fires when CASCADE ran (cascade_available=True) but the source
+        # returned nothing for every candidate — most likely an SSL/network failure.
+        if cascade_available and evidence_table:
+            _EXTERNAL_SOURCES = {
+                "cbio_expression": "cBioPortal (TCGA primary tumor expression)",
+            }
+            for src_key, src_label in _EXTERNAL_SOURCES.items():
+                if all(not row.get(src_key, False) for row in evidence_table):
+                    gaps.append(
+                        f"**{src_label}**: no data returned for any candidate — "
+                        "verify SSL/network connectivity to cbioportal.org "
+                        "(set CASCADE_SSL_NO_VERIFY=1 if behind a corporate proxy)"
+                    )
+
+        if not gaps:
+            return []
+
+        lines = [
+            "",
+            "### Data Gaps",
+            "_The following evidence sources returned no data. "
+            "Do not cite these sources in downstream analysis._",
+        ]
+        for g in gaps:
+            lines.append(f"- {g}")
+        return lines
 
     def _format_validation_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
@@ -2451,11 +2466,7 @@ class OrchestraWorkflow:
         if not candidates:
             lines.append("No therapeutic target candidates identified.")
             lines.extend(self._format_pair_novelty_section(synthesis))
-            if errors:
-                lines.append("")
-                lines.append("### Errors")
-                for k, v in errors.items():
-                    lines.append(f"- {k}: {v}")
+            lines.extend(self._format_data_gaps(synthesis))
             return lines
 
         # Corroboration table: structured 7-source evidence summary
@@ -2536,10 +2547,7 @@ class OrchestraWorkflow:
 
         lines.extend(self._format_pair_novelty_section(synthesis))
 
-        if errors:
-            lines.append("### Partial Data Warnings")
-            for k, v in errors.items():
-                lines.append(f"- {k}: {v}")
+        lines.extend(self._format_data_gaps(synthesis))
 
         return lines
 
