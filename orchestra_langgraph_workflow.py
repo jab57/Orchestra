@@ -69,6 +69,7 @@ class OrchestraState(TypedDict):
 
     # RegNetAgents results (via MCP)
     network_analysis: Optional[dict]
+    network_stats: Optional[dict]   # query_network result — true num_targets/num_regulators
     pathway_enrichment: Optional[dict]
     domain_insights: Optional[dict]
 
@@ -398,7 +399,7 @@ class OrchestraWorkflow:
         cell_type = state["cell_type"]
 
         await self._emit(f"[Orchestra] Running RegNetAgents + CASCADE in parallel for {gene} in {cell_type}...")
-        rna_result, cascade_result = await asyncio.gather(
+        rna_result, cascade_result, net_stats = await asyncio.gather(
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
                 {"gene": gene, "cell_type": cell_type},
@@ -408,6 +409,11 @@ class OrchestraWorkflow:
                 "comprehensive_perturbation_analysis",
                 {"gene": gene, "cell_type": cell_type},
                 timeout_seconds=TIMEOUT_PERTURBATION,
+            ),
+            self._regnetagents.call_tool(
+                "query_network",
+                {"gene": gene, "cell_type": cell_type},
+                timeout_seconds=TIMEOUT_NETWORK,
             ),
             return_exceptions=True,
         )
@@ -421,6 +427,9 @@ class OrchestraWorkflow:
             state["errors"]["perturbation"] = str(cascade_result)
         else:
             state["perturbation_result"] = cascade_result
+
+        if not isinstance(net_stats, BaseException):
+            state["network_stats"] = net_stats
 
         state["completed_steps"].append("run_tf_path")
         return state
@@ -1099,6 +1108,7 @@ class OrchestraWorkflow:
             "source_disagreements": source_disagreements,
             "network_context": network_summary,
             "regnetagents_target_count": len(rna_targets),
+            "regnetagents_true_target_count": (state.get("network_stats") or {}).get("num_targets"),
             "regnetagents_available": bool(network) and "network" not in errors,
             "cascade_available": bool(perturbation) and "perturbation" not in errors,
             "discordance_flags": discordance_flags,
@@ -1836,6 +1846,7 @@ class OrchestraWorkflow:
         agreements = synthesis.get("source_agreements", [])
         network_ctx = synthesis.get("network_context", {})
         rna_target_count = synthesis.get("regnetagents_target_count", 0)
+        rna_true_target_count = synthesis.get("regnetagents_true_target_count")
         errors = synthesis.get("errors", {})
 
         regnetagents_available = synthesis.get("regnetagents_available", True)
@@ -1877,9 +1888,15 @@ class OrchestraWorkflow:
 
         lines.append("")
         lines.append("### Cross-System Corroboration")
-        lines.append(
-            f"RegNetAgents downstream targets: {rna_target_count} genes"
-        )
+        if rna_true_target_count is not None and rna_true_target_count > rna_target_count:
+            lines.append(
+                f"RegNetAgents regulatory network: {rna_true_target_count} total downstream targets "
+                f"({rna_target_count} shown in analysis)"
+            )
+        else:
+            lines.append(
+                f"RegNetAgents downstream targets: {rna_target_count} genes"
+            )
 
         if cross_system_hits:
             lines.append(
@@ -2709,6 +2726,7 @@ class OrchestraWorkflow:
             ensembl_id=None,
             tf_partner=None,
             network_analysis=None,
+            network_stats=None,
             pathway_enrichment=None,
             domain_insights=None,
             perturbation_result=None,
