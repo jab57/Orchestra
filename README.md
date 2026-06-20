@@ -275,7 +275,7 @@ Key variables:
 pytest tests/
 ```
 
-255 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+258 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
