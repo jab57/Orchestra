@@ -283,7 +283,7 @@ Key variables:
 pytest tests/
 ```
 
-258 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+267 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -451,7 +451,7 @@ Orchestra/
     ├── test_effector_analysis.py    # APC integration test (8 tests; requires child servers)
     ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
     ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
-    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (31 unit tests + 1 integration)
+    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (33 unit tests + 1 integration)
     └── test_novelty_assessment.py   # PubMed novelty assessment + edge pair novelty: mocked HTTP, verdict thresholds, workflow, edge extraction (50 unit tests)
 ```
 
@@ -497,7 +497,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (236) run without live child servers. Integration tests (2) require RegNetAgents and CASCADE:
+Unit tests (267) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1

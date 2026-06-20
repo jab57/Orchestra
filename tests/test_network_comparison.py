@@ -74,8 +74,8 @@ def _context_result(
         "regulators": {
             "population_averaged_total": pop_total,
             "tumor_state_total": tumor_total,
-            "conserved": conserved or ["E2F1", "MYC", "BRCA1"],
-            "conserved_count": len(conserved or ["E2F1", "MYC", "BRCA1"]),
+            "conserved": conserved if conserved is not None else ["E2F1", "MYC", "BRCA1"],
+            "conserved_count": len(conserved if conserved is not None else ["E2F1", "MYC", "BRCA1"]),
             "conserved_fraction": conserved_fraction,
             "population_averaged_only": pop_only or ["TP53"],
             "tumor_state_only": tumor_only or ["EGFR", "KRAS"],
@@ -248,6 +248,30 @@ class TestSynthesizeNetworkComparisonPath:
         )
         result = wf._synthesize_network_comparison_path(state)
         assert len(result["synthesis"]["validated_conserved"]) == 3
+
+    def test_cascade_available_true_when_no_conserved_regs(self, wf):
+        # CASCADE is not called when there are 0 conserved regulators — that is
+        # valid biology (complete rewiring), not a CASCADE failure.
+        state = _nc_state(
+            network_comparison=_context_result(conserved=[], cascade_validation={}),
+        )
+        result = wf._synthesize_network_comparison_path(state)
+        assert result["synthesis"]["cascade_available"] is True
+
+    def test_cascade_available_true_when_calls_errored(self, wf):
+        # Per-call CASCADE errors are surfaced via validated_conserved tier, not by
+        # setting cascade_available=False. The global flag stays True so no "CASCADE
+        # unavailable" banner fires — the tier label "conserved_not_validated" is the
+        # right signal.
+        state = _nc_state(
+            network_comparison=_context_result(
+                conserved=["TOP2A"],
+                cascade_validation={"TOP2A": {"error": "timeout"}},
+            ),
+        )
+        result = wf._synthesize_network_comparison_path(state)
+        assert result["synthesis"]["cascade_available"] is True
+        assert result["synthesis"]["validated_conserved"][0]["tier"] == "conserved_not_validated"
 
 
 # ---------------------------------------------------------------------------

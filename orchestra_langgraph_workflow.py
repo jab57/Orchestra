@@ -1670,7 +1670,7 @@ class OrchestraWorkflow:
             "tgt_conserved_fraction": tgt_data.get("conserved_fraction", 0.0),
             "tgt_tumor_only": tgt_data.get("tumor_state_only") or [],
             "regnetagents_available": bool(nc) and "network_comparison" not in errors,
-            "cascade_available": bool(cascade_validation),
+            "cascade_available": not conserved_regs or bool(cascade_validation),
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
