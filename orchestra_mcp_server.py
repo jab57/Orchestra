@@ -4,15 +4,17 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Seven composite tools:
-  causal_chain_analysis        — TF path (parallel RegNetAgents + CASCADE) or
-                                 effector path (PPI → TF partner → simulate)
-  validate_therapeutic_targets — PageRank + drug discovery + PPI → 7-source corroboration table
-  effector_analysis            — scaffold/effector routing (APC→CTNNB1 pattern)
-  analyze_gene_signature       — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
-  compare_cell_contexts        — 7-source evidence heatmap across N cell types (Issue #11)
-  compare_network_contexts     — GREmLN vs TCGA regulatory rewiring + CASCADE validation (Issue #13)
-  novelty_assessment           — PubMed hit count + novelty verdict for a gene in a cancer context (Issue #15)
+Nine composite tools:
+  causal_chain_analysis             — TF path (parallel RegNetAgents + CASCADE) or
+                                      effector path (PPI → TF partner → simulate)
+  validate_therapeutic_targets      — PageRank + drug discovery + PPI → 7-source corroboration table
+  effector_analysis                 — scaffold/effector routing (APC→CTNNB1 pattern)
+  analyze_gene_signature            — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
+  compare_cell_contexts             — 7-source evidence heatmap across N cell types (Issue #11)
+  compare_network_contexts          — GREmLN vs TCGA regulatory rewiring + CASCADE validation (Issue #13)
+  novelty_assessment                — PubMed hit count + novelty verdict for a gene in a cancer context (Issue #15)
+  novelty_assessment_batch          — atomic batch variant: novelty_assessment for N genes in one call
+  compare_network_contexts_batch    — atomic batch variant: compare_network_contexts for N genes in one call
 """
 
 import asyncio
@@ -225,6 +227,65 @@ async def list_tools() -> list[Tool]:
                 "required": ["gene", "cancer_type"],
             },
         ),
+        Tool(
+            name="novelty_assessment_batch",
+            description=(
+                "Run PubMed novelty assessment for a list of genes in a single atomic call. "
+                "Returns a summary table (verdict, hit counts, experimental vs. computational "
+                "breakdown, most-recent-year) for every gene. "
+                "Use this instead of calling novelty_assessment repeatedly when assessing "
+                "multiple candidates — prevents silent truncation of the candidate list."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "genes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Gene symbols to assess (e.g. [\"LITAF\", \"USP21\", \"CENPK\"])",
+                        "minItems": 2,
+                    },
+                    "cancer_context": {
+                        "type": "string",
+                        "description": "Plain-text cancer context for all queries (e.g. 'cervical cancer')",
+                    },
+                },
+                "required": ["genes", "cancer_context"],
+            },
+        ),
+        Tool(
+            name="compare_network_contexts_batch",
+            description=(
+                "Run GREmLN vs TCGA network context comparison for a list of genes in a "
+                "single atomic call. Executes compare_network_contexts sequentially for each "
+                "gene and returns combined reports. "
+                "Use this instead of calling compare_network_contexts repeatedly when "
+                "comparing multiple candidate genes in the same cancer type — prevents "
+                "silent truncation of the candidate list."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "genes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Gene symbols to compare (e.g. [\"FOXM1\", \"MYC\", \"TP53\"])",
+                        "minItems": 2,
+                    },
+                    "cancer_type": {
+                        "type": "string",
+                        "enum": ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"],
+                        "description": "TCGA cancer type applied to all genes in the batch.",
+                    },
+                    "cell_type": {
+                        "type": "string",
+                        "description": "GREmLN reference cell type for all genes (default: epithelial_cell).",
+                        "default": "epithelial_cell",
+                    },
+                },
+                "required": ["genes", "cancer_type"],
+            },
+        ),
     ]
 
 
@@ -274,6 +335,74 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             progress=progress,
         )
         label = f"{gene}: {cell_type} (GREmLN) vs TCGA {cancer_type.upper()}"
+    elif name == "novelty_assessment_batch":
+        from pubmed_client import novelty_assessment as _pubmed_novelty
+        genes = arguments.get("genes", [])
+        cancer_context = arguments.get("cancer_context", "")
+        await progress(
+            f"[Orchestra] Batch novelty assessment: {len(genes)} genes in {cancer_context}..."
+        )
+        tasks = [_pubmed_novelty(g, cancer_context) for g in genes]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        rows = [
+            "| Gene | Verdict | PubMed Hits | Experimental | Computational | Last Year |",
+            "|------|---------|-------------|--------------|---------------|-----------|",
+        ]
+        rationales = []
+        for gene, res in zip(genes, results):
+            if isinstance(res, BaseException):
+                rows.append(f"| {gene} | ERROR | — | — | — | — |")
+                rationales.append(f"**{gene}**: error — {res}")
+            else:
+                v = (res.get("novelty_verdict") or "unknown").upper()
+                rows.append(
+                    f"| {gene} | {v} | {res.get('pubmed_hits', 0)} |"
+                    f" {res.get('experimental_hits', 0)} |"
+                    f" {res.get('computational_hits', 0)} |"
+                    f" {res.get('most_recent_year') or 'N/A'} |"
+                )
+                rationales.append(f"**{gene}** ({v}): {res.get('verdict_rationale', '')}")
+        report = "\n".join([
+            f"## Novelty Assessment: {cancer_context}",
+            f"_Assessed {len(genes)} genes_",
+            "",
+            *rows,
+            "",
+            "_Thresholds: >20 hits = established · 5–20 = emerging · <5 = novel_",
+            "",
+            "### Rationales",
+            "",
+            *rationales,
+        ])
+        label = f"{len(genes)} genes in {cancer_context}"
+        return [TextContent(type="text", text=f"Orchestra batch novelty assessment for {label}:\n\n{report}")]
+    elif name == "compare_network_contexts_batch":
+        genes = arguments.get("genes", [])
+        cancer_type = arguments.get("cancer_type", "")
+        cell_type = arguments.get("cell_type", "epithelial_cell")
+        sections = []
+        for gene in genes:
+            await progress(
+                f"[Orchestra] Comparing network contexts: {gene} "
+                f"({cell_type} vs TCGA {cancer_type.upper()})..."
+            )
+            res = await workflow.run_analysis(
+                gene=gene,
+                cell_type=cell_type,
+                analysis_type="network_comparison",
+                cancer_type=cancer_type,
+                progress=progress,
+            )
+            sections.append(res.get("final_report", f"_{gene}: analysis failed_"))
+        header = "\n".join([
+            f"## Network Context Comparison Batch: TCGA {cancer_type.upper()}",
+            f"**Genes:** {', '.join(genes)}",
+            f"**Reference network:** {cell_type} (GREmLN)",
+            "",
+        ])
+        report = header + "\n\n---\n\n".join(sections)
+        label = f"{', '.join(genes)}: {cell_type} vs TCGA {cancer_type.upper()}"
+        return [TextContent(type="text", text=f"Orchestra batch network comparison for {label}:\n\n{report}")]
     elif name == "analyze_gene_signature":
         genes = arguments.get("genes", [])
         result = await workflow.run_analysis(

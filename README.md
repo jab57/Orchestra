@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes seven composite tools:
+Orchestra exposes nine composite tools:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -106,6 +106,14 @@ Queries PubMed via NCBI E-utilities for a gene (or gene pair) in a plain-text ca
 Requires `NCBI_API_KEY` in `.env` for the 10 req/s rate limit (3 req/s without key).
 
 **Embedded pair novelty** — `causal_chain_analysis`, `validate_therapeutic_targets`, and `compare_network_contexts` automatically embed pair-level PubMed queries when the optional `cancer_context` parameter is provided. For each of the top 5 edges identified during synthesis (TF → target, regulator → gene, or conserved regulator → subject gene), Orchestra queries PubMed for co-occurrence of both gene names and appends a "Regulatory Pair Novelty" table to the report. This surfaces edges with 0 experimental papers even when both individual genes are individually well-studied — the actionable gap `novelty_assessment` on single genes would miss.
+
+### `novelty_assessment_batch(genes, cancer_context)`
+
+Atomic batch variant of `novelty_assessment`. Accepts a list of gene symbols and runs all PubMed queries in parallel, returning a single summary table with verdict, hit counts, experimental/computational breakdown, and most-recent year for every gene. Use this instead of calling `novelty_assessment` repeatedly when assessing multiple candidates — a single tool call cannot be silently truncated mid-list.
+
+### `compare_network_contexts_batch(genes, cancer_type, cell_type="epithelial_cell")`
+
+Atomic batch variant of `compare_network_contexts`. Accepts a list of gene symbols and runs the full GREmLN vs TCGA comparison sequentially for each gene, returning combined reports separated by `---`. Use this instead of calling `compare_network_contexts` repeatedly when comparing multiple candidate genes in the same cancer type.
 
 ## How It Works
 
@@ -306,7 +314,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The seven Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The nine Orchestra tools will appear in the tools list.
 
 ## Usage
 
@@ -416,7 +424,7 @@ LLM_MODEL=claude-haiku-4-5-20251001
 
 ```
 Orchestra/
-├── orchestra_mcp_server.py          # MCP server — exposes 7 composite tools to Claude Desktop
+├── orchestra_mcp_server.py          # MCP server — exposes 9 composite tools to Claude Desktop
 ├── orchestra_langgraph_workflow.py  # LangGraph DAG, OrchestraState, all analysis paths
 ├── pubmed_client.py                 # NCBI E-utilities client for novelty_assessment
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
@@ -443,8 +451,8 @@ Orchestra/
     ├── test_effector_analysis.py    # APC integration test (8 tests; requires child servers)
     ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
     ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
-    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (27 unit tests + 1 integration)
-    └── test_novelty_assessment.py   # PubMed novelty assessment + edge pair novelty: mocked HTTP, verdict thresholds, workflow, edge extraction (47 unit tests)
+    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (31 unit tests + 1 integration)
+    └── test_novelty_assessment.py   # PubMed novelty assessment + edge pair novelty: mocked HTTP, verdict thresholds, workflow, edge extraction (50 unit tests)
 ```
 
 ## Performance

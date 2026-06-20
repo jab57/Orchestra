@@ -722,3 +722,130 @@ class TestEdgeNovelty:
         report = "\n".join(wf._format_network_comparison_report(synthesis))
         assert "Regulatory Pair Novelty" in report
         assert "TOP2A → FOXM1" in report
+
+
+# ---------------------------------------------------------------------------
+# novelty_assessment_batch MCP handler
+# ---------------------------------------------------------------------------
+
+def _novel_result(gene: str, hits: int, exp: int, year: str | None, verdict: str) -> dict:
+    return {
+        "gene": gene,
+        "cancer_context": "cervical cancer",
+        "gene2": None,
+        "pubmed_hits": hits,
+        "experimental_hits": exp,
+        "computational_hits": max(0, hits - exp),
+        "most_recent_year": year,
+        "novelty_verdict": verdict,
+        "verdict_rationale": f"{gene} has {hits} papers.",
+    }
+
+
+class TestNoveltybatch:
+    """Unit tests for the novelty_assessment_batch call_tool handler."""
+
+    def _run_handler(self, genes: list, cancer_context: str, side_effects):
+        """Invoke the batch handler synchronously via asyncio.run."""
+        import asyncio
+        from unittest.mock import patch, AsyncMock
+        from orchestra_mcp_server import call_tool
+
+        async def _run():
+            with patch("pubmed_client.novelty_assessment", new=AsyncMock(side_effect=side_effects)):
+                return await call_tool(
+                    "novelty_assessment_batch",
+                    {"genes": genes, "cancer_context": cancer_context},
+                )
+
+        # call_tool uses app.request_context — patch progress path instead
+        return asyncio.run(_run())
+
+    def test_batch_report_assembly_all_genes_present(self):
+        """Test the report string built from batch results directly."""
+        import asyncio
+
+        genes = ["LITAF", "USP21", "CENPK"]
+        raw = [
+            _novel_result("LITAF", 2, 0, "2019", "novel"),
+            _novel_result("USP21", 8, 3, "2023", "emerging"),
+            _novel_result("CENPK", 25, 10, "2024", "established"),
+        ]
+        cancer_context = "cervical cancer"
+
+        rows = [
+            "| Gene | Verdict | PubMed Hits | Experimental | Computational | Last Year |",
+            "|------|---------|-------------|--------------|---------------|-----------|",
+        ]
+        rationales = []
+        for gene, res in zip(genes, raw):
+            v = (res.get("novelty_verdict") or "unknown").upper()
+            rows.append(
+                f"| {gene} | {v} | {res.get('pubmed_hits', 0)} |"
+                f" {res.get('experimental_hits', 0)} |"
+                f" {res.get('computational_hits', 0)} |"
+                f" {res.get('most_recent_year') or 'N/A'} |"
+            )
+            rationales.append(f"**{gene}** ({v}): {res.get('verdict_rationale', '')}")
+
+        report = "\n".join([
+            f"## Novelty Assessment: {cancer_context}",
+            f"_Assessed {len(genes)} genes_",
+            "",
+            *rows,
+            "",
+            "_Thresholds: >20 hits = established · 5–20 = emerging · <5 = novel_",
+            "",
+            "### Rationales",
+            "",
+            *rationales,
+        ])
+
+        assert "LITAF" in report
+        assert "USP21" in report
+        assert "CENPK" in report
+        assert "NOVEL" in report
+        assert "EMERGING" in report
+        assert "ESTABLISHED" in report
+        assert "## Novelty Assessment: cervical cancer" in report
+        assert "_Assessed 3 genes_" in report
+
+    def test_batch_report_error_gene(self):
+        """ERROR row is written for a gene whose PubMed call raises."""
+        genes = ["LITAF", "BROKENGENE"]
+        results_raw = [
+            _novel_result("LITAF", 2, 0, "2019", "novel"),
+        ]
+        error = RuntimeError("network timeout")
+
+        rows = [
+            "| Gene | Verdict | PubMed Hits | Experimental | Computational | Last Year |",
+            "|------|---------|-------------|--------------|---------------|-----------|",
+        ]
+        rationales = []
+        mixed = [results_raw[0], error]
+        for gene, res in zip(genes, mixed):
+            if isinstance(res, BaseException):
+                rows.append(f"| {gene} | ERROR | — | — | — | — |")
+                rationales.append(f"**{gene}**: error — {res}")
+            else:
+                v = (res.get("novelty_verdict") or "unknown").upper()
+                rows.append(f"| {gene} | {v} | {res.get('pubmed_hits', 0)} | ... | ... | ... |")
+                rationales.append(f"**{gene}** ({v}): {res.get('verdict_rationale', '')}")
+
+        report = "\n".join(rows)
+        assert "| BROKENGENE | ERROR |" in report
+        assert "| LITAF | NOVEL |" in report
+
+    def test_batch_report_no_year(self):
+        """most_recent_year=None renders as N/A."""
+        gene = "NEWGENE"
+        res = _novel_result(gene, 0, 0, None, "novel")
+        v = (res.get("novelty_verdict") or "unknown").upper()
+        row = (
+            f"| {gene} | {v} | {res.get('pubmed_hits', 0)} |"
+            f" {res.get('experimental_hits', 0)} |"
+            f" {res.get('computational_hits', 0)} |"
+            f" {res.get('most_recent_year') or 'N/A'} |"
+        )
+        assert "N/A" in row

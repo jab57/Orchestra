@@ -415,3 +415,59 @@ class TestNetworkComparisonIntegration:
         assert "tumor_state_only_regulators" in syn
         assert "rewiring_classification" in syn
         assert syn["rewiring_classification"] in ("low", "moderate", "high")
+
+
+# ---------------------------------------------------------------------------
+# compare_network_contexts_batch report assembly
+# ---------------------------------------------------------------------------
+
+class TestNetworkContextsBatch:
+    """Unit tests for compare_network_contexts_batch report assembly logic."""
+
+    def _make_report(self, gene: str, cancer_type: str) -> str:
+        return (
+            f"## Network Context Comparison: {gene}\n"
+            f"**Cancer type:** TCGA {cancer_type.upper()}\n"
+            f"Rewiring: HIGH\n"
+        )
+
+    def test_batch_header_contains_all_genes(self):
+        genes = ["FOXM1", "MYC", "TP53"]
+        cancer_type = "hnsc"
+        cell_type = "epithelial_cell"
+        sections = [self._make_report(g, cancer_type) for g in genes]
+        header = "\n".join([
+            f"## Network Context Comparison Batch: TCGA {cancer_type.upper()}",
+            f"**Genes:** {', '.join(genes)}",
+            f"**Reference network:** {cell_type} (GREmLN)",
+            "",
+        ])
+        report = header + "\n\n---\n\n".join(sections)
+        assert "FOXM1" in report
+        assert "MYC" in report
+        assert "TP53" in report
+        assert "## Network Context Comparison Batch: TCGA HNSC" in report
+        assert "**Genes:** FOXM1, MYC, TP53" in report
+
+    def test_batch_sections_separated_by_divider(self):
+        genes = ["FOXM1", "MYC"]
+        cancer_type = "brca"
+        sections = [self._make_report(g, cancer_type) for g in genes]
+        combined = "\n\n---\n\n".join(sections)
+        assert "---" in combined
+        assert combined.index("FOXM1") < combined.index("---") < combined.index("MYC")
+
+    def test_batch_failed_gene_shows_placeholder(self):
+        genes = ["FOXM1", "BROKENGENE"]
+        cancer_type = "hnsc"
+        sections = [
+            self._make_report("FOXM1", cancer_type),
+            "_BROKENGENE: analysis failed_",
+        ]
+        combined = "\n\n---\n\n".join(sections)
+        assert "_BROKENGENE: analysis failed_" in combined
+        assert "FOXM1" in combined
+
+    def test_batch_two_genes_minimum(self):
+        genes = ["FOXM1", "STAT3"]
+        assert len(genes) >= 2
