@@ -579,9 +579,12 @@ class OrchestraWorkflow:
         ]
         if top_tfs:
             await self._emit(f"[Orchestra] Validating top TFs via CASCADE: {', '.join(top_tfs)}")
-            validation_results = await asyncio.gather(
-                *[
-                    asyncio.wait_for(
+            # Sequential (not concurrent) to prevent 24+ simultaneous cBioPortal connections
+            # overwhelming the corporate SSL proxy (8 threads × 3 genes = 24 concurrent HTTPS).
+            validation_results = []
+            for tf in top_tfs:
+                try:
+                    res = await asyncio.wait_for(
                         self._cascade.call_tool(
                             "comprehensive_perturbation_analysis",
                             {"gene": tf, "cell_type": cell_type},
@@ -589,10 +592,9 @@ class OrchestraWorkflow:
                         ),
                         timeout=TIMEOUT_PERTURBATION,
                     )
-                    for tf in top_tfs
-                ],
-                return_exceptions=True,
-            )
+                    validation_results.append(res)
+                except Exception as e:
+                    validation_results.append(e)
             # Attach CASCADE evidence back onto the master regulator entries
             mr_list = mr_result.get("master_regulators") or []
             for i, (tf, result) in enumerate(zip(top_tfs, validation_results)):
