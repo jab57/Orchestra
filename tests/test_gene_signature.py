@@ -469,6 +469,13 @@ class TestClassifyNoveltyGap:
         }
         assert self.wf._classify_novelty_gap(verdicts) == "transfer_opportunity"
 
+    def test_transfer_opportunity_emerging_then_novel(self):
+        verdicts = {
+            "breast cancer": _novelty_result("emerging", 7),
+            "cervical cancer": _novelty_result("novel", 0),
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "transfer_opportunity"
+
     def test_bilateral_novel(self):
         verdicts = {
             "breast cancer": _novelty_result("novel", 0),

@@ -622,7 +622,7 @@ class OrchestraWorkflow:
                     f"[Orchestra] Cross-context novelty: querying {len(top_5)} regulators "
                     f"× {len(cancer_contexts)} contexts..."
                 )
-                _sem = asyncio.Semaphore(3)
+                _sem = asyncio.Semaphore(2)
 
                 async def _bounded(coro):
                     async with _sem:
@@ -1445,14 +1445,15 @@ class OrchestraWorkflow:
     def _classify_novelty_gap(verdicts: dict) -> str:
         """
         Classify a regulator's cross-context novelty gap.
-        verdicts: {ctx: novelty_result_dict} where result has "verdict" key.
+        verdicts: {ctx: novelty_result_dict} where result has "novelty_verdict" key.
+        "emerging" counts as non-novel for transfer_opportunity classification.
         """
         vals = [v.get("novelty_verdict", "novel") for v in verdicts.values() if not v.get("error")]
         if not vals:
             return "unknown"
-        established = sum(1 for v in vals if v == "established")
+        non_novel = sum(1 for v in vals if v in ("established", "emerging"))
         novel = sum(1 for v in vals if v == "novel")
-        if established >= 1 and novel >= 1:
+        if non_novel >= 1 and novel >= 1:
             return "transfer_opportunity"
         if all(v == "novel" for v in vals):
             return "bilateral_novel"
