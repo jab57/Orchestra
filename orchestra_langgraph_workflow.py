@@ -609,6 +609,7 @@ class OrchestraWorkflow:
                     entry["multi_source_genes"] = [
                         g["symbol"] for g in (ev.get("multi_source_genes") or [])[:10]
                     ]
+                    entry["cbioportal_summary"] = ev.get("cbioportal_summary")
 
         # Step 3: cross-context novelty gap (GitHub #13)
         # Run novelty_assessment for top 5 regulators × each cancer context in parallel.
@@ -1525,6 +1526,7 @@ class OrchestraWorkflow:
                 "overlapping_genes": entry.get("overlapping_genes", []),
                 "cascade_key_findings": entry.get("key_findings", []),
                 "multi_source_genes": entry.get("multi_source_genes", []),
+                "cbioportal_summary": entry.get("cbioportal_summary"),
                 "cascade_error": entry.get("cascade_error"),
             })
 
@@ -2180,6 +2182,17 @@ class OrchestraWorkflow:
                     lines.append(f"   - {f}")
             elif d.get("cascade_error"):
                 lines.append(f"   CASCADE validation error: {d['cascade_error']}")
+            cbio = d.get("cbioportal_summary")
+            if cbio is not None:
+                pan_z = cbio.get("pan_cancer_mean_z")
+                overexp = cbio.get("tumor_overexpressed", False)
+                if pan_z is not None:
+                    if overexp:
+                        lines.append(f"   cBioPortal (TCGA): pan-cancer z={pan_z:.2f} — overexpressed in primary tumors")
+                    else:
+                        lines.append(f"   cBioPortal (TCGA): pan-cancer z={pan_z:.2f} — not overexpressed in primary tumors (data present, expression near baseline)")
+            elif not d.get("cascade_error"):
+                lines.append("   cBioPortal (TCGA): data not returned (possible connectivity issue)")
             lines.append("")
 
         if genes_not_found:
