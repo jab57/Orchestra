@@ -79,9 +79,11 @@ class OrchestraState(TypedDict):
     lincs_effects: Optional[dict]
     depmap_essentiality: Optional[dict]
 
-    # Gene signature analysis (Issue #10)
+    # Gene signature analysis (Issue #10 + GitHub #13)
     gene_signature: Optional[list]    # input DEG list for analyze_gene_signature
     master_regulators: Optional[dict] # RegNetAgents find_master_regulators output
+    cancer_contexts: Optional[list]   # cancer contexts for cross-context novelty gap (GitHub #13)
+    cross_context_novelty: Optional[dict]  # {reg: {ctx: novelty_result}} from GitHub #13
 
     # Cross-cell-type comparison (Issue #11)
     cell_types: Optional[list]        # input list of cell types for compare_cell_contexts
@@ -605,6 +607,39 @@ class OrchestraWorkflow:
                     entry["multi_source_genes"] = [
                         g["symbol"] for g in (ev.get("multi_source_genes") or [])[:10]
                     ]
+
+        # Step 3: cross-context novelty gap (GitHub #13)
+        # Run novelty_assessment for top 5 regulators × each cancer context in parallel.
+        cancer_contexts = state.get("cancer_contexts") or []
+        if cancer_contexts:
+            from pubmed_client import novelty_assessment as _pubmed_novelty
+            top_5 = [
+                r["gene"]
+                for r in (mr_result.get("master_regulators") or [])[:5]
+            ]
+            if top_5:
+                await self._emit(
+                    f"[Orchestra] Cross-context novelty: querying {len(top_5)} regulators "
+                    f"× {len(cancer_contexts)} contexts..."
+                )
+                tasks = [
+                    _pubmed_novelty(reg, ctx)
+                    for reg in top_5
+                    for ctx in cancer_contexts
+                ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                # Reshape flat results into {reg: {ctx: result}}
+                cross_novelty: dict = {}
+                idx = 0
+                for reg in top_5:
+                    cross_novelty[reg] = {}
+                    for ctx in cancer_contexts:
+                        res = results[idx]
+                        cross_novelty[reg][ctx] = (
+                            {"error": str(res)} if isinstance(res, Exception) else res
+                        )
+                        idx += 1
+                state["cross_context_novelty"] = cross_novelty
 
         state["completed_steps"].append("run_signature_path")
         return state
@@ -1400,6 +1435,23 @@ class OrchestraWorkflow:
 
         return flags
 
+    @staticmethod
+    def _classify_novelty_gap(verdicts: dict) -> str:
+        """
+        Classify a regulator's cross-context novelty gap.
+        verdicts: {ctx: novelty_result_dict} where result has "verdict" key.
+        """
+        vals = [v.get("verdict", "novel") for v in verdicts.values() if not v.get("error")]
+        if not vals:
+            return "unknown"
+        established = sum(1 for v in vals if v == "established")
+        novel = sum(1 for v in vals if v == "novel")
+        if established >= 1 and novel >= 1:
+            return "transfer_opportunity"
+        if all(v == "novel" for v in vals):
+            return "bilateral_novel"
+        return "bilateral_established"
+
     def _synthesize_signature_path(self, state: OrchestraState) -> OrchestraState:
         """
         Signature path synthesis: combines RegNetAgents Fisher enrichment (network
@@ -1473,6 +1525,17 @@ class OrchestraWorkflow:
 
         discordance_flags = self._compute_validation_discordance_flags(evidence_table)
 
+        # Cross-context novelty gap (GitHub #13)
+        raw_novelty = state.get("cross_context_novelty") or {}
+        cancer_contexts = state.get("cancer_contexts") or []
+        cross_context_novelty = []
+        for reg, ctx_results in raw_novelty.items():
+            cross_context_novelty.append({
+                "gene": reg,
+                "gap_classification": self._classify_novelty_gap(ctx_results),
+                "by_context": ctx_results,
+            })
+
         state["synthesis"] = {
             "gene": "",
             "cell_type": state["cell_type"],
@@ -1488,6 +1551,8 @@ class OrchestraWorkflow:
             "regnetagents_available": regnetagents_available,
             "cascade_available": cascade_available,
             "discordance_flags": discordance_flags,
+            "cancer_contexts": cancer_contexts,
+            "cross_context_novelty": cross_context_novelty,
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -2114,6 +2179,43 @@ class OrchestraWorkflow:
                 lines.append(f"- **{flag_entry['description']}**")
             lines.append("")
 
+        # Cross-context novelty gap table (GitHub #13)
+        cross_context_novelty = synthesis.get("cross_context_novelty") or []
+        cancer_contexts = synthesis.get("cancer_contexts") or []
+        if cross_context_novelty and cancer_contexts:
+            lines.append("### Cross-Context Novelty Gap")
+            lines.append("")
+            header = "| Regulator | " + " | ".join(cancer_contexts) + " | Gap |"
+            sep = "|---|" + "---|" * len(cancer_contexts) + "---|"
+            lines.append(header)
+            lines.append(sep)
+            _GAP_LABEL = {
+                "transfer_opportunity": "✓ transfer opportunity",
+                "bilateral_novel": "bilateral novel",
+                "bilateral_established": "bilateral established",
+                "unknown": "unknown",
+            }
+            for entry in cross_context_novelty:
+                reg = entry["gene"]
+                by_ctx = entry.get("by_context") or {}
+                ctx_cells = []
+                for ctx in cancer_contexts:
+                    res = by_ctx.get(ctx) or {}
+                    if res.get("error"):
+                        ctx_cells.append("error")
+                    else:
+                        verdict = res.get("verdict", "?")
+                        total = res.get("total_papers", "?")
+                        ctx_cells.append(f"{verdict} ({total} papers)")
+                gap = _GAP_LABEL.get(entry.get("gap_classification", "unknown"), "unknown")
+                lines.append(f"| {reg} | " + " | ".join(ctx_cells) + f" | {gap} |")
+            lines.append("")
+            lines.append(
+                "_Transfer opportunity: established (>5 papers) in one context, "
+                "novel (<5) in the other — highest priority for cross-cancer work._"
+            )
+            lines.append("")
+
         lines.extend(self._format_data_gaps(synthesis))
 
         return lines
@@ -2713,6 +2815,7 @@ class OrchestraWorkflow:
         cancer_type: Optional[str] = None,
         cancer_context: Optional[str] = None,
         gene2: Optional[str] = None,
+        cancer_contexts: Optional[list] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -2743,6 +2846,8 @@ class OrchestraWorkflow:
             network_comparison=None,
             cancer_context=cancer_context,
             gene2=gene2,
+            cancer_contexts=cancer_contexts,
+            cross_context_novelty=None,
             novelty_result=None,
             edge_novelty_results=None,
             synthesis=None,

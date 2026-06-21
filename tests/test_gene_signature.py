@@ -443,6 +443,130 @@ class TestSignatureGracefulDegradation:
 
 
 # ---------------------------------------------------------------------------
+# Cross-context novelty gap (GitHub #13)
+# ---------------------------------------------------------------------------
+
+def _novelty_result(verdict: str, total: int) -> dict:
+    return {"verdict": verdict, "total_papers": total, "experimental_papers": 0,
+            "computational_papers": 0, "most_recent_year": None, "verdict_rationale": ""}
+
+
+class TestClassifyNoveltyGap:
+    def setup_method(self):
+        self.wf = _make_workflow()
+
+    def test_transfer_opportunity_established_then_novel(self):
+        verdicts = {
+            "breast cancer": _novelty_result("established", 42),
+            "cervical cancer": _novelty_result("novel", 0),
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "transfer_opportunity"
+
+    def test_transfer_opportunity_novel_then_established(self):
+        verdicts = {
+            "breast cancer": _novelty_result("novel", 1),
+            "cervical cancer": _novelty_result("established", 30),
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "transfer_opportunity"
+
+    def test_bilateral_novel(self):
+        verdicts = {
+            "breast cancer": _novelty_result("novel", 0),
+            "cervical cancer": _novelty_result("novel", 2),
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "bilateral_novel"
+
+    def test_bilateral_established(self):
+        verdicts = {
+            "breast cancer": _novelty_result("established", 50),
+            "cervical cancer": _novelty_result("emerging", 10),
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "bilateral_established"
+
+    def test_error_entries_skipped(self):
+        verdicts = {
+            "breast cancer": _novelty_result("established", 20),
+            "cervical cancer": {"error": "timeout"},
+        }
+        # Only one valid verdict (established) — no novel to pair with → bilateral_established
+        assert self.wf._classify_novelty_gap(verdicts) == "bilateral_established"
+
+    def test_all_errors_returns_unknown(self):
+        verdicts = {
+            "breast cancer": {"error": "timeout"},
+            "cervical cancer": {"error": "timeout"},
+        }
+        assert self.wf._classify_novelty_gap(verdicts) == "unknown"
+
+
+class TestCrossContextNoveltySynthesis:
+    def setup_method(self):
+        self.wf = _make_workflow()
+
+    def _state_with_novelty(self, cross_novelty: dict, cancer_contexts: list) -> dict:
+        state = _sig_state(
+            master_regulators=_mr_result([_tf_entry("CDCA7", overlap=4)]),
+            cross_context_novelty=cross_novelty,
+            cancer_contexts=cancer_contexts,
+        )
+        return state
+
+    def test_cross_context_novelty_in_synthesis(self):
+        novelty = {
+            "CDCA7": {
+                "breast cancer": _novelty_result("established", 15),
+                "cervical cancer": _novelty_result("novel", 0),
+            }
+        }
+        state = self._state_with_novelty(novelty, ["breast cancer", "cervical cancer"])
+        result = self.wf._synthesize_signature_path(state)
+        ccn = result["synthesis"]["cross_context_novelty"]
+        assert len(ccn) == 1
+        assert ccn[0]["gene"] == "CDCA7"
+        assert ccn[0]["gap_classification"] == "transfer_opportunity"
+
+    def test_no_cancer_contexts_produces_empty_table(self):
+        state = _sig_state(master_regulators=_mr_result([_tf_entry("CDCA7", overlap=4)]))
+        result = self.wf._synthesize_signature_path(state)
+        assert result["synthesis"]["cross_context_novelty"] == []
+
+    def test_gap_table_in_report(self):
+        novelty = {
+            "CDCA7": {
+                "breast cancer": _novelty_result("established", 15),
+                "cervical cancer": _novelty_result("novel", 0),
+            }
+        }
+        state = self._state_with_novelty(novelty, ["breast cancer", "cervical cancer"])
+        result = self.wf._synthesize_signature_path(state)
+        report = "\n".join(self.wf._format_signature_report(result["synthesis"]))
+        assert "Cross-Context Novelty Gap" in report
+        assert "CDCA7" in report
+        assert "transfer opportunity" in report
+        assert "breast cancer" in report
+        assert "cervical cancer" in report
+
+    def test_gap_table_absent_when_no_contexts(self):
+        state = _sig_state(master_regulators=_mr_result([_tf_entry("CDCA7", overlap=4)]))
+        result = self.wf._synthesize_signature_path(state)
+        report = "\n".join(self.wf._format_signature_report(result["synthesis"]))
+        assert "Cross-Context Novelty Gap" not in report
+
+    def test_error_entry_renders_gracefully(self):
+        novelty = {
+            "CDCA7": {
+                "breast cancer": _novelty_result("established", 15),
+                "cervical cancer": {"error": "timeout"},
+            }
+        }
+        state = self._state_with_novelty(novelty, ["breast cancer", "cervical cancer"])
+        result = self.wf._synthesize_signature_path(state)
+        report = "\n".join(self.wf._format_signature_report(result["synthesis"]))
+        assert "Cross-Context Novelty Gap" in report
+        assert "error" in report
+
+
+# ---------------------------------------------------------------------------
 # Integration test (requires live servers)
 # ---------------------------------------------------------------------------
 

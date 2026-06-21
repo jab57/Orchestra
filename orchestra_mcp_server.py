@@ -102,8 +102,9 @@ async def list_tools() -> list[Tool]:
                 "the input gene set, then validates top candidates via CASCADE perturbation "
                 "simulation and experimental data (LINCS, DepMap, super-enhancers). "
                 "Returns a ranked driver table with signature coverage % and 7-source "
-                "corroboration score — a cross-system result neither RegNetAgents nor "
-                "CASCADE can produce alone."
+                "corroboration score. Optional: supply cancer_contexts to add a "
+                "Cross-Context Novelty Gap table classifying each driver as "
+                "transfer_opportunity, bilateral_novel, or bilateral_established."
             ),
             inputSchema={
                 "type": "object",
@@ -117,6 +118,11 @@ async def list_tools() -> list[Tool]:
                     "cell_type": {
                         "type": "string",
                         "description": "Cell type context for network and perturbation analysis (e.g. epithelial_cell)",
+                    },
+                    "cancer_contexts": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional list of cancer contexts for cross-context novelty gap analysis (e.g. [\"breast cancer\", \"cervical cancer\"]). When supplied, PubMed novelty is queried for the top 5 ranked drivers in each context and a gap table is appended to the report.",
                     },
                 },
                 "required": ["genes", "cell_type"],
@@ -476,11 +482,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=f"Orchestra batch network comparison for {label}:\n\n{report}")]
     elif name == "analyze_gene_signature":
         genes = arguments.get("genes", [])
+        cancer_contexts = arguments.get("cancer_contexts") or None
         result = await workflow.run_analysis(
             gene="",
             cell_type=cell_type,
             analysis_type="gene_signature",
             gene_signature=genes,
+            cancer_contexts=cancer_contexts,
             progress=progress,
         )
         label = f"Gene signature ({len(genes)} genes) in {cell_type}"

@@ -103,7 +103,7 @@ The `compare_network_contexts` tool covers eight TCGA epithelial cancer types (b
 
 # Software Availability
 
-Orchestra is available at [https://github.com/jab57/Orchestra](https://github.com/jab57/Orchestra) under the MIT license. The repository includes 267 unit tests and 20 integration tests covering workflow routing, cross-system synthesis, effector path TF partner selection, gene signature enrichment, cross-cell-type conservation scoring, GREmLN vs. TCGA network comparison, PubMed novelty assessment (mocked HTTP), regulatory edge pair novelty (mocked HTTP), and graceful degradation when one child server is unavailable, with continuous integration via GitHub Actions. Bug reports and feature requests are tracked via the GitHub issue tracker.
+Orchestra is available at [https://github.com/jab57/Orchestra](https://github.com/jab57/Orchestra) under the MIT license. The repository includes 278 unit tests and 20 integration tests covering workflow routing, cross-system synthesis, effector path TF partner selection, gene signature enrichment, cross-cell-type conservation scoring, GREmLN vs. TCGA network comparison, PubMed novelty assessment (mocked HTTP), regulatory edge pair novelty (mocked HTTP), cross-context novelty gap classification (mocked HTTP), and graceful degradation when one child server is unavailable, with continuous integration via GitHub Actions. Bug reports and feature requests are tracked via the GitHub issue tracker.
 
 # AI Usage Disclosure
 
