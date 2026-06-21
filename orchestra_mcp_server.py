@@ -21,7 +21,7 @@ import asyncio
 from contextlib import AsyncExitStack
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import Tool, TextContent, Prompt, PromptArgument, GetPromptResult, PromptMessage
 from orchestra_langgraph_workflow import OrchestraWorkflow
 from mcp_client import make_cascade_client, make_regnetagents_client
 
@@ -287,6 +287,77 @@ async def list_tools() -> list[Tool]:
             },
         ),
     ]
+
+
+@app.list_prompts()
+async def list_prompts() -> list[Prompt]:
+    return [
+        Prompt(
+            name="biomarker_discovery",
+            description=(
+                "Cross-cancer regulatory biomarker discovery: identifies upstream TF drivers "
+                "of a silenced gene panel and finds which drivers are established in one cancer "
+                "context but novel in another. Use this instead of analyzing genes individually."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="cancer_context_1",
+                    description="First cancer context for novelty comparison (e.g. 'breast cancer')",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="cancer_context_2",
+                    description="Second cancer context for novelty comparison (e.g. 'cervical cancer')",
+                    required=True,
+                ),
+            ],
+        ),
+    ]
+
+
+@app.get_prompt()
+async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
+    if name == "biomarker_discovery":
+        ctx1 = (arguments or {}).get("cancer_context_1", "cancer context 1")
+        ctx2 = (arguments or {}).get("cancer_context_2", "cancer context 2")
+        return GetPromptResult(
+            description="Cross-cancer regulatory biomarker discovery workflow",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"I want to identify upstream transcription factor drivers of a "
+                            f"silenced gene panel and find which drivers represent transfer "
+                            f"opportunities between {ctx1} and {ctx2}.\n\n"
+                            f"Please follow these steps in order:\n\n"
+                            f"**Step 1 — Compile the gene panel (do not skip)**\n"
+                            f"Before calling any Orchestra tool, compile a literature-curated list "
+                            f"of 20–30 genes recurrently silenced by promoter hypermethylation in "
+                            f"both {ctx1} and {ctx2}. Present the list with a one-line justification "
+                            f"for each gene. Wait for my approval before proceeding.\n\n"
+                            f"**Step 2 — Run signature enrichment**\n"
+                            f"Call `analyze_gene_signature` with the approved gene list and "
+                            f"`cell_type='epithelial_cell'`. Do NOT run `causal_chain_analysis` "
+                            f"or `comprehensive_gene_analysis` on individual genes — that bypasses "
+                            f"the Fisher enrichment and produces unstatistical results.\n\n"
+                            f"**Step 3 — Cross-context novelty**\n"
+                            f"For the top 5 ranked TF drivers, call `novelty_assessment_batch` "
+                            f"twice — once with cancer_context='{ctx1}' and once with "
+                            f"cancer_context='{ctx2}'.\n\n"
+                            f"**Step 4 — Synthesize the gap table**\n"
+                            f"Present a table classifying each driver as:\n"
+                            f"- Transfer opportunity: established in one context (>5 papers), novel (<5) in the other\n"
+                            f"- Bilateral novel: novel in both\n"
+                            f"- Bilateral established: established in both\n\n"
+                            f"Prioritize transfer opportunities for the proposal."
+                        ),
+                    ),
+                ),
+            ],
+        )
+    raise ValueError(f"Unknown prompt: {name}")
 
 
 @app.call_tool()
