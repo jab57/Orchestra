@@ -624,12 +624,18 @@ class OrchestraWorkflow:
                 )
                 _sem = asyncio.Semaphore(2)
 
-                async def _bounded(coro):
+                async def _bounded(reg: str, ctx: str):
                     async with _sem:
-                        return await coro
+                        for attempt in range(3):
+                            try:
+                                return await _pubmed_novelty(reg, ctx)
+                            except Exception:
+                                if attempt == 2:
+                                    raise
+                                await asyncio.sleep(1.5 * (attempt + 1))
 
                 tasks = [
-                    _bounded(_pubmed_novelty(reg, ctx))
+                    _bounded(reg, ctx)
                     for reg in top_5
                     for ctx in cancer_contexts
                 ]
