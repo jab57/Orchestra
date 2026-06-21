@@ -2563,16 +2563,19 @@ class OrchestraWorkflow:
         # Only fires when CASCADE ran (cascade_available=True) but the source
         # returned nothing for every candidate — most likely an SSL/network failure.
         if cascade_available and evidence_table:
-            _EXTERNAL_SOURCES = {
-                "cbio_expression": "cBioPortal (TCGA primary tumor expression)",
-            }
-            for src_key, src_label in _EXTERNAL_SOURCES.items():
-                if all(not row.get(src_key, False) for row in evidence_table):
+            ranked_drivers = synthesis.get("ranked_drivers") or []
+            cbio_data_present = any(
+                d.get("cbioportal_summary") is not None for d in ranked_drivers
+            )
+            if all(not row.get("cbio_expression", False) for row in evidence_table):
+                if not cbio_data_present:
                     gaps.append(
-                        f"**{src_label}**: no data returned for any candidate — "
-                        "verify SSL/network connectivity to cbioportal.org "
+                        "**cBioPortal (TCGA primary tumor expression)**: no data returned "
+                        "for any candidate — verify SSL/network connectivity to cbioportal.org "
                         "(set CASCADE_SSL_NO_VERIFY=1 if behind a corporate proxy)"
                     )
+                # else: data was fetched but genes are not pan-cancer overexpressed —
+                # already shown per-driver as "near baseline"; not a connectivity failure
 
         if not gaps:
             return []
