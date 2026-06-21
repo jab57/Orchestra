@@ -447,8 +447,8 @@ class TestSignatureGracefulDegradation:
 # ---------------------------------------------------------------------------
 
 def _novelty_result(verdict: str, total: int) -> dict:
-    return {"verdict": verdict, "total_papers": total, "experimental_papers": 0,
-            "computational_papers": 0, "most_recent_year": None, "verdict_rationale": ""}
+    return {"novelty_verdict": verdict, "pubmed_hits": total, "experimental_hits": 0,
+            "computational_hits": 0, "most_recent_year": None, "verdict_rationale": ""}
 
 
 class TestClassifyNoveltyGap:

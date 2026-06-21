@@ -622,8 +622,14 @@ class OrchestraWorkflow:
                     f"[Orchestra] Cross-context novelty: querying {len(top_5)} regulators "
                     f"× {len(cancer_contexts)} contexts..."
                 )
+                _sem = asyncio.Semaphore(3)
+
+                async def _bounded(coro):
+                    async with _sem:
+                        return await coro
+
                 tasks = [
-                    _pubmed_novelty(reg, ctx)
+                    _bounded(_pubmed_novelty(reg, ctx))
                     for reg in top_5
                     for ctx in cancer_contexts
                 ]
@@ -1441,7 +1447,7 @@ class OrchestraWorkflow:
         Classify a regulator's cross-context novelty gap.
         verdicts: {ctx: novelty_result_dict} where result has "verdict" key.
         """
-        vals = [v.get("verdict", "novel") for v in verdicts.values() if not v.get("error")]
+        vals = [v.get("novelty_verdict", "novel") for v in verdicts.values() if not v.get("error")]
         if not vals:
             return "unknown"
         established = sum(1 for v in vals if v == "established")
@@ -2204,8 +2210,8 @@ class OrchestraWorkflow:
                     if res.get("error"):
                         ctx_cells.append("error")
                     else:
-                        verdict = res.get("verdict", "?")
-                        total = res.get("total_papers", "?")
+                        verdict = res.get("novelty_verdict", "?")
+                        total = res.get("pubmed_hits", "?")
                         ctx_cells.append(f"{verdict} ({total} papers)")
                 gap = _GAP_LABEL.get(entry.get("gap_classification", "unknown"), "unknown")
                 lines.append(f"| {reg} | " + " | ".join(ctx_cells) + f" | {gap} |")
