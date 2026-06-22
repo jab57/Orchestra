@@ -81,9 +81,9 @@ Ranks upstream regulators by PageRank centrality (RegNetAgents), combines with d
 
 Handles scaffold/effector genes (e.g. APC) that have no direct transcriptional targets. Detects effector role, finds TF partners via protein-protein interactions (CASCADE), simulates the TF partner, and enriches the downstream cascade against Reactome pathways (RegNetAgents).
 
-### `analyze_gene_signature(genes, cell_type, tcga_network=None)`
+### `analyze_gene_signature(genes, cell_type, tcga_network=None, cancer_contexts=None)`
 
-Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with signature coverage % and cross-system corroboration count. Supply `tcga_network` (e.g. `"hnsc"`) to run enrichment against a TCGA tumor network instead of the population-averaged GREmLN network — recommended for tumor-derived signatures.
+Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with signature coverage % and cross-system corroboration count. Supply `tcga_network` (e.g. `"hnsc"`) to run enrichment against a TCGA tumor network instead of the population-averaged GREmLN network — recommended for tumor-derived signatures. When `tcga_network` is set, the corresponding cancer context is automatically included in the cross-context novelty gap table alongside any additional contexts supplied in `cancer_contexts`.
 
 ### `compare_cell_contexts(gene, cell_types)`
 
