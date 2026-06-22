@@ -547,9 +547,11 @@ class OrchestraWorkflow:
 
         # Step 1: RegNetAgents master regulator enrichment analysis
         conn_mode = "persistent" if self._regnetagents is self._persistent_regnetagents else "per-call"
+        tcga_network = state.get("cancer_type")
+        network_label = f"TCGA {tcga_network.upper()}" if tcga_network else f"GREmLN {cell_type}"
         await self._emit(
             f"[Orchestra] Running Fisher enrichment across all regulators "
-            f"for {len(gene_signature)}-gene signature in {cell_type} "
+            f"for {len(gene_signature)}-gene signature in {network_label} "
             f"[connection: {conn_mode}] (this may take several minutes)..."
         )
         try:
@@ -557,10 +559,15 @@ class OrchestraWorkflow:
             # read_timeout_seconds, which does not reliably cancel hung stdio calls on Windows.
             # 200s gives RegNetAgents room to complete (TIMEOUT_MASTER_REGULATORS=300s)
             # while staying under Claude Desktop's ~240s hard timeout.
+            mr_params = {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10}
+            tcga_network = state.get("cancer_type")
+            if tcga_network:
+                mr_params["network_source"] = "tcga"
+                mr_params["tcga_network"] = tcga_network
             mr_result = await asyncio.wait_for(
                 self._regnetagents.call_tool(
                     "find_master_regulators",
-                    {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10},
+                    mr_params,
                     timeout_seconds=TIMEOUT_MASTER_REGULATORS,
                 ),
                 timeout=200.0,

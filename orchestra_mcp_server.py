@@ -124,6 +124,10 @@ async def list_tools() -> list[Tool]:
                         "items": {"type": "string"},
                         "description": "Optional list of cancer contexts for cross-context novelty gap analysis (e.g. [\"breast cancer\", \"cervical cancer\"]). When supplied, PubMed novelty is queried for the top 5 ranked drivers in each context and a gap table is appended to the report.",
                     },
+                    "tcga_network": {
+                        "type": "string",
+                        "description": "Optional TCGA tumor network to use for master regulator enrichment instead of GREmLN (e.g. 'hnsc' for cervical/head-neck SCC). Supported: brca, coad, hnsc, luad, lusc, ov, prad, ucec. When omitted, uses the population-averaged GREmLN network.",
+                    },
                 },
                 "required": ["genes", "cell_type"],
             },
@@ -483,12 +487,14 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "analyze_gene_signature":
         genes = arguments.get("genes", [])
         cancer_contexts = arguments.get("cancer_contexts") or None
+        tcga_network = arguments.get("tcga_network") or None
         result = await workflow.run_analysis(
             gene="",
             cell_type=cell_type,
             analysis_type="gene_signature",
             gene_signature=genes,
             cancer_contexts=cancer_contexts,
+            cancer_type=tcga_network,
             progress=progress,
         )
         label = f"Gene signature ({len(genes)} genes) in {cell_type}"
