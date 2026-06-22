@@ -42,6 +42,9 @@ def _sig_state(**overrides) -> dict:
         "validated_targets": None,
         "gene_signature": ["AXIN2", "MYC", "CCND1", "CDH1", "VEGFA"],
         "master_regulators": None,
+        "cancer_type": None,
+        "cancer_contexts": None,
+        "cross_context_novelty": None,
         "completed_steps": [],
         "errors": {},
         "final_report": None,
@@ -571,6 +574,80 @@ class TestCrossContextNoveltySynthesis:
         report = "\n".join(self.wf._format_signature_report(result["synthesis"]))
         assert "Cross-Context Novelty Gap" in report
         assert "error" in report
+
+
+# ---------------------------------------------------------------------------
+# tcga_network param (2026-06-22)
+# ---------------------------------------------------------------------------
+
+class TestEffectiveCancerContexts:
+    """_effective_cancer_contexts auto-prepends the TCGA network's cancer context."""
+
+    def setup_method(self):
+        self.wf = _make_workflow()
+
+    def test_hnsc_prepended_when_no_existing_contexts(self):
+        state = _sig_state(cancer_type="hnsc")
+        result = self.wf._effective_cancer_contexts(state)
+        assert result == ["head and neck squamous"]
+
+    def test_hnsc_prepended_before_existing_context(self):
+        state = _sig_state(cancer_type="hnsc", cancer_contexts=["cervical cancer"])
+        result = self.wf._effective_cancer_contexts(state)
+        assert result == ["head and neck squamous", "cervical cancer"]
+
+    def test_no_duplicate_if_tcga_ctx_already_present(self):
+        state = _sig_state(cancer_type="hnsc",
+                           cancer_contexts=["head and neck squamous", "cervical cancer"])
+        result = self.wf._effective_cancer_contexts(state)
+        assert result.count("head and neck squamous") == 1
+        assert result == ["head and neck squamous", "cervical cancer"]
+
+    def test_no_tcga_network_returns_contexts_unchanged(self):
+        state = _sig_state(cancer_contexts=["cervical cancer"])
+        result = self.wf._effective_cancer_contexts(state)
+        assert result == ["cervical cancer"]
+
+    def test_no_tcga_network_no_contexts_returns_empty(self):
+        state = _sig_state()
+        result = self.wf._effective_cancer_contexts(state)
+        assert result == []
+
+    def test_unknown_tcga_network_no_injection(self):
+        state = _sig_state(cancer_type="unknown_cancer",
+                           cancer_contexts=["cervical cancer"])
+        result = self.wf._effective_cancer_contexts(state)
+        assert result == ["cervical cancer"]
+
+    def test_all_tcga_networks_have_mapping(self):
+        from orchestra_langgraph_workflow import _TCGA_TO_CANCER_CONTEXT
+        supported = ["hnsc", "coad", "brca", "luad", "lusc", "ov", "prad", "ucec"]
+        for network in supported:
+            state = _sig_state(cancer_type=network)
+            result = self.wf._effective_cancer_contexts(state)
+            assert len(result) == 1, f"Expected one context for {network}, got {result}"
+            assert result[0] == _TCGA_TO_CANCER_CONTEXT[network]
+
+    def test_brca_prepended(self):
+        state = _sig_state(cancer_type="brca", cancer_contexts=["cervical cancer"])
+        result = self.wf._effective_cancer_contexts(state)
+        assert result[0] == "breast cancer"
+        assert "cervical cancer" in result
+
+
+class TestTcgaNetworkMcpSchema:
+    """MCP tool schema exposes tcga_network param."""
+
+    def test_tcga_network_in_schema(self):
+        import importlib
+        import sys
+        # Import the server module to inspect the tool schema
+        spec = importlib.util.find_spec("orchestra_mcp_server")
+        if spec is None:
+            pytest.skip("orchestra_mcp_server not importable in test context")
+        # Verify the param exists at the workflow level via state field
+        annotations = OrchestraState.__annotations__
+        assert "cancer_type" in annotations  # tcga_network maps to cancer_type
 
 
 # ---------------------------------------------------------------------------

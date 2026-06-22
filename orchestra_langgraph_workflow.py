@@ -620,7 +620,8 @@ class OrchestraWorkflow:
 
         # Step 3: cross-context novelty gap (GitHub #13)
         # Run novelty_assessment for top 5 regulators × each cancer context in parallel.
-        cancer_contexts = state.get("cancer_contexts") or []
+        # When tcga_network is set, the corresponding cancer context is auto-prepended.
+        cancer_contexts = self._effective_cancer_contexts(state)
         if cancer_contexts:
             from pubmed_client import novelty_assessment as _pubmed_novelty
             top_5 = [
@@ -1456,6 +1457,16 @@ class OrchestraWorkflow:
                 })
 
         return flags
+
+    def _effective_cancer_contexts(self, state: OrchestraState) -> list:
+        """Return cancer_contexts with the TCGA network's context auto-prepended if absent."""
+        contexts = list(state.get("cancer_contexts") or [])
+        tcga_network = state.get("cancer_type")
+        if tcga_network:
+            tcga_ctx = _TCGA_TO_CANCER_CONTEXT.get(tcga_network)
+            if tcga_ctx and tcga_ctx not in contexts:
+                contexts = [tcga_ctx] + contexts
+        return contexts
 
     @staticmethod
     def _classify_novelty_gap(verdicts: dict) -> str:
