@@ -126,7 +126,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "tcga_network": {
                         "type": "string",
-                        "description": "Optional TCGA tumor network to use for master regulator enrichment instead of GREmLN (e.g. 'hnsc' for cervical/head-neck SCC). Supported: brca, coad, hnsc, luad, lusc, ov, prad, ucec. When omitted, uses the population-averaged GREmLN network.",
+                        "description": "Optional TCGA tumor network to use for master regulator enrichment instead of GREmLN (e.g. 'cesc' for cervical cancer). Supported: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec. When omitted, uses the population-averaged GREmLN network.",
                     },
                 },
                 "required": ["genes", "cell_type"],
@@ -203,7 +203,7 @@ async def list_tools() -> list[Tool]:
                 "and tumor-state-only (emerging in cancer, not present in population-averaged wiring). "
                 "Rewiring classification (low/moderate/high) quantifies how different the tumor "
                 "regulatory program is from population-averaged. "
-                "TCGA cancer types available: brca, coad, hnsc, luad, lusc, ov, prad, ucec."
+                "TCGA cancer types available: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec."
             ),
             inputSchema={
                 "type": "object",
@@ -214,12 +214,13 @@ async def list_tools() -> list[Tool]:
                     },
                     "cancer_type": {
                         "type": "string",
-                        "enum": ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"],
+                        "enum": ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc", "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"],
                         "description": (
                             "TCGA cancer type for the tumor-state network. "
-                            "brca=breast, coad=colon, hnsc=head/neck squamous (HPV-associated, "
-                            "closest proxy for cervical), luad=lung adenocarcinoma, "
-                            "lusc=lung squamous, ov=ovarian, prad=prostate, ucec=uterine."
+                            "blca=bladder, brca=breast, cesc=cervical, coad=colon, "
+                            "hnsc=head/neck squamous, kirc=kidney, lihc=liver, "
+                            "luad=lung adenocarcinoma, lusc=lung squamous, ov=ovarian, "
+                            "paad=pancreatic, prad=prostate, stad=stomach, ucec=uterine."
                         ),
                     },
                     "cell_type": {
@@ -284,7 +285,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "cancer_type": {
                         "type": "string",
-                        "enum": ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"],
+                        "enum": ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc", "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"],
                         "description": "TCGA cancer type applied to all genes in the batch.",
                     },
                     "cell_type": {

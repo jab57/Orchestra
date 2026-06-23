@@ -42,13 +42,19 @@ _progress_cb: ContextVar[Callable[[str], Coroutine] | None] = ContextVar(
 
 
 _TCGA_TO_CANCER_CONTEXT: dict[str, str] = {
-    "hnsc": "head and neck squamous",
-    "coad": "colorectal",
+    "blca": "bladder cancer",
     "brca": "breast cancer",
+    "cesc": "cervical cancer",
+    "coad": "colorectal",
+    "hnsc": "head and neck squamous",
+    "kirc": "kidney clear cell carcinoma",
+    "lihc": "hepatocellular carcinoma",
     "luad": "lung adenocarcinoma",
     "lusc": "lung squamous cell carcinoma",
     "ov": "ovarian cancer",
+    "paad": "pancreatic cancer",
     "prad": "prostate cancer",
+    "stad": "gastric cancer",
     "ucec": "endometrial cancer",
 }
 

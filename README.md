@@ -93,7 +93,7 @@ Compares a gene's regulatory evidence across multiple cell types. Runs RegNetAge
 
 Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only).
 
-Available TCGA cancer types: `brca`, `coad`, `hnsc`, `luad`, `lusc`, `ov`, `prad`, `ucec`. HNSC (head/neck squamous) is the closest available proxy for HPV-associated cervical squamous carcinoma.
+Available TCGA cancer types: `blca`, `brca`, `cesc`, `coad`, `hnsc`, `kirc`, `lihc`, `luad`, `lusc`, `ov`, `paad`, `prad`, `stad`, `ucec`.
 
 ### `novelty_assessment(gene, cancer_context, gene2=None)`
 

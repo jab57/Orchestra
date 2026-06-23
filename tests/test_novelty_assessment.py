@@ -386,8 +386,9 @@ class TestTcgaMapping:
         assert _TCGA_TO_CANCER_CONTEXT["brca"] == "breast cancer"
         assert _TCGA_TO_CANCER_CONTEXT["ov"] == "ovarian cancer"
 
-    def test_all_eight_codes_present(self):
-        expected = {"hnsc", "coad", "brca", "luad", "lusc", "ov", "prad", "ucec"}
+    def test_all_fourteen_codes_present(self):
+        expected = {"blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc",
+                    "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"}
         assert set(_TCGA_TO_CANCER_CONTEXT.keys()) == expected
 
 
