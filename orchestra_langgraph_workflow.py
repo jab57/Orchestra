@@ -1492,6 +1492,20 @@ class OrchestraWorkflow:
             return "bilateral_novel"
         return "bilateral_established"
 
+    @staticmethod
+    def _bh_correct(p_values: list[float]) -> list[float]:
+        """Benjamini-Hochberg FDR correction. Returns adjusted p-values, capped at 1.0."""
+        n = len(p_values)
+        if n == 0:
+            return []
+        order = sorted(range(n), key=lambda i: p_values[i])
+        p_adj = list(p_values)
+        for rank, idx in enumerate(order):
+            p_adj[idx] = p_values[idx] * n / (rank + 1)
+        for k in range(n - 2, -1, -1):
+            p_adj[order[k]] = min(p_adj[order[k]], p_adj[order[k + 1]])
+        return [min(v, 1.0) for v in p_adj]
+
     def _synthesize_signature_path(self, state: OrchestraState) -> OrchestraState:
         """
         Signature path synthesis: combines RegNetAgents Fisher enrichment (network
@@ -1553,6 +1567,13 @@ class OrchestraWorkflow:
                 "cbioportal_summary": entry.get("cbioportal_summary"),
                 "cascade_error": entry.get("cascade_error"),
             })
+
+        # BH FDR correction across all regulators tested in this run
+        raw_p = [row["p_value"] for row in evidence_table]
+        p_adj_vals = self._bh_correct(raw_p)
+        for row, drv, adj in zip(evidence_table, ranked_drivers, p_adj_vals):
+            row["p_value_adj"] = adj
+            drv["p_value_adj"] = adj
 
         # Sort by overlap_count desc, corroboration_count desc as tiebreaker
         ranked_drivers.sort(key=lambda x: (-x["overlap_count"], -x["corroboration_count"]))
@@ -2158,21 +2179,28 @@ class OrchestraWorkflow:
             lines.append("### Ranked TF Drivers")
             lines.append("")
             lines.append(
-                "| TF Driver | Coverage | Overlap | Enrichment | p-value"
+                "| TF Driver | Coverage | Overlap | Enrichment | p-value | p-adj (BH)"
                 " | PageRank | Pathway | LINCS | DepMap | SE | DoRothEA | cBio | Score |"
             )
-            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
             def flag(v: bool) -> str:
                 return "✓" if v else "-"
 
+            any_low_overlap = False
             for row in evidence_table:
+                low_overlap = row["overlap_count"] <= 2
+                if low_overlap:
+                    any_low_overlap = True
+                gene_label = f"{row['gene']}†" if low_overlap else row["gene"]
+                p_adj_str = f"{row.get('p_value_adj', 1.0):.2e}"
                 lines.append(
-                    f"| {row['gene']} "
+                    f"| {gene_label} "
                     f"| {row['coverage_pct']}% "
                     f"| {row['overlap_count']}/{row.get('regulon_size', '?')} "
                     f"| {row['enrichment_score']:.2f} "
                     f"| {row['p_value']:.2e} "
+                    f"| {p_adj_str} "
                     f"| {flag(row['pagerank_rank'])} "
                     f"| {flag(row['pathway_member'])} "
                     f"| {flag(row['lincs_knockdown'])} "
@@ -2183,11 +2211,16 @@ class OrchestraWorkflow:
                     f"| **{row['corroboration_count']}/{row['corroboration_denominator']}** |"
                 )
             lines.append("")
-            lines.append(
+            footnote = (
                 "_Coverage = signature genes in TF regulon. "
                 "PageRank/Pathway = RegNetAgents enrichment. "
-                "LINCS, DepMap, SE, DoRothEA, cBio = CASCADE sources._"
+                "LINCS, DepMap, SE, DoRothEA, cBio = CASCADE sources. "
+                f"p-adj = Benjamini-Hochberg FDR correction across all {total_tested or len(evidence_table)} regulators tested."
             )
+            if any_low_overlap:
+                footnote += " † overlap ≤ 2 genes — fold-enrichment is indicative only."
+            footnote += "_"
+            lines.append(footnote)
             lines.append("")
 
         # Per-driver detail for top 3
@@ -2196,7 +2229,9 @@ class OrchestraWorkflow:
             lines.append(f"**{i}. {d['gene']}** — {d['coverage_pct']}% coverage "
                          f"({d['overlap_count']} signature genes), "
                          f"enrichment={d['enrichment_score']:.2f}, "
-                         f"p={d['p_value']:.2e}")
+                         f"p={d['p_value']:.2e}, p-adj={d.get('p_value_adj', 1.0):.2e}")
+            if d["overlap_count"] <= 2:
+                lines.append("   ⚠ Overlap ≤ 2 genes — fold-enrichment is indicative; verify with a larger gene panel.")
             if d.get("overlapping_genes"):
                 lines.append(f"   Overlapping: {', '.join(d['overlapping_genes'][:10])}")
             cascade_findings = d.get("cascade_key_findings") or []
