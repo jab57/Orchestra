@@ -77,6 +77,7 @@ class OrchestraState(TypedDict):
     # RegNetAgents results (via MCP)
     network_analysis: Optional[dict]
     network_stats: Optional[dict]   # query_network result — true num_targets/num_regulators
+    network_targets: Optional[dict] # query_network(gene_neighbors) — full ranked target list
     pathway_enrichment: Optional[dict]
     domain_insights: Optional[dict]
 
@@ -418,7 +419,7 @@ class OrchestraWorkflow:
         cell_type = state["cell_type"]
 
         await self._emit(f"[Orchestra] Running RegNetAgents + CASCADE in parallel for {gene} in {cell_type}...")
-        rna_result, cascade_result, net_stats = await asyncio.gather(
+        rna_result, cascade_result, neighbors_result = await asyncio.gather(
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
                 {"gene": gene, "cell_type": cell_type},
@@ -431,7 +432,7 @@ class OrchestraWorkflow:
             ),
             self._regnetagents.call_tool(
                 "query_network",
-                {"gene": gene, "cell_type": cell_type},
+                {"query_type": "gene_neighbors", "gene": gene, "cell_type": cell_type},
                 timeout_seconds=TIMEOUT_NETWORK,
             ),
             return_exceptions=True,
@@ -447,8 +448,8 @@ class OrchestraWorkflow:
         else:
             state["perturbation_result"] = cascade_result
 
-        if not isinstance(net_stats, BaseException):
-            state["network_stats"] = net_stats
+        if not isinstance(neighbors_result, BaseException) and not (neighbors_result or {}).get("error"):
+            state["network_targets"] = neighbors_result
 
         state["completed_steps"].append("run_tf_path")
         return state
@@ -1243,7 +1244,7 @@ class OrchestraWorkflow:
         source_disagreements = evidence_synthesis.get("source_disagreements", [])
 
         # Extract RegNetAgents downstream targets for cross-system overlap
-        rna_targets = self._extract_regnetagents_targets(network)
+        rna_targets = self._extract_regnetagents_targets(network, state.get("network_targets"))
 
         # Cross-system hits: genes supported by both RegNetAgents network topology
         # AND CASCADE experimental evidence (LINCS, DepMap, etc.)
@@ -1288,7 +1289,7 @@ class OrchestraWorkflow:
             "source_disagreements": source_disagreements,
             "network_context": network_summary,
             "regnetagents_target_count": len(rna_targets),
-            "regnetagents_true_target_count": (state.get("network_stats") or {}).get("num_targets"),
+            "regnetagents_true_target_count": (state.get("network_targets") or {}).get("num_targets"),
             "regnetagents_available": bool(network) and "network" not in errors,
             "cascade_available": bool(perturbation) and "perturbation" not in errors,
             "discordance_flags": discordance_flags,
@@ -1344,13 +1345,22 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
-    def _extract_regnetagents_targets(self, network: dict) -> set:
+    def _extract_regnetagents_targets(self, network: dict, network_targets: dict = None) -> set:
         """
-        Extract downstream target gene symbols from RegNetAgents comprehensive_gene_analysis output.
+        Extract downstream target gene symbols for the cross-system overlap check.
 
-        Primary path: target_analysis.cascade_targets[].gene_symbol
-        Fallback: generic extraction from common field names across tool versions.
+        Primary path: query_network(gene_neighbors) result — complete, MI-ranked, fast (<50ms).
+        Fallback: target_analysis.cascade_targets from comprehensive_gene_analysis output.
         """
+        # Prefer query_network(gene_neighbors) — independent of comprehensive_gene_analysis
+        # timeout, returns all targets, proven to surface top-ranked genes correctly.
+        if network_targets and network_targets.get("targets"):
+            return {
+                entry["gene"]
+                for entry in network_targets["targets"]
+                if entry.get("gene") and not str(entry["gene"]).startswith("ENSG")
+            }
+
         targets = set()
 
         def _collect(container):
@@ -3376,6 +3386,7 @@ class OrchestraWorkflow:
             tf_partner=None,
             network_analysis=None,
             network_stats=None,
+            network_targets=None,
             pathway_enrichment=None,
             domain_insights=None,
             perturbation_result=None,
