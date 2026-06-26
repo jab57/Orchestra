@@ -151,10 +151,13 @@ Steps — run exactly these tools in this order, nothing else:
 3. Present a summary table:
    Cancer type | Rewiring classification | Conserved regulators (n) |
    Tumor-acquired regulators (n) | CASCADE-validated conserved (n).
-4. Identify cross-cancer patterns: regulators conserved across all tested types
-   are more robust candidates than those conserved in only one; tumor-acquired
-   regulators appearing in multiple cancer types are higher priority than
-   cancer-specific ones.
+4. Identify two cross-cancer patterns separately:
+   - Conserved regulators appearing across all tested types are more robust
+     baseline candidates than those conserved in only one type.
+   - Tumor-acquired regulators appearing in multiple cancer types indicate
+     convergent oncogenic rewiring and are higher priority than cancer-type-specific
+     ones. Tumor-acquired regulators unique to one cancer type indicate divergent
+     rewiring.
 5. If further analysis seems relevant, suggest it — do not run it automatically.
 
 ---
