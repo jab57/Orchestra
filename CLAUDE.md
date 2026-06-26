@@ -162,6 +162,37 @@ Steps — run exactly these tools in this order, nothing else:
 
 ---
 
+## Pipeline 9 — Cross-Cancer Convergence Analysis
+**Trigger**: user asks whether a gene's rewiring is shared between specific cancer types,
+wants to know which regulators are common across cancers in tumor state, or asks for
+tumor-vs-tumor comparison (distinct from Pipeline 8, which asks how much rewiring
+occurred vs. normal in each type separately).
+
+**Key distinction from Pipeline 8**: Pipeline 8 = "how different is each tumor from
+normal?" Pipeline 9 = "how similar are these tumors to each other?" Do not conflate.
+
+Steps — run exactly these tools in this order, nothing else:
+1. Ask the user to select 2–4 TCGA cancer types if not specified. Suggest biologically
+   related types (e.g. cesc + hnsc for squamous, or luad + lusc + hnsc for lung/airway).
+   Wait for confirmation before proceeding.
+2. Call `compare_tumor_networks` with gene, cancer_types (2–4 codes), cell_type (default:
+   epithelial_cell), and include_gremln_baseline=true.
+3. Present the results in this order:
+   a. Pairwise overlap table (Cancer A | Cancer B | Shared regulators n | Jaccard %).
+   b. Convergent core table (regulators in ALL tested types, CASCADE-validated status,
+      PubMed pair-novelty verdict for each regulator→gene edge).
+   c. Cancer-specific divergent regulators per type.
+   d. Overall verdict (convergent / mixed / divergent) with thresholds.
+   e. GREmLN baseline table (each type's tumor-vs-normal rewiring) if returned.
+4. Interpret the verdict:
+   - Convergent core regulators are the highest-priority cross-cancer candidates.
+   - Divergent regulators require cancer-type-specific follow-up (Pipeline 2 or 3).
+   - High GREmLN rewiring + high pairwise Jaccard = convergent oncogenic rewiring
+     (shared program, not baseline variation); flag this if both conditions are met.
+5. If further analysis seems relevant, suggest it — do not run it automatically.
+
+---
+
 ## Global rules
 - Default cell type: epithelial_cell. Ask if unclear.
 - For tumor analyses, ask which TCGA network if not specified.

@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes nine composite tools:
+Orchestra exposes ten composite tools:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -105,7 +105,7 @@ Queries PubMed via NCBI E-utilities for a gene (or gene pair) in a plain-text ca
 
 Requires `NCBI_API_KEY` in `.env` for the 10 req/s rate limit (3 req/s without key).
 
-**Embedded pair novelty** — `causal_chain_analysis`, `validate_therapeutic_targets`, and `compare_network_contexts` automatically embed pair-level PubMed queries when the optional `cancer_context` parameter is provided. For each of the top 5 edges identified during synthesis (TF → target, regulator → gene, or conserved regulator → subject gene), Orchestra queries PubMed for co-occurrence of both gene names and appends a "Regulatory Pair Novelty" table to the report. This surfaces edges with 0 experimental papers even when both individual genes are individually well-studied — the actionable gap `novelty_assessment` on single genes would miss.
+**Embedded pair novelty** — `causal_chain_analysis`, `validate_therapeutic_targets`, `compare_network_contexts`, and `compare_tumor_networks` automatically embed pair-level PubMed queries when a cancer context can be determined (explicit `cancer_context` parameter, or inferred from the TCGA cancer type). For `compare_tumor_networks`, the first cancer type's context is used for pair novelty queries on convergent core regulators. For each of the top 5 edges identified during synthesis (TF → target, regulator → gene, or conserved regulator → subject gene), Orchestra queries PubMed for co-occurrence of both gene names and appends a "Regulatory Pair Novelty" table to the report. This surfaces edges with 0 experimental papers even when both individual genes are individually well-studied — the actionable gap `novelty_assessment` on single genes would miss.
 
 ### `novelty_assessment_batch(genes, cancer_context)`
 
@@ -114,6 +114,18 @@ Atomic batch variant of `novelty_assessment`. Accepts a list of gene symbols and
 ### `compare_network_contexts_batch(genes, cancer_type, cell_type="epithelial_cell")`
 
 Atomic batch variant of `compare_network_contexts`. Accepts a list of gene symbols and runs the full GREmLN vs TCGA comparison sequentially for each gene, returning combined reports separated by `---`. Use this instead of calling `compare_network_contexts` repeatedly when comparing multiple candidate genes in the same cancer type.
+
+### `compare_tumor_networks(gene, cancer_types, cell_type="epithelial_cell", include_gremln_baseline=True)`
+
+Tumor-vs-tumor cross-cancer convergence analysis. Compares a gene's TCGA tumor regulatory network directly across 2–4 cancer types — not against GREmLN normal tissue — to identify which regulators are shared across cancer types (convergent) and which are cancer-type-specific (divergent).
+
+For each requested cancer type, Orchestra calls `compare_network_contexts` and reconstructs the full TCGA tumor regulator set (`conserved ∪ tumor-acquired`; no display truncation). It then computes pairwise regulator overlap (Jaccard similarity) across all C(N,2) cancer-type pairs, identifies the convergent core (regulators present in all tested types), and classifies the overall pattern as:
+
+- **Convergent** — mean pairwise Jaccard ≥ 0.40 and non-empty core: shared oncogenic rewiring across cancer types
+- **Divergent** — mean pairwise Jaccard < 0.15 or empty core: type-specific regulatory programs
+- **Mixed** — partial core with substantial type-specific regulators
+
+Output: pairwise overlap table, convergent core table with CASCADE validation (top 3 core regulators) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (rewiring vs. normal for each type). Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to normal?"
 
 ## How It Works
 
@@ -314,7 +326,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The nine Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The ten Orchestra tools will appear in the tools list.
 
 ## Usage
 

@@ -49,7 +49,7 @@ cp .env.example .env   # configure paths to RegNetAgents and CASCADE
 python orchestra_mcp_server.py
 ```
 
-Once running, any MCP-compatible client can call Orchestra's nine composite tools.
+Once running, any MCP-compatible client can call Orchestra's ten composite tools.
 
 For a transcription factor, `causal_chain_analysis(gene="TP53", cell_type="epithelial_cell")` classifies TP53 as a master regulator, executes RegNetAgents network analysis and CASCADE perturbation simulation in parallel, and reports targets corroborated by both systems — genes appearing in RegNetAgents' downstream network topology AND in CASCADE's multi-source experimental evidence. These cross-system hits carry higher confidence than targets supported by either system alone.
 
@@ -65,6 +65,8 @@ For literature context, `novelty_assessment(gene="EHF", cancer_context="cervical
 
 For tumor-state regulatory context, `compare_network_contexts(gene="FOXM1", cell_type="epithelial_cell", cancer_type="hnsc")` queries both RegNetAgents GREmLN ARACNe networks (population-averaged) and TCGA ARACNe networks (tumor-state) for the same gene, computes regulator-level Jaccard overlap to classify rewiring as low (≥60% conserved), moderate (30–60%), or high (<30%), and passes conserved regulators to CASCADE for independent experimental validation. The output assigns each conserved regulator a confidence tier — CASCADE-validated (supported by LINCS, DepMap, super-enhancers, DoRothEA, or cBioPortal) or conserved without experimental support — and lists tumor-acquired regulatory inputs not present in the population-averaged wiring. This path addresses a compound question unreachable by either child server: RegNetAgents holds both GREmLN and TCGA networks but cannot validate conserved regulators experimentally; CASCADE has perturbation evidence but does not contain ARACNe network comparisons.
 
+For cross-cancer convergence, `compare_tumor_networks(gene="FOXM1", cancer_types=["cesc","hnsc","luad"])` compares a gene's TCGA tumor regulatory network directly across multiple cancer types to identify convergent oncogenic regulators — those shared across cancer types — versus cancer-type-specific programs. For each requested type, Orchestra retrieves the complete tumor regulator set (GREmLN-conserved plus tumor-acquired regulators; RegNetAgents returns full untruncated lists), computes all pairwise Jaccard overlaps, identifies the convergent core (regulators shared across all tested types), and classifies the overall pattern as convergent (mean Jaccard ≥ 0.40, non-empty core), divergent (mean Jaccard < 0.15 or empty core), or mixed. CASCADE validates the top convergent-core regulators experimentally, and pair-level PubMed novelty queries surface convergent regulatory edges with sparse prior literature. This addresses the question "is this gene's tumor rewiring a general oncogenic program or cancer-type-specific?" — a distinction that requires comparing tumor networks against each other rather than against normal tissue, and that neither child server can perform independently.
+
 # Results
 
 Seven biological validation cases confirm that Orchestra's routing, evidence coordination, and synthesis layers function correctly (Table 1).
@@ -79,7 +81,7 @@ Seven biological validation cases confirm that Orchestra's routing, evidence coo
 | `compare_network_contexts` | FOXM1 | epithelial_cell (GREmLN, population-averaged) vs TCGA HNSC (tumor-state) | HIGH rewiring (4.2% conserved regulators; 1/24 HNSC regulators shared with GREmLN); TOP2A conserved in both networks; 23 HNSC tumor-acquired regulatory inputs absent from population-averaged wiring |
 | `novelty_assessment` | Cervical cancer therapeutic panel (EHF, STAT3, TOP2A, IDO1, FAP, SERPINB3, RSK4, AK6) | HNSC proxy (HPV/squamous) | EHF→STAT3: Novel (3 papers, last 2021); TOP2A: Established (41 papers, 0 experimental — actionable gap); RSK4/AK6: 0 papers (true white space); STAT3: 37% experimental ratio |
 
-Table: Validation results across Orchestra's composite tools (nine tools implemented; seven validated cases shown).
+Table: Validation results across Orchestra's composite tools (ten tools implemented; seven validated cases shown).
 
 In the APC case, neither child server alone completes the analysis — CASCADE returns empty perturbation results for the scaffold protein; RegNetAgents has no PPI data to bridge from APC to a transcription factor partner. This is the clearest demonstration that Orchestra's coordinated routing is necessary, not merely convenient. In the MYC case, BRD4 scores 1/7 evidence sources: CASCADE's super-enhancer analysis identifies it as a BET inhibitor target while its absence from RegNetAgents' ARACNe-inferred network is a biologically informative finding — BRD4 acts through chromatin co-activation, not direct mRNA regulation, and is not expected in ARACNe networks. Orchestra presents both views simultaneously, producing a more complete picture than either child server alone.
 

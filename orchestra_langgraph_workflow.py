@@ -8,6 +8,7 @@ Issue #9 implemented: cross-system discordance reporting (discordance_flags in s
 Issue #10 implemented: gene signature driver analysis (analyze_gene_signature — DEG list → ranked TF drivers)
 Issue #11 implemented: cross-cell-type context comparison (compare_cell_contexts — 7-source heatmap across N cell types)
 Issue #13 implemented: GREmLN vs TCGA network context comparison (compare_network_contexts — conservation + CASCADE validation)
+GitHub #14 implemented: tumor-vs-tumor network comparison (compare_tumor_networks — cross-cancer convergence analysis)
 """
 
 import asyncio
@@ -98,6 +99,11 @@ class OrchestraState(TypedDict):
     # GREmLN vs TCGA network context comparison (Issue #13)
     cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
     network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
+
+    # Tumor-vs-tumor comparison (GitHub #14)
+    cancer_types: Optional[list]           # list of TCGA codes for compare_tumor_networks
+    include_gremln_baseline: Optional[bool]  # include GREmLN-vs-tumor baseline stats alongside tumor-vs-tumor
+    tumor_network_results: Optional[dict]  # {cancer_type: compare_network_contexts result} + "_cascade_validation"
 
     # PubMed novelty assessment (Issue #15)
     cancer_context: Optional[str]     # plain-text cancer context for PubMed queries (e.g. "head and neck squamous")
@@ -310,6 +316,7 @@ class OrchestraWorkflow:
         graph.add_node("run_comparison_path", self._run_comparison_path)
         graph.add_node("run_network_comparison_path", self._run_network_comparison_path)
         graph.add_node("run_novelty_path", self._run_novelty_path)
+        graph.add_node("run_tumor_network_comparison_path", self._run_tumor_network_comparison_path)
         graph.add_node("synthesize", self._synthesize)
         graph.add_node("run_edge_novelty", self._run_edge_novelty)
         graph.add_node("generate_report", self._generate_report)
@@ -328,6 +335,7 @@ class OrchestraWorkflow:
                 "comparison_path": "run_comparison_path",
                 "network_comparison_path": "run_network_comparison_path",
                 "novelty_path": "run_novelty_path",
+                "tumor_network_comparison_path": "run_tumor_network_comparison_path",
             },
         )
         graph.add_edge("run_tf_path", "synthesize")
@@ -337,6 +345,7 @@ class OrchestraWorkflow:
         graph.add_edge("run_comparison_path", "synthesize")
         graph.add_edge("run_network_comparison_path", "synthesize")
         graph.add_edge("run_novelty_path", "synthesize")
+        graph.add_edge("run_tumor_network_comparison_path", "synthesize")
         graph.add_edge("synthesize", "run_edge_novelty")
         graph.add_edge("run_edge_novelty", "generate_report")
         graph.add_edge("generate_report", END)
@@ -354,6 +363,8 @@ class OrchestraWorkflow:
             return "comparison_path"
         if state.get("analysis_type") == "network_comparison":
             return "network_comparison_path"
+        if state.get("analysis_type") == "tumor_network_comparison":
+            return "tumor_network_comparison_path"
         if state.get("analysis_type") == "novelty_assessment":
             return "novelty_path"
         if state.get("analysis_type") == "therapeutic_validation":
@@ -375,7 +386,7 @@ class OrchestraWorkflow:
     async def _classify_gene(self, state: OrchestraState) -> OrchestraState:
         """Call CASCADE get_gene_metadata to determine gene role and routing."""
         # Signature, comparison, and novelty analyses have no single cell_type to classify — skip.
-        if state.get("analysis_type") in ("gene_signature", "cell_context_comparison", "novelty_assessment"):
+        if state.get("analysis_type") in ("gene_signature", "cell_context_comparison", "novelty_assessment", "tumor_network_comparison"):
             state["completed_steps"].append("classify_gene")
             return state
         try:
@@ -961,6 +972,91 @@ class OrchestraWorkflow:
         state["completed_steps"].append("run_network_comparison_path")
         return state
 
+    async def _run_tumor_network_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Tumor-vs-tumor cross-cancer convergence analysis (GitHub #14).
+
+        Calls compare_network_contexts for each requested cancer type sequentially —
+        each call internally queries both GREmLN (population-averaged) and the TCGA
+        tumor network, returning full untruncated regulator/target lists.
+
+        The full TCGA tumor regulator set per cancer type is reconstructed as:
+          conserved ∪ tumor_state_only
+        (conserved = in both GREmLN and TCGA; tumor_state_only = TCGA-only)
+
+        CASCADE validation is run on the convergent core (regulators present in ALL
+        requested cancer types), prioritising the top 3 by lexicographic order.
+        """
+        gene = state["gene"]
+        cell_type = state.get("cell_type") or "epithelial_cell"
+        cancer_types = state.get("cancer_types") or []
+
+        if len(cancer_types) < 2:
+            state["errors"]["tumor_network_comparison"] = (
+                "cancer_types must contain 2–4 TCGA codes"
+            )
+            state["completed_steps"].append("run_tumor_network_comparison_path")
+            return state
+
+        await self._emit(
+            f"[Orchestra] Cross-cancer convergence for {gene}: "
+            f"{', '.join(ct.upper() for ct in cancer_types)} ..."
+        )
+
+        tumor_results: dict = {}
+        for ct in cancer_types:
+            await self._emit(
+                f"[Orchestra] Querying {gene} in TCGA {ct.upper()} vs GREmLN {cell_type}..."
+            )
+            try:
+                result = await self._regnetagents.call_tool(
+                    "compare_network_contexts",
+                    {"gene": gene, "cancer_type": ct, "cell_type": cell_type},
+                    timeout_seconds=TIMEOUT_NETWORK,
+                )
+                tumor_results[ct] = result
+            except Exception as e:
+                state["errors"][f"tumor_network_{ct}"] = str(e)
+                tumor_results[ct] = {"error": True, "message": str(e)}
+
+        # Compute convergent core for CASCADE validation
+        valid_reg_sets: list[set] = []
+        for ct, raw in tumor_results.items():
+            if raw and not raw.get("error"):
+                reg_data = raw.get("regulators", {})
+                conserved_set = set(reg_data.get("conserved") or [])
+                tumor_only_set = set(reg_data.get("tumor_state_only") or [])
+                valid_reg_sets.append(conserved_set | tumor_only_set)
+
+        convergent_core = sorted(set.intersection(*valid_reg_sets)) if len(valid_reg_sets) >= 2 else []
+
+        # CASCADE validation on top 3 convergent core regulators
+        cascade_validation: dict = {}
+        if convergent_core:
+            top_core = convergent_core[:3]
+            await self._emit(
+                f"[Orchestra] CASCADE validation on {len(top_core)} convergent core regulators: "
+                f"{', '.join(top_core)}..."
+            )
+            tasks = [
+                self._cascade.call_tool(
+                    "comprehensive_perturbation_analysis",
+                    {"gene": reg, "cell_type": cell_type},
+                    timeout_seconds=TIMEOUT_PERTURBATION,
+                )
+                for reg in top_core
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for reg, res in zip(top_core, results):
+                cascade_validation[reg] = (
+                    {"error": str(res)} if isinstance(res, Exception) else res
+                )
+
+        tumor_results["_cascade_validation"] = cascade_validation
+        state["tumor_network_results"] = tumor_results
+        state["completed_steps"].append("run_tumor_network_comparison_path")
+        return state
+
     async def _run_novelty_path(self, state: OrchestraState) -> OrchestraState:
         """
         PubMed novelty assessment path (Issue #15).
@@ -1015,8 +1111,12 @@ class OrchestraWorkflow:
         if not cancer_context and routing == "network_comparison":
             cancer_type = state.get("cancer_type") or ""
             cancer_context = _TCGA_TO_CANCER_CONTEXT.get(cancer_type, cancer_type)
+        if not cancer_context and routing == "tumor_network_comparison":
+            # Use first cancer type as the PubMed context for pair novelty queries
+            first_ct = (state.get("cancer_types") or [""])[0]
+            cancer_context = _TCGA_TO_CANCER_CONTEXT.get(first_ct, first_ct)
 
-        if not cancer_context or routing not in ("tf", "validation", "network_comparison"):
+        if not cancer_context or routing not in ("tf", "validation", "network_comparison", "tumor_network_comparison"):
             synthesis["edge_novelty_results"] = []
             state["synthesis"] = synthesis
             state["completed_steps"].append("run_edge_novelty")
@@ -1056,6 +1156,20 @@ class OrchestraWorkflow:
                 if r not in ordered_set:
                     ordered.append(r)
             pairs = [(reg, gene) for reg in ordered[:5]]
+
+        elif routing == "tumor_network_comparison":
+            # gene is the subject; convergent core regulators are upstream
+            convergent_core = synthesis.get("convergent_core") or []
+            # Prioritise cascade-validated entries, then remaining core regulators
+            cc_cascade = synthesis.get("convergent_core_cascade") or []
+            ordered_tnc: list[str] = [
+                e["gene"] for e in cc_cascade if e.get("tier") == "cascade_validated"
+            ]
+            ordered_tnc_set = set(ordered_tnc)
+            for r in convergent_core:
+                if r not in ordered_tnc_set:
+                    ordered_tnc.append(r)
+            pairs = [(reg, gene) for reg in ordered_tnc[:5]]
 
         if not pairs:
             synthesis["edge_novelty_results"] = []
@@ -1099,6 +1213,8 @@ class OrchestraWorkflow:
             return self._synthesize_comparison_path(state)
         if state.get("analysis_type") == "network_comparison":
             return self._synthesize_network_comparison_path(state)
+        if state.get("analysis_type") == "tumor_network_comparison":
+            return self._synthesize_tumor_network_comparison_path(state)
         if state.get("analysis_type") == "novelty_assessment":
             return self._synthesize_novelty_path(state)
         if state.get("analysis_type") == "therapeutic_validation":
@@ -1803,6 +1919,156 @@ class OrchestraWorkflow:
         state["completed_steps"].append("synthesize")
         return state
 
+    def _synthesize_tumor_network_comparison_path(self, state: OrchestraState) -> OrchestraState:
+        """
+        Tumor-vs-tumor cross-cancer convergence synthesis (GitHub #14).
+
+        Reconstructs full TCGA tumor regulator sets from compare_network_contexts output:
+          full_tumor_regulators = conserved ∪ tumor_state_only
+        (conserved = in both GREmLN and TCGA; truncation only applies to display, not data)
+
+        Computes pairwise Jaccard/overlap, convergent core, and divergent sets.
+        Verdict thresholds (explicit, stated in output):
+          convergent : mean pairwise Jaccard ≥ 0.40 AND non-empty core
+          divergent  : mean pairwise Jaccard < 0.15 OR empty core
+          mixed      : otherwise (0.15 ≤ Jaccard < 0.40 or partial core)
+        """
+        gene = state["gene"]
+        cell_type = state.get("cell_type") or "epithelial_cell"
+        cancer_types = state.get("cancer_types") or []
+        include_gremln_baseline = state.get("include_gremln_baseline")
+        if include_gremln_baseline is None:
+            include_gremln_baseline = True
+        tumor_results = state.get("tumor_network_results") or {}
+        cascade_validation = tumor_results.get("_cascade_validation") or {}
+        errors = state.get("errors") or {}
+
+        # Reconstruct full TCGA tumor regulator sets per cancer type
+        tumor_reg_sets: dict[str, set] = {}
+        tumor_tgt_sets: dict[str, set] = {}  # tumor-state-only targets (GREmLN-shared excluded)
+        gremln_baseline: dict[str, dict] = {}
+
+        for ct in cancer_types:
+            raw = tumor_results.get(ct)
+            if not raw or raw.get("error"):
+                continue
+            reg_data = raw.get("regulators", {})
+            conserved_regs = set(reg_data.get("conserved") or [])
+            tumor_only_regs = set(reg_data.get("tumor_state_only") or [])
+            tumor_reg_sets[ct] = conserved_regs | tumor_only_regs
+
+            tgt_data = raw.get("targets", {})
+            tumor_tgt_sets[ct] = set(tgt_data.get("tumor_state_only") or [])
+
+            if include_gremln_baseline:
+                interp = raw.get("interpretation", {})
+                gremln_baseline[ct] = {
+                    "rewiring_classification": interp.get("regulatory_rewiring", "unknown"),
+                    "conserved_fraction": reg_data.get("conserved_fraction", 0.0),
+                    "pop_total": reg_data.get("population_averaged_total", 0),
+                    "tumor_total": reg_data.get("tumor_state_total", 0),
+                    "conserved_count": len(conserved_regs),
+                }
+
+        available_cts = sorted(tumor_reg_sets.keys())
+
+        # Pairwise overlaps (all C(N,2) pairs)
+        pairwise: list[dict] = []
+        for i, ct_a in enumerate(available_cts):
+            for ct_b in available_cts[i + 1:]:
+                regs_a = tumor_reg_sets[ct_a]
+                regs_b = tumor_reg_sets[ct_b]
+                shared_regs = regs_a & regs_b
+                union_regs = regs_a | regs_b
+                jaccard = round(len(shared_regs) / len(union_regs), 4) if union_regs else 0.0
+
+                shared_tgts = tumor_tgt_sets.get(ct_a, set()) & tumor_tgt_sets.get(ct_b, set())
+
+                pairwise.append({
+                    "cancer_a": ct_a,
+                    "cancer_b": ct_b,
+                    "shared_regulators": sorted(shared_regs),
+                    "shared_regulators_count": len(shared_regs),
+                    "shared_tumor_targets_count": len(shared_tgts),
+                    "jaccard_regulators": jaccard,
+                    "total_a": len(regs_a),
+                    "total_b": len(regs_b),
+                })
+
+        # Convergent core: regulators present in ALL cancer types with data
+        if len(available_cts) >= 2:
+            convergent_core_set = set.intersection(*[tumor_reg_sets[ct] for ct in available_cts])
+        elif len(available_cts) == 1:
+            convergent_core_set = set()
+        else:
+            convergent_core_set = set()
+
+        # Divergent/specific: regulators unique to ONE cancer type only
+        divergent: dict[str, list] = {}
+        for ct in available_cts:
+            other_sets = [tumor_reg_sets[c] for c in available_cts if c != ct]
+            others_union = set.union(*other_sets) if other_sets else set()
+            divergent[ct] = sorted(tumor_reg_sets[ct] - others_union)
+
+        # Build convergent core table with CASCADE validation
+        convergent_core_cascade: list[dict] = []
+        for reg in sorted(convergent_core_set):
+            casc = cascade_validation.get(reg) or {}
+            if casc.get("error"):
+                tier = "not_validated"
+                findings: list = []
+            else:
+                ev = (casc.get("evidence_synthesis") or {})
+                findings = ev.get("key_findings") or []
+                findings_text = "\n".join(str(f) for f in findings).lower()
+                has_cascade = any(
+                    kw in findings_text
+                    for kw in ("lincs", "depmap", "super-enhancer", "dorothea", "cbioportal")
+                )
+                tier = "cascade_validated" if has_cascade else "not_validated"
+
+            convergent_core_cascade.append({
+                "gene": reg,
+                "n_cancer_types": len(available_cts),
+                "tier": tier,
+                "cascade_key_findings": findings[:3],
+                "cascade_error": casc.get("error"),
+            })
+
+        # Verdict with explicit numeric thresholds
+        mean_jaccard = (
+            sum(p["jaccard_regulators"] for p in pairwise) / len(pairwise)
+            if pairwise else 0.0
+        )
+
+        if len(available_cts) < 2:
+            verdict = "insufficient_data"
+        elif mean_jaccard >= 0.4 and convergent_core_set:
+            verdict = "convergent"
+        elif mean_jaccard < 0.15 or not convergent_core_set:
+            verdict = "divergent"
+        else:
+            verdict = "mixed"
+
+        state["synthesis"] = {
+            "routing": "tumor_network_comparison",
+            "gene": gene,
+            "cell_type": cell_type,
+            "cancer_types": cancer_types,
+            "available_cancer_types": available_cts,
+            "include_gremln_baseline": include_gremln_baseline,
+            "pairwise_overlaps": pairwise,
+            "convergent_core": sorted(convergent_core_set),
+            "convergent_core_cascade": convergent_core_cascade,
+            "divergent_specific": {ct: regs for ct, regs in divergent.items()},
+            "verdict": verdict,
+            "mean_jaccard": mean_jaccard,
+            "gremln_baseline": gremln_baseline,
+            "errors": errors,
+        }
+        state["completed_steps"].append("synthesize")
+        return state
+
     def _synthesize_novelty_path(self, state: OrchestraState) -> OrchestraState:
         state["synthesis"] = {
             "routing": "novelty",
@@ -1932,7 +2198,7 @@ class OrchestraWorkflow:
         routing = synthesis.get("routing", "effector")
         llm_trigger = (
             bool(synthesis.get("tf_partner")) if routing == "effector"
-            else routing in ("tf", "validation", "signature", "comparison", "network_comparison")
+            else routing in ("tf", "validation", "signature", "comparison", "network_comparison", "tumor_network_comparison")
             # novelty path: no LLM synthesis — the verdict is already structured prose
         )
 
@@ -1959,6 +2225,8 @@ class OrchestraWorkflow:
             return self._format_comparison_report(synthesis)
         if routing == "network_comparison":
             return self._format_network_comparison_report(synthesis)
+        if routing == "tumor_network_comparison":
+            return self._format_tumor_network_comparison_report(synthesis)
         if routing == "novelty":
             return self._format_novelty_report(synthesis)
         return self._format_effector_report(synthesis)
@@ -2598,6 +2866,191 @@ class OrchestraWorkflow:
 
         return lines
 
+    def _format_tumor_network_comparison_report(self, synthesis: dict) -> list[str]:
+        gene = synthesis.get("gene", "unknown")
+        cell_type = synthesis.get("cell_type", "epithelial_cell")
+        cancer_types = synthesis.get("cancer_types") or []
+        available_cts = synthesis.get("available_cancer_types") or []
+        pairwise = synthesis.get("pairwise_overlaps") or []
+        convergent_core = synthesis.get("convergent_core") or []
+        convergent_core_cascade = synthesis.get("convergent_core_cascade") or []
+        divergent_specific = synthesis.get("divergent_specific") or {}
+        verdict = synthesis.get("verdict", "unknown")
+        mean_jaccard = synthesis.get("mean_jaccard", 0.0)
+        gremln_baseline = synthesis.get("gremln_baseline") or {}
+        include_gremln = synthesis.get("include_gremln_baseline", True)
+        errors = synthesis.get("errors") or {}
+
+        lines: list[str] = []
+        lines.append(f"## Cross-Cancer Convergence Analysis: {gene}")
+        lines.append(f"**Cancer types:** {', '.join(ct.upper() for ct in cancer_types)}")
+        lines.append(f"**GREmLN baseline cell type:** {cell_type}")
+        lines.append("")
+
+        if not available_cts:
+            lines.append("> ⚠️ **No valid data returned** — all cancer type queries failed.")
+            if errors:
+                for k, v in errors.items():
+                    lines.append(f"- {k}: {v}")
+            return lines
+
+        failed = [ct for ct in cancer_types if ct not in available_cts]
+        if failed:
+            lines.append(
+                f"> ⚠️ **Partial data:** {', '.join(ct.upper() for ct in failed)} query failed — "
+                "comparison covers remaining cancer types only."
+            )
+            lines.append("")
+
+        # Pairwise overlap table
+        lines.append("### Pairwise Regulator Overlap (Tumor-vs-Tumor)")
+        lines.append("")
+        lines.append(
+            "| Cancer A | Cancer B | TCGA regs A | TCGA regs B | "
+            "Shared regulators (n) | Shared tumor-acquired targets (n) | Jaccard % |"
+        )
+        lines.append(
+            "|----------|----------|-------------|-------------|"
+            "----------------------|-----------------------------------|-----------|"
+        )
+        for p in pairwise:
+            jaccard_pct = f"{p['jaccard_regulators'] * 100:.1f}%"
+            lines.append(
+                f"| {p['cancer_a'].upper()} | {p['cancer_b'].upper()} | "
+                f"{p['total_a']} | {p['total_b']} | "
+                f"{p['shared_regulators_count']} | "
+                f"{p['shared_tumor_targets_count']} | "
+                f"{jaccard_pct} |"
+            )
+        lines.append("")
+        lines.append(
+            f"_Mean pairwise regulator Jaccard: {mean_jaccard * 100:.1f}%. "
+            "TCGA regs = full tumor regulator set (GREmLN-conserved + tumor-acquired). "
+            "Shared tumor-acquired targets = tumor-state-only targets; "
+            "GREmLN-baseline targets excluded from target overlap count._"
+        )
+        lines.append("")
+
+        # Convergent core
+        lines.append("### Convergent Core (present in ALL tested cancer types)")
+        lines.append("")
+        if convergent_core:
+            lines.append(
+                f"**{len(convergent_core)} convergent core regulators** "
+                f"(all {len(available_cts)} cancer types):"
+            )
+            lines.append("")
+            lines.append("| Regulator | CASCADE-validated | Key evidence |")
+            lines.append("|-----------|-------------------|--------------|")
+            for entry in convergent_core_cascade:
+                reg = entry["gene"]
+                casc_label = "✓ YES" if entry["tier"] == "cascade_validated" else "No"
+                findings = entry.get("cascade_key_findings") or []
+                evidence_note = findings[0][:60] if findings else "—"
+                err = entry.get("cascade_error")
+                if err:
+                    evidence_note = f"CASCADE error: {err[:40]}"
+                lines.append(f"| {reg} | {casc_label} | {evidence_note} |")
+            lines.append("")
+            # Full findings for CASCADE-validated entries
+            for entry in convergent_core_cascade:
+                if entry["tier"] == "cascade_validated" and entry.get("cascade_key_findings"):
+                    lines.append(f"**{entry['gene']}** (CASCADE-validated):")
+                    for f in entry["cascade_key_findings"]:
+                        lines.append(f"  - {f}")
+                    lines.append("")
+            lines.append(
+                "_Convergent core regulators without CASCADE experimental support are "
+                "computationally derived — prioritize cascade-validated entries for follow-up._"
+            )
+        else:
+            lines.append(
+                "_No convergent core identified — no regulator is shared across ALL tested cancer types._"
+            )
+        lines.append("")
+
+        # Divergent/specific table
+        lines.append("### Cancer-Specific Regulators (unique to one cancer type)")
+        lines.append("")
+        has_divergent = any(regs for regs in divergent_specific.values())
+        if has_divergent:
+            for ct in sorted(divergent_specific.keys()):
+                regs = divergent_specific[ct]
+                if regs:
+                    display = ", ".join(regs[:15])
+                    extra = f" _…and {len(regs) - 15} more_" if len(regs) > 15 else ""
+                    lines.append(f"**{ct.upper()}** ({len(regs)} unique): {display}{extra}")
+            lines.append("")
+        else:
+            lines.append("_No cancer-type-specific regulators — all regulators are shared._")
+            lines.append("")
+
+        # Verdict
+        lines.append("### Cross-Cancer Pattern Verdict")
+        lines.append("")
+        verdict_labels = {
+            "convergent": (
+                f"**CONVERGENT** — {gene}'s tumor-state regulatory program is substantially "
+                "shared across cancer types. Convergent core regulators are the "
+                "highest-priority candidates for cross-cancer translation."
+            ),
+            "divergent": (
+                f"**DIVERGENT** — {gene}'s tumor-state regulatory wiring differs substantially "
+                "across cancer types. Cancer-type-specific regulators dominate; "
+                "cross-cancer transfer of findings requires caution."
+            ),
+            "mixed": (
+                f"**MIXED** — {gene}'s tumor-state rewiring is partially convergent. "
+                "A subset of regulators is shared; type-specific programs are substantial."
+            ),
+            "insufficient_data": "**INSUFFICIENT DATA** — Fewer than 2 cancer types returned valid results.",
+        }
+        lines.append(verdict_labels.get(verdict, f"**{verdict.upper()}**"))
+        lines.append("")
+        lines.append(
+            "_Verdict thresholds: convergent = mean Jaccard ≥ 0.40 AND non-empty core; "
+            "divergent = mean Jaccard < 0.15 OR empty core; mixed = otherwise._"
+        )
+        lines.append("")
+
+        # GREmLN baseline
+        if include_gremln and gremln_baseline:
+            lines.append("### GREmLN Baseline (each cancer type vs. population-averaged normal)")
+            lines.append("")
+            lines.append(
+                "| Cancer type | Rewiring vs GREmLN | Conserved fraction | "
+                "GREmLN regs | TCGA regs |"
+            )
+            lines.append(
+                "|-------------|--------------------|--------------------|"
+                "-------------|-----------|"
+            )
+            for ct in sorted(gremln_baseline.keys()):
+                base = gremln_baseline[ct]
+                lines.append(
+                    f"| {ct.upper()} | {base['rewiring_classification'].upper()} | "
+                    f"{base['conserved_fraction']:.2%} | "
+                    f"{base['pop_total']} | "
+                    f"{base['tumor_total']} |"
+                )
+            lines.append("")
+            lines.append(
+                "_GREmLN baseline: each cancer type compared individually to population-averaged "
+                "normal tissue. High GREmLN rewiring + high pairwise tumor-vs-tumor overlap "
+                "indicates convergent oncogenic rewiring rather than baseline variation._"
+            )
+            lines.append("")
+
+        lines.append(
+            "_All findings are computationally derived and require wet-lab validation. "
+            "Convergent regulators are higher-priority cross-cancer candidates but not "
+            "confirmed causal drivers._"
+        )
+
+        lines.extend(self._format_pair_novelty_section(synthesis))
+
+        return lines
+
     # ------------------------------------------------------------------
     # LLM synthesis
     # ------------------------------------------------------------------
@@ -2906,6 +3359,8 @@ class OrchestraWorkflow:
         cancer_context: Optional[str] = None,
         gene2: Optional[str] = None,
         cancer_contexts: Optional[list] = None,
+        cancer_types: Optional[list] = None,
+        include_gremln_baseline: Optional[bool] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -2934,6 +3389,9 @@ class OrchestraWorkflow:
             comparison_results=None,
             cancer_type=cancer_type,
             network_comparison=None,
+            cancer_types=cancer_types,
+            include_gremln_baseline=include_gremln_baseline,
+            tumor_network_results=None,
             cancer_context=cancer_context,
             gene2=gene2,
             cancer_contexts=cancer_contexts,

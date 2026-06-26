@@ -4,7 +4,7 @@ Orchestra MCP Server
 Exposes Orchestra as an MCP server to Claude Desktop and other MCP clients,
 while acting as an MCP client to RegNetAgents and CASCADE child servers.
 
-Nine composite tools:
+Ten composite tools:
   causal_chain_analysis             — TF path (parallel RegNetAgents + CASCADE) or
                                       effector path (PPI → TF partner → simulate)
   validate_therapeutic_targets      — PageRank + drug discovery + PPI → 7-source corroboration table
@@ -12,6 +12,7 @@ Nine composite tools:
   analyze_gene_signature            — DEG list → ranked TF drivers (Fisher enrichment + CASCADE validation)
   compare_cell_contexts             — 7-source evidence heatmap across N cell types (Issue #11)
   compare_network_contexts          — GREmLN vs TCGA regulatory rewiring + CASCADE validation (Issue #13)
+  compare_tumor_networks            — tumor-vs-tumor cross-cancer convergence analysis (GitHub #14)
   novelty_assessment                — PubMed hit count + novelty verdict for a gene in a cancer context (Issue #15)
   novelty_assessment_batch          — atomic batch variant: novelty_assessment for N genes in one call
   compare_network_contexts_batch    — atomic batch variant: compare_network_contexts for N genes in one call
@@ -297,6 +298,54 @@ async def list_tools() -> list[Tool]:
                 "required": ["genes", "cancer_type"],
             },
         ),
+        Tool(
+            name="compare_tumor_networks",
+            description=(
+                "Tumor-vs-tumor cross-cancer convergence analysis: compare a gene's TCGA tumor "
+                "regulatory network across 2–4 cancer types directly against each other "
+                "(not against GREmLN normal). Returns pairwise regulator overlap, convergent "
+                "core regulators (present in ALL tested cancer types), cancer-type-specific "
+                "divergent regulators, CASCADE validation on convergent core, PubMed pair "
+                "novelty for convergent regulators, and a convergent/divergent/mixed verdict "
+                "with explicit thresholds. Optionally includes the GREmLN-vs-tumor baseline "
+                "rewiring stats for each cancer type as context. "
+                "Use Pipeline 9 when the question is whether a gene's rewiring is shared "
+                "between specific cancer types (tumor-vs-tumor). Use compare_network_contexts "
+                "(Pipeline 8) when the question is how much rewiring occurred vs. normal in "
+                "each type separately. These pipelines answer different questions — do not "
+                "conflate them."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol (e.g. FOXM1, MYC, TP53)",
+                    },
+                    "cancer_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc", "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"],
+                        },
+                        "description": "2–4 TCGA cancer type codes to compare (e.g. [\"cesc\", \"hnsc\", \"luad\"]). Limit 4 — each call takes 2–3 minutes.",
+                        "minItems": 2,
+                        "maxItems": 4,
+                    },
+                    "cell_type": {
+                        "type": "string",
+                        "description": "GREmLN reference cell type used for the GREmLN baseline comparison in each cancer type call (default: epithelial_cell).",
+                        "default": "epithelial_cell",
+                    },
+                    "include_gremln_baseline": {
+                        "type": "boolean",
+                        "description": "Include GREmLN-vs-tumor rewiring stats alongside tumor-vs-tumor results (default: true). Useful context: high GREmLN rewiring + high pairwise tumor overlap = convergent oncogenic rewiring, not baseline variation.",
+                        "default": True,
+                    },
+                },
+                "required": ["gene", "cancer_types"],
+            },
+        ),
     ]
 
 
@@ -485,6 +534,20 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         report = header + "\n\n---\n\n".join(sections)
         label = f"{', '.join(genes)}: {cell_type} vs TCGA {cancer_type.upper()}"
         return [TextContent(type="text", text=f"Orchestra batch network comparison for {label}:\n\n{report}")]
+    elif name == "compare_tumor_networks":
+        gene = arguments.get("gene", "")
+        cancer_types = arguments.get("cancer_types", [])
+        cell_type = arguments.get("cell_type", "epithelial_cell")
+        include_gremln_baseline = arguments.get("include_gremln_baseline", True)
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type=cell_type,
+            analysis_type="tumor_network_comparison",
+            cancer_types=cancer_types,
+            include_gremln_baseline=include_gremln_baseline,
+            progress=progress,
+        )
+        label = f"{gene}: {', '.join(ct.upper() for ct in cancer_types)} tumor-vs-tumor"
     elif name == "analyze_gene_signature":
         genes = arguments.get("genes", [])
         cancer_contexts = arguments.get("cancer_contexts") or None

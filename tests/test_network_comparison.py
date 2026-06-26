@@ -495,3 +495,486 @@ class TestNetworkContextsBatch:
     def test_batch_two_genes_minimum(self):
         genes = ["FOXM1", "STAT3"]
         assert len(genes) >= 2
+
+
+# ---------------------------------------------------------------------------
+# compare_tumor_networks — OrchestraState schema
+# ---------------------------------------------------------------------------
+
+class TestTumorNetworkStateSchema:
+    def test_cancer_types_field_in_state(self):
+        assert "cancer_types" in OrchestraState.__annotations__
+
+    def test_include_gremln_baseline_field_in_state(self):
+        assert "include_gremln_baseline" in OrchestraState.__annotations__
+
+    def test_tumor_network_results_field_in_state(self):
+        assert "tumor_network_results" in OrchestraState.__annotations__
+
+
+# ---------------------------------------------------------------------------
+# compare_tumor_networks — routing
+# ---------------------------------------------------------------------------
+
+class TestTumorNetworkRouting:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def test_tumor_network_comparison_routes_correctly(self, wf):
+        state = _nc_state(analysis_type="tumor_network_comparison")
+        assert wf._routing_decision(state) == "tumor_network_comparison_path"
+
+    def test_tumor_network_does_not_affect_network_comparison(self, wf):
+        state = _nc_state(analysis_type="network_comparison")
+        assert wf._routing_decision(state) == "network_comparison_path"
+
+
+# ---------------------------------------------------------------------------
+# compare_tumor_networks — helpers
+# ---------------------------------------------------------------------------
+
+def _tnc_state(**overrides) -> dict:
+    base = {
+        "gene": "FOXM1",
+        "cell_type": "epithelial_cell",
+        "cancer_types": ["cesc", "hnsc"],
+        "include_gremln_baseline": True,
+        "analysis_type": "tumor_network_comparison",
+        "analysis_depth": "comprehensive",
+        "gene_role": None,
+        "ensembl_id": None,
+        "tf_partner": None,
+        "network_analysis": None,
+        "network_stats": None,
+        "pathway_enrichment": None,
+        "domain_insights": None,
+        "perturbation_result": None,
+        "ppi_interactions": None,
+        "lincs_effects": None,
+        "depmap_essentiality": None,
+        "validated_targets": None,
+        "causal_chain": None,
+        "gene_signature": None,
+        "master_regulators": None,
+        "cell_types": None,
+        "comparison_results": None,
+        "cancer_type": None,
+        "network_comparison": None,
+        "cancer_context": None,
+        "gene2": None,
+        "cancer_contexts": None,
+        "cross_context_novelty": None,
+        "tumor_network_results": None,
+        "novelty_result": None,
+        "edge_novelty_results": None,
+        "completed_steps": [],
+        "errors": {},
+        "final_report": None,
+        "synthesis": None,
+    }
+    base.update(overrides)
+    return base
+
+
+def _tumor_raw(
+    conserved=None, tumor_only=None, pop_only=None,
+    conserved_fraction=0.1, rewiring="high",
+    pop_total=5, tumor_total=10,
+    tgt_tumor_only=None,
+):
+    conserved = conserved or []
+    tumor_only = tumor_only or []
+    pop_only = pop_only or []
+    return {
+        "gene": "FOXM1",
+        "regulators": {
+            "population_averaged_total": pop_total,
+            "tumor_state_total": tumor_total,
+            "conserved": conserved,
+            "conserved_count": len(conserved),
+            "conserved_fraction": conserved_fraction,
+            "population_averaged_only": pop_only,
+            "tumor_state_only": tumor_only,
+        },
+        "targets": {
+            "population_averaged_total": 20,
+            "tumor_state_total": 18,
+            "conserved_count": 10,
+            "conserved_fraction": 0.5,
+            "population_averaged_only": [],
+            "tumor_state_only": tgt_tumor_only or ["MMP9"],
+        },
+        "interpretation": {
+            "regulatory_rewiring": rewiring,
+            "conserved_fraction_regulators": conserved_fraction,
+            "tumor_specific_regulator_count": len(tumor_only),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# _synthesize_tumor_network_comparison_path
+# ---------------------------------------------------------------------------
+
+class TestSynthesizeTumorNetworkComparison:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def test_routing_is_tumor_network_comparison(self, wf):
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR", "KRAS"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR", "MYC"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["routing"] == "tumor_network_comparison"
+
+    def test_convergent_core_identified(self, wf):
+        # EGFR in both tumor sets → convergent core
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR", "KRAS"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR", "MYC"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        assert "EGFR" in syn["convergent_core"]
+        assert "KRAS" not in syn["convergent_core"]
+
+    def test_divergent_specific_computed(self, wf):
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR", "KRAS"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR", "MYC"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        # KRAS unique to cesc, MYC unique to hnsc
+        assert "KRAS" in syn["divergent_specific"].get("cesc", [])
+        assert "MYC" in syn["divergent_specific"].get("hnsc", [])
+
+    def test_pairwise_overlap_computed(self, wf):
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR", "KRAS"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR", "MYC"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        pairwise = result["synthesis"]["pairwise_overlaps"]
+        assert len(pairwise) == 1
+        p = pairwise[0]
+        assert p["cancer_a"] == "cesc"
+        assert p["cancer_b"] == "hnsc"
+        assert p["shared_regulators_count"] == 1  # EGFR
+        assert p["jaccard_regulators"] == pytest.approx(1 / 3, rel=0.01)  # |{EGFR}| / |{EGFR,KRAS,MYC}|
+
+    def test_verdict_convergent(self, wf):
+        # High overlap → convergent
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["A", "B", "C", "D", "E"]),
+            "hnsc": _tumor_raw(tumor_only=["A", "B", "C", "D", "E"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["verdict"] == "convergent"
+
+    def test_verdict_divergent(self, wf):
+        # No overlap → divergent
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["A", "B"]),
+            "hnsc": _tumor_raw(tumor_only=["C", "D"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["verdict"] == "divergent"
+
+    def test_verdict_mixed(self, wf):
+        # Partial overlap (Jaccard between 0.15 and 0.40) → mixed
+        # 2 shared out of 5 unique = 2/5 = 0.4... borderline, let's use 1 shared out of 4 = 0.25
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["A", "B", "C"]),
+            "hnsc": _tumor_raw(tumor_only=["A", "D", "E"]),  # jaccard 1/5 = 0.2
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        # 1/5 = 0.20, which is >= 0.15 and < 0.40, and core is non-empty → mixed
+        assert syn["verdict"] == "mixed"
+
+    def test_insufficient_data_when_one_cancer_fails(self, wf):
+        state = _tnc_state(
+            cancer_types=["cesc", "hnsc"],
+            tumor_network_results={
+                "cesc": {"error": True, "message": "timeout"},
+                "hnsc": {"error": True, "message": "timeout"},
+                "_cascade_validation": {},
+            }
+        )
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["verdict"] == "insufficient_data"
+
+    def test_gremln_baseline_included_by_default(self, wf):
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["gremln_baseline"] != {}
+
+    def test_gremln_baseline_omitted_when_false(self, wf):
+        state = _tnc_state(
+            include_gremln_baseline=False,
+            tumor_network_results={
+                "cesc": _tumor_raw(tumor_only=["EGFR"]),
+                "hnsc": _tumor_raw(tumor_only=["EGFR"]),
+                "_cascade_validation": {},
+            }
+        )
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        assert result["synthesis"]["gremln_baseline"] == {}
+
+    def test_conserved_from_gremln_included_in_tumor_set(self, wf):
+        # conserved regulators (in both GREmLN and TCGA) should be in the tumor set
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(conserved=["TP53"], tumor_only=["EGFR"]),
+            "hnsc": _tumor_raw(conserved=["TP53"], tumor_only=["MYC"]),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        # TP53 is in both tumor sets (conserved in GREmLN+TCGA) → convergent core
+        assert "TP53" in syn["convergent_core"]
+
+    def test_cascade_validation_tier_in_core(self, wf):
+        casc_val = {"EGFR": _cascade_result("EGFR", has_lincs=True)}
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR", "KRAS"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR", "MYC"]),
+            "_cascade_validation": casc_val,
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        core_cascade = result["synthesis"]["convergent_core_cascade"]
+        egfr_entry = next((e for e in core_cascade if e["gene"] == "EGFR"), None)
+        assert egfr_entry is not None
+        assert egfr_entry["tier"] == "cascade_validated"
+
+    def test_cascade_not_validated_without_evidence(self, wf):
+        casc_val = {"EGFR": {"evidence_synthesis": {"key_findings": []}}}
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(tumor_only=["EGFR"]),
+            "hnsc": _tumor_raw(tumor_only=["EGFR"]),
+            "_cascade_validation": casc_val,
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        core_cascade = result["synthesis"]["convergent_core_cascade"]
+        assert core_cascade[0]["tier"] == "not_validated"
+
+    def test_three_cancer_types_pairwise(self, wf):
+        state = _tnc_state(
+            cancer_types=["cesc", "hnsc", "luad"],
+            tumor_network_results={
+                "cesc": _tumor_raw(tumor_only=["A", "B", "C"]),
+                "hnsc": _tumor_raw(tumor_only=["A", "B", "D"]),
+                "luad": _tumor_raw(tumor_only=["A", "E", "F"]),
+                "_cascade_validation": {},
+            }
+        )
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        # C(3,2) = 3 pairs
+        assert len(syn["pairwise_overlaps"]) == 3
+        # A is in all three → convergent core
+        assert "A" in syn["convergent_core"]
+        assert "B" not in syn["convergent_core"]  # B only in cesc+hnsc, not luad
+
+
+# ---------------------------------------------------------------------------
+# _format_tumor_network_comparison_report
+# ---------------------------------------------------------------------------
+
+class TestFormatTumorNetworkComparisonReport:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    _SENTINEL = object()
+
+    def _make_tnc_synthesis(
+        self,
+        cancer_types=None,
+        available_cts=_SENTINEL,
+        pairwise=_SENTINEL,
+        convergent_core=_SENTINEL,
+        convergent_core_cascade=_SENTINEL,
+        divergent_specific=None,
+        verdict="mixed",
+        mean_jaccard=0.25,
+        gremln_baseline=_SENTINEL,
+        include_gremln=True,
+        errors=None,
+    ):
+        cancer_types = cancer_types or ["cesc", "hnsc"]
+        if available_cts is self._SENTINEL:
+            available_cts = cancer_types
+        if pairwise is self._SENTINEL:
+            pairwise = [
+                {
+                    "cancer_a": "cesc",
+                    "cancer_b": "hnsc",
+                    "shared_regulators": ["EGFR"],
+                    "shared_regulators_count": 1,
+                    "shared_tumor_targets_count": 0,
+                    "jaccard_regulators": 0.25,
+                    "total_a": 3,
+                    "total_b": 3,
+                }
+            ]
+        if convergent_core is self._SENTINEL:
+            convergent_core = ["EGFR"]
+        if convergent_core_cascade is self._SENTINEL:
+            convergent_core_cascade = [
+                {"gene": "EGFR", "n_cancer_types": 2, "tier": "not_validated",
+                 "cascade_key_findings": [], "cascade_error": None}
+            ]
+        if gremln_baseline is self._SENTINEL:
+            gremln_baseline = {
+                "cesc": {"rewiring_classification": "high", "conserved_fraction": 0.05,
+                         "pop_total": 5, "tumor_total": 20, "conserved_count": 1},
+                "hnsc": {"rewiring_classification": "high", "conserved_fraction": 0.04,
+                         "pop_total": 5, "tumor_total": 24, "conserved_count": 1},
+            }
+        return {
+            "routing": "tumor_network_comparison",
+            "gene": "FOXM1",
+            "cell_type": "epithelial_cell",
+            "cancer_types": cancer_types,
+            "available_cancer_types": available_cts,
+            "include_gremln_baseline": include_gremln,
+            "pairwise_overlaps": pairwise,
+            "convergent_core": convergent_core,
+            "convergent_core_cascade": convergent_core_cascade,
+            "divergent_specific": divergent_specific or {"cesc": ["KRAS"], "hnsc": ["MYC"]},
+            "verdict": verdict,
+            "mean_jaccard": mean_jaccard,
+            "gremln_baseline": gremln_baseline,
+            "errors": errors or {},
+        }
+
+    def test_header_contains_gene(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "FOXM1" in report
+
+    def test_header_contains_cancer_types(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "CESC" in report
+        assert "HNSC" in report
+
+    def test_pairwise_table_present(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "Pairwise Regulator Overlap" in report
+        assert "Jaccard" in report
+
+    def test_convergent_core_section_present(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "Convergent Core" in report
+        assert "EGFR" in report
+
+    def test_divergent_section_present(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "Cancer-Specific Regulators" in report or "Divergent" in report
+        assert "KRAS" in report
+
+    def test_verdict_shown_in_report(self, wf):
+        syn = self._make_tnc_synthesis(verdict="convergent")
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "CONVERGENT" in report
+
+    def test_verdict_thresholds_stated(self, wf):
+        syn = self._make_tnc_synthesis()
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "0.40" in report or "0.15" in report  # explicit thresholds
+
+    def test_gremln_baseline_shown_when_requested(self, wf):
+        syn = self._make_tnc_synthesis(include_gremln=True)
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "GREmLN Baseline" in report
+
+    def test_gremln_baseline_omitted_when_false(self, wf):
+        syn = self._make_tnc_synthesis(include_gremln=False, gremln_baseline={})
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "GREmLN Baseline" not in report
+
+    def test_empty_convergent_core_shown_gracefully(self, wf):
+        syn = self._make_tnc_synthesis(
+            convergent_core=[],
+            convergent_core_cascade=[],
+            verdict="divergent",
+        )
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "No convergent core" in report
+
+    def test_cascade_validated_label_shown(self, wf):
+        syn = self._make_tnc_synthesis(
+            convergent_core_cascade=[
+                {"gene": "EGFR", "n_cancer_types": 2, "tier": "cascade_validated",
+                 "cascade_key_findings": ["LINCS: EGFR knockdown confirmed"], "cascade_error": None}
+            ]
+        )
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "CASCADE-validated" in report or "YES" in report
+
+    def test_warning_when_no_available_data(self, wf):
+        syn = self._make_tnc_synthesis(
+            available_cts=[],
+            pairwise=[],
+            convergent_core=[],
+            convergent_core_cascade=[],
+            divergent_specific={},
+            verdict="insufficient_data",
+        )
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "No valid data" in report or "INSUFFICIENT" in report
+
+
+# ---------------------------------------------------------------------------
+# Graceful degradation — compare_tumor_networks
+# ---------------------------------------------------------------------------
+
+class TestTumorNetworkGracefulDegradation:
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    @pytest.mark.asyncio
+    async def test_too_few_cancer_types_sets_error(self, wf):
+        state = _tnc_state(cancer_types=["cesc"])
+        result = await wf._run_tumor_network_comparison_path(state)
+        assert "tumor_network_comparison" in result.get("errors", {})
+
+    @pytest.mark.asyncio
+    async def test_empty_cancer_types_sets_error(self, wf):
+        state = _tnc_state(cancer_types=[])
+        result = await wf._run_tumor_network_comparison_path(state)
+        assert "tumor_network_comparison" in result.get("errors", {})
+
+    def test_synthesize_with_all_errors(self, wf):
+        state = _tnc_state(
+            tumor_network_results={
+                "cesc": {"error": True},
+                "hnsc": {"error": True},
+                "_cascade_validation": {},
+            }
+        )
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        assert syn["verdict"] == "insufficient_data"
+        assert syn["convergent_core"] == []
+        assert syn["pairwise_overlaps"] == []
