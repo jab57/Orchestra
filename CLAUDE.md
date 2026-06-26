@@ -205,3 +205,8 @@ Steps — run exactly these tools in this order, nothing else:
 - Flag all computational findings as requiring wet-lab confirmation.
 - After completing any pipeline, suggest relevant follow-up pipelines but do not
   run them unless the user asks.
+- GREmLN is a population-averaged regulatory network, not a matched-normal/healthy-tissue
+  control. Never refer to it as "normal," "normal tissue," or "healthy" in outputs, tables,
+  or summaries. Always call it the "GREmLN population-average baseline network" (or
+  "population-average baseline" on repeat mentions). Frame rewiring comparisons as
+  "tumor network vs. population-average baseline," not "tumor vs. normal."
