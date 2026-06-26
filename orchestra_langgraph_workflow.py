@@ -1357,7 +1357,8 @@ class OrchestraWorkflow:
             if isinstance(container, list):
                 for item in container:
                     if isinstance(item, str):
-                        targets.add(item)
+                        if not item.startswith("ENSG"):
+                            targets.add(item)
                     elif isinstance(item, dict):
                         sym = (
                             item.get("gene_symbol")
@@ -1365,7 +1366,7 @@ class OrchestraWorkflow:
                             or item.get("gene")
                             or item.get("name")
                         )
-                        if sym:
+                        if sym and not sym.startswith("ENSG"):
                             targets.add(sym)
 
         # Primary: target_analysis.cascade_targets (confirmed structure from RegNetAgents output)
