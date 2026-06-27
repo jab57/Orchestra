@@ -454,8 +454,18 @@ async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
     raise ValueError(f"Unknown prompt: {name}")
 
 
+_DEBUG_LOG = __import__("pathlib").Path.home() / "orchestra_cbio_debug.log"
+
+
+def _dlog(msg: str) -> None:
+    import time as _t
+    with open(_DEBUG_LOG, "a") as _f:
+        _f.write(f"[{_t.strftime('%H:%M:%S')}] {msg}\n")
+
+
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    _dlog(f"call_tool: name={name!r}")
     # Capture session once at request start so the callback is safe to call
     # from asyncio sub-tasks (gather) without re-entering the ContextVar lookup.
     _session = app.request_context.session
@@ -608,29 +618,25 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         )
         label = f"{gene} across {', '.join(cell_types)}"
     elif name == "fetch_tcga_methylation_correlation":
-        import pathlib, time as _time
+        regulator = arguments.get("regulator", "")
+        target_genes = arguments.get("target_genes", [])
+        tcga_network = arguments.get("tcga_network", "")
+        _dlog(f"fetch_tcga: regulator={regulator!r} targets={target_genes} network={tcga_network!r}")
         from cbioportal_client import (
             _correlation_sync as _corr_sync,
             format_correlation_report as _fmt_corr,
         )
-        regulator = arguments.get("regulator", "")
-        target_genes = arguments.get("target_genes", [])
-        tcga_network = arguments.get("tcga_network", "")
-        _log_path = pathlib.Path.home() / "orchestra_cbio_debug.log"
-        def _log(msg: str) -> None:
-            with open(_log_path, "a") as f:
-                f.write(f"[{_time.strftime('%H:%M:%S')}] {msg}\n")
-        _log(f"CALLED: {regulator} / {target_genes} / {tcga_network}")
+        _dlog("cbioportal_client imported OK")
         await progress(
             f"[Orchestra] Fetching TCGA methylation-expression correlation: "
             f"{regulator} vs {', '.join(target_genes)} in {tcga_network.upper()}..."
         )
         try:
-            _log("entering _correlation_sync (synchronous, no thread)")
-            corr_result = _corr_sync(regulator, target_genes, tcga_network, _log)
-            _log(f"done: {corr_result.get('error') or 'ok'}")
+            _dlog("entering _correlation_sync (synchronous)")
+            corr_result = _corr_sync(regulator, target_genes, tcga_network, _dlog)
+            _dlog(f"done: {corr_result.get('error') or 'ok'}")
         except (TimeoutError, Exception) as _e:
-            _log(f"EXCEPTION: {_e}")
+            _dlog(f"EXCEPTION: {_e}")
             corr_result = {"error": f"cBioPortal request failed: {_e}"}
         report = _fmt_corr(corr_result)
         return [TextContent(type="text", text=report)]
