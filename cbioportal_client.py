@@ -12,6 +12,7 @@ import asyncio
 import math
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as _FutureTimeout
 
 import requests
 from scipy.stats import spearmanr
@@ -176,7 +177,17 @@ def _fetch_values(profile_id: str, entrez_id: int, sample_ids: list[str]) -> dic
     return values
 
 
-_SYNC_BUDGET = 30.0  # wall-clock seconds; checked between steps so asyncio cancel is not needed
+_PER_FETCH_TIMEOUT = 10  # hard wall-clock limit per _fetch_values call (seconds)
+
+
+def _fetch_values_timed(profile_id: str, entrez_id: int, sample_ids: list[str]) -> dict[str, float]:
+    """Run _fetch_values in a thread and raise TimeoutError if it exceeds _PER_FETCH_TIMEOUT."""
+    with ThreadPoolExecutor(max_workers=1) as _ex:
+        _fut = _ex.submit(_fetch_values, profile_id, entrez_id, sample_ids)
+        try:
+            return _fut.result(timeout=_PER_FETCH_TIMEOUT)
+        except _FutureTimeout:
+            raise TimeoutError(f"cBioPortal fetch exceeded {_PER_FETCH_TIMEOUT}s")
 
 
 def _correlation_sync(
@@ -192,13 +203,7 @@ def _correlation_sync(
     t0 = time.monotonic()
 
     def _check(step: str = "") -> None:
-        elapsed = time.monotonic() - t0
-        _log(f"  checkpoint '{step}' at {elapsed:.1f}s")
-        if elapsed > _SYNC_BUDGET:
-            raise TimeoutError(
-                f"cBioPortal request exceeded {_SYNC_BUDGET:.0f}s budget"
-                + (f" at '{step}'" if step else "")
-            )
+        _log(f"  checkpoint '{step}' at {time.monotonic() - t0:.1f}s")
 
     study_id = _TCGA_STUDY_IDS.get(tcga_network.lower())
     if not study_id:
@@ -229,7 +234,10 @@ def _correlation_sync(
         return {"error": f"No samples found for {study_id}"}
 
     _check("before fetch expression data")
-    expr = _fetch_values(rna_profile, entrez_map[regulator], sample_ids)
+    try:
+        expr = _fetch_values_timed(rna_profile, entrez_map[regulator], sample_ids)
+    except TimeoutError:
+        return {"error": f"Timed out fetching expression data for {regulator} (>{_PER_FETCH_TIMEOUT}s) — cBioPortal may be slow"}
     _log(f"expr values={len(expr)}")
     if not expr:
         return {"error": f"No expression data returned for {regulator} in {rna_profile}"}
@@ -248,7 +256,18 @@ def _correlation_sync(
             continue
 
         _check(f"before fetch methylation for {target}")
-        meth = _fetch_values(meth_profile, entrez_map[target], sample_ids)
+        try:
+            meth = _fetch_values_timed(meth_profile, entrez_map[target], sample_ids)
+        except TimeoutError:
+            correlations.append({
+                "target_gene": target,
+                "n_samples": 0,
+                "rho": None,
+                "p_value": None,
+                "direction": "timeout",
+                "note": f"cBioPortal timed out returning methylation data (>{_PER_FETCH_TIMEOUT}s)",
+            })
+            continue
         _log(f"meth values for {target}={len(meth)}")
         shared = sorted(set(expr) & set(meth))
 
