@@ -27,6 +27,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, Prompt, PromptArgument, GetPromptResult, PromptMessage
 from orchestra_langgraph_workflow import OrchestraWorkflow
 from mcp_client import make_cascade_client, make_regnetagents_client
+from cbioportal_client import _correlation_sync as _corr_sync, format_correlation_report as _fmt_corr
 
 app = Server("orchestra")
 workflow = OrchestraWorkflow()
@@ -622,11 +623,6 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         target_genes = arguments.get("target_genes", [])
         tcga_network = arguments.get("tcga_network", "")
         _dlog(f"fetch_tcga: regulator={regulator!r} targets={target_genes} network={tcga_network!r}")
-        from cbioportal_client import (
-            _correlation_sync as _corr_sync,
-            format_correlation_report as _fmt_corr,
-        )
-        _dlog("cbioportal_client imported OK")
         await progress(
             f"[Orchestra] Fetching TCGA methylation-expression correlation: "
             f"{regulator} vs {', '.join(target_genes)} in {tcga_network.upper()}..."
