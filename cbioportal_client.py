@@ -183,11 +183,18 @@ def _correlation_sync(
     regulator: str,
     target_genes: list[str],
     tcga_network: str,
+    log=None,
 ) -> dict:
+    def _log(msg: str) -> None:
+        if log:
+            log(msg)
+
     t0 = time.monotonic()
 
     def _check(step: str = "") -> None:
-        if time.monotonic() - t0 > _SYNC_BUDGET:
+        elapsed = time.monotonic() - t0
+        _log(f"  checkpoint '{step}' at {elapsed:.1f}s")
+        if elapsed > _SYNC_BUDGET:
             raise TimeoutError(
                 f"cBioPortal request exceeded {_SYNC_BUDGET:.0f}s budget"
                 + (f" at '{step}'" if step else "")
@@ -198,27 +205,32 @@ def _correlation_sync(
         valid = ", ".join(sorted(_TCGA_STUDY_IDS))
         return {"error": f"Unknown TCGA code {tcga_network!r}. Valid: {valid}"}
 
-    _check("discover profiles")
+    _log(f"study_id={study_id}")
+    _check("before discover profiles")
     rna_profile, meth_profile = _discover_profiles(study_id)
+    _log(f"profiles: rna={rna_profile} meth={meth_profile}")
     if not rna_profile:
         return {"error": f"No RNA-seq expression profile found for {study_id}"}
     if not meth_profile:
         return {"error": f"No methylation profile found for {study_id}"}
 
     all_genes = [regulator] + list(target_genes)
-    _check("resolve gene IDs")
+    _check("before resolve gene IDs")
     entrez_map = _entrez_ids(all_genes)
+    _log(f"entrez_map={entrez_map}")
 
     if regulator not in entrez_map:
         return {"error": f"Could not resolve Entrez ID for regulator {regulator!r}"}
 
-    _check("fetch sample list")
+    _check("before fetch sample list")
     sample_ids = _get_sample_ids(study_id)
+    _log(f"sample_ids count={len(sample_ids)}")
     if not sample_ids:
         return {"error": f"No samples found for {study_id}"}
 
-    _check("fetch expression data")
+    _check("before fetch expression data")
     expr = _fetch_values(rna_profile, entrez_map[regulator], sample_ids)
+    _log(f"expr values={len(expr)}")
     if not expr:
         return {"error": f"No expression data returned for {regulator} in {rna_profile}"}
 
@@ -235,8 +247,9 @@ def _correlation_sync(
             })
             continue
 
-        _check(f"fetch methylation for {target}")
+        _check(f"before fetch methylation for {target}")
         meth = _fetch_values(meth_profile, entrez_map[target], sample_ids)
+        _log(f"meth values for {target}={len(meth)}")
         shared = sorted(set(expr) & set(meth))
 
         if len(shared) < 5:

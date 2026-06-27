@@ -608,29 +608,30 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         )
         label = f"{gene} across {', '.join(cell_types)}"
     elif name == "fetch_tcga_methylation_correlation":
+        import pathlib, time as _time
         from cbioportal_client import (
-            methylation_expression_correlation as _meth_corr,
+            _correlation_sync as _corr_sync,
             format_correlation_report as _fmt_corr,
         )
         regulator = arguments.get("regulator", "")
         target_genes = arguments.get("target_genes", [])
         tcga_network = arguments.get("tcga_network", "")
+        _log_path = pathlib.Path.home() / "orchestra_cbio_debug.log"
+        def _log(msg: str) -> None:
+            with open(_log_path, "a") as f:
+                f.write(f"[{_time.strftime('%H:%M:%S')}] {msg}\n")
+        _log(f"CALLED: {regulator} / {target_genes} / {tcga_network}")
         await progress(
             f"[Orchestra] Fetching TCGA methylation-expression correlation: "
             f"{regulator} vs {', '.join(target_genes)} in {tcga_network.upper()}..."
         )
         try:
-            corr_result = await asyncio.wait_for(
-                _meth_corr(regulator, target_genes, tcga_network),
-                timeout=45.0,
-            )
-        except (asyncio.TimeoutError, TimeoutError):
-            corr_result = {
-                "error": (
-                    "cBioPortal request timed out after 30 s — the public API may be "
-                    "unreachable from this machine or under load. Please retry."
-                )
-            }
+            _log("entering _correlation_sync (synchronous, no thread)")
+            corr_result = _corr_sync(regulator, target_genes, tcga_network, _log)
+            _log(f"done: {corr_result.get('error') or 'ok'}")
+        except (TimeoutError, Exception) as _e:
+            _log(f"EXCEPTION: {_e}")
+            corr_result = {"error": f"cBioPortal request failed: {_e}"}
         report = _fmt_corr(corr_result)
         return [TextContent(type="text", text=report)]
     else:
