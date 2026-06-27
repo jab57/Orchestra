@@ -597,6 +597,33 @@ class OrchestraWorkflow:
             state["completed_steps"].append("run_signature_path")
             return state
 
+        # DoRothEA regulon overlap: for each candidate driver, count how many
+        # signature genes appear in the TF's DoRothEA regulon (independent of ARACNe).
+        mr_list = mr_result.get("master_regulators") or []
+        all_tfs = [r["gene"] for r in mr_list]
+        if all_tfs and self._cascade is not None:
+            signature_set = {g.upper() for g in gene_signature}
+
+            async def _fetch_regulon(tf: str) -> tuple:
+                try:
+                    res = await asyncio.wait_for(
+                        self._cascade.call_tool(
+                            "get_tf_regulon",
+                            {"gene": tf},
+                            timeout_seconds=30,
+                        ),
+                        timeout=30.0,
+                    )
+                    targets = {t.upper() for t in (res.get("targets") or [])}
+                    return tf, len(targets & signature_set)
+                except Exception:
+                    return tf, 0
+
+            regulon_results = await asyncio.gather(*[_fetch_regulon(tf) for tf in all_tfs])
+            dorothea_overlap_map = dict(regulon_results)
+            for entry in mr_list:
+                entry["dorothea_overlap"] = dorothea_overlap_map.get(entry["gene"], 0)
+
         # Step 2: parallel CASCADE validation on top 3 enriched TFs
         top_tfs = [
             r["gene"]
@@ -1671,6 +1698,7 @@ class OrchestraWorkflow:
             row = {
                 "gene": entry["gene"],
                 "overlap_count": overlap_count,
+                "dorothea_overlap": entry.get("dorothea_overlap", 0),
                 "coverage_pct": coverage_pct,
                 "regulon_size": entry.get("regulon_size", 0),
                 "enrichment_score": entry.get("enrichment_score", 0),
@@ -1683,6 +1711,7 @@ class OrchestraWorkflow:
             ranked_drivers.append({
                 "gene": entry["gene"],
                 "overlap_count": overlap_count,
+                "dorothea_overlap": entry.get("dorothea_overlap", 0),
                 "coverage_pct": coverage_pct,
                 "enrichment_score": entry.get("enrichment_score", 0),
                 "p_value": entry.get("p_value", 1.0),
@@ -2458,10 +2487,10 @@ class OrchestraWorkflow:
             lines.append("### Ranked TF Drivers")
             lines.append("")
             lines.append(
-                "| TF Driver | Coverage | Overlap | Enrichment | p-value | p-adj (BH)"
+                "| TF Driver | Coverage | ARACNe Ovlp | DoRothEA Ovlp | Enrichment | p-value | p-adj (BH)"
                 " | PageRank | Pathway | LINCS | DepMap | SE | DoRothEA | cBio | Score |"
             )
-            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
             def flag(v: bool) -> str:
                 return "✓" if v else "-"
@@ -2477,6 +2506,7 @@ class OrchestraWorkflow:
                     f"| {gene_label} "
                     f"| {row['coverage_pct']}% "
                     f"| {row['overlap_count']}/{row.get('regulon_size', '?')} "
+                    f"| {row.get('dorothea_overlap', 0)} "
                     f"| {row['enrichment_score']:.2f} "
                     f"| {row['p_value']:.2e} "
                     f"| {p_adj_str} "
@@ -2491,7 +2521,9 @@ class OrchestraWorkflow:
                 )
             lines.append("")
             footnote = (
-                "_Coverage = signature genes in TF regulon. "
+                "_Coverage = signature genes in ARACNe regulon. "
+                "ARACNe Ovlp = signature/ARACNe-regulon overlap count/regulon-size. "
+                "DoRothEA Ovlp = signature genes also in DoRothEA regulon (independent validation). "
                 "PageRank/Pathway = RegNetAgents enrichment. "
                 "LINCS, DepMap, SE, DoRothEA, cBio = CASCADE sources. "
                 f"p-adj = Benjamini-Hochberg FDR correction across all {total_tested or len(evidence_table)} regulators tested."
@@ -2505,8 +2537,10 @@ class OrchestraWorkflow:
         # Per-driver detail for top 3
         lines.append("### Driver Details")
         for i, d in enumerate(ranked_drivers[:3], 1):
+            dro_ovlp = d.get("dorothea_overlap", 0)
+            dro_part = f" / {dro_ovlp} DoRothEA" if dro_ovlp > 0 else ""
             lines.append(f"**{i}. {d['gene']}** — {d['coverage_pct']}% coverage "
-                         f"({d['overlap_count']} signature genes), "
+                         f"({d['overlap_count']} ARACNe{dro_part} signature genes), "
                          f"enrichment={d['enrichment_score']:.2f}, "
                          f"p={d['p_value']:.2e}, p-adj={d.get('p_value_adj', 1.0):.2e}")
             if d["overlap_count"] <= 2:

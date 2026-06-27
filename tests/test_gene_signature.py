@@ -70,7 +70,8 @@ def _mr_result(tfs: list[dict]) -> dict:
 
 
 def _tf_entry(gene: str, overlap: int, enrichment: float = 2.5, p: float = 0.001,
-              regulon_size: int = 100, key_findings: list = None) -> dict:
+              regulon_size: int = 100, key_findings: list = None,
+              dorothea_overlap: int = 0) -> dict:
     return {
         "gene": gene,
         "ensembl_id": f"ENSG_{gene}",
@@ -81,6 +82,7 @@ def _tf_entry(gene: str, overlap: int, enrichment: float = 2.5, p: float = 0.001
         "p_value": p,
         "overlapping_genes": ["AXIN2", "MYC"][:overlap],
         "key_findings": key_findings or [],
+        "dorothea_overlap": dorothea_overlap,
     }
 
 
@@ -228,6 +230,30 @@ class TestSynthesizeSignaturePath:
         # pagerank_rank=True (enrichment > 0), lincs=True, super_enhancer=True → at least 3
         assert ev_row["corroboration_count"] >= 3
 
+    def test_dorothea_overlap_propagated_to_ranked_drivers(self, wf):
+        state = _sig_state(
+            gene_signature=["AXIN2", "MYC", "CCND1", "CDH1", "VEGFA"],
+            master_regulators=_mr_result([
+                _tf_entry("CTNNB1", overlap=4, dorothea_overlap=3),
+                _tf_entry("TP53", overlap=2, dorothea_overlap=0),
+            ]),
+        )
+        result = wf._synthesize_signature_path(state)
+        drivers = result["synthesis"]["ranked_drivers"]
+        assert drivers[0]["gene"] == "CTNNB1"
+        assert drivers[0]["dorothea_overlap"] == 3
+        assert drivers[1]["dorothea_overlap"] == 0
+
+    def test_dorothea_overlap_propagated_to_evidence_table(self, wf):
+        state = _sig_state(
+            master_regulators=_mr_result([
+                _tf_entry("CTNNB1", overlap=4, dorothea_overlap=2),
+            ]),
+        )
+        result = wf._synthesize_signature_path(state)
+        ev_row = result["synthesis"]["evidence_table"][0]
+        assert ev_row["dorothea_overlap"] == 2
+
 
 # ---------------------------------------------------------------------------
 # _format_signature_report
@@ -279,6 +305,7 @@ class TestFormatSignatureReport:
         driver = {
             "gene": "CTNNB1",
             "overlap_count": 4,
+            "dorothea_overlap": 2,
             "coverage_pct": 40.0,
             "regulon_size": 200,
             "enrichment_score": 3.0,
@@ -305,6 +332,34 @@ class TestFormatSignatureReport:
         assert "CTNNB1" in report
         assert "40.0%" in report
         assert "3/7" in report
+
+    def test_dorothea_ovlp_column_shown_in_table(self, wf):
+        driver = {
+            "gene": "MYC",
+            "overlap_count": 3,
+            "dorothea_overlap": 2,
+            "coverage_pct": 30.0,
+            "regulon_size": 150,
+            "enrichment_score": 2.0,
+            "p_value": 0.001,
+            "corroboration_count": 2,
+            "corroboration_denominator": 7,
+            "overlapping_genes": [],
+            "cascade_key_findings": [],
+            "multi_source_genes": [],
+            "cascade_error": None,
+            "pagerank_rank": True,
+            "pathway_member": False,
+            "lincs_knockdown": False,
+            "depmap_essentiality": False,
+            "super_enhancer": False,
+            "dorothea_tier": True,
+            "cbio_expression": False,
+        }
+        syn = self._make_synthesis(ranked_drivers=[driver], evidence_table=[driver])
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "DoRothEA Ovlp" in report
+        assert "ARACNe Ovlp" in report
 
     def test_regnetagents_unavailable_warning(self, wf):
         syn = self._make_synthesis(regnetagents_available=False)
