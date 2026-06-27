@@ -82,7 +82,7 @@ Eight biological validation cases confirm that Orchestra's routing, evidence coo
 | `novelty_assessment` | Cervical cancer therapeutic panel (EHF, STAT3, TOP2A, IDO1, FAP, SERPINB3, RSK4, AK6) | HNSC proxy (HPV/squamous) | EHF→STAT3: Novel (3 papers, last 2021); TOP2A: Established (41 papers, 0 experimental — actionable gap); RSK4/AK6: 0 papers (true white space); STAT3: 37% experimental ratio |
 | `compare_tumor_networks` | E2F1 | epithelial_cell (CESC, HNSC, LUAD tumor-state) | DIVERGENT (mean Jaccard 3.8%); convergent core: FEN1 only (not CASCADE-validated, 0 PubMed papers — flagged provisional); CESC: 29 / HNSC: 27 / LUAD: 6 cancer-type-specific regulators; all three show HIGH GREmLN rewiring (0–3% conserved) |
 
-Table: Validation results across Orchestra's composite tools (ten tools implemented; eight validated cases shown).
+Table: Validation results across Orchestra's composite tools (eleven tools implemented; eight validated cases shown).
 
 In the APC case, neither child server alone completes the analysis — CASCADE returns empty perturbation results for the scaffold protein; RegNetAgents has no PPI data to bridge from APC to a transcription factor partner. This is the clearest demonstration that Orchestra's coordinated routing is necessary, not merely convenient. In the MYC case, BRD4 scores 1/7 evidence sources: CASCADE's super-enhancer analysis identifies it as a BET inhibitor target while its absence from RegNetAgents' ARACNe-inferred network is a biologically informative finding — BRD4 acts through chromatin co-activation, not direct mRNA regulation, and is not expected in ARACNe networks. Orchestra presents both views simultaneously, producing a more complete picture than either child server alone.
 

@@ -83,7 +83,7 @@ Handles scaffold/effector genes (e.g. APC) that have no direct transcriptional t
 
 ### `analyze_gene_signature(genes, cell_type, tcga_network=None, cancer_contexts=None)`
 
-Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); p-values are Benjamini-Hochberg FDR-corrected across all regulators tested (typically 250–270). CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with raw and BH-adjusted p-values, signature coverage %, and cross-system corroboration count. Candidates with ≤ 2 overlapping signature genes are flagged as indicative only — fold-enrichment at that scale is driven by 1–2 gene overlap counts and should not be over-interpreted. Supply `tcga_network` (e.g. `"hnsc"`) to run enrichment against a TCGA tumor network instead of the population-averaged GREmLN network — recommended for tumor-derived signatures. When `tcga_network` is set, the corresponding cancer context is automatically included in the cross-context novelty gap table alongside any additional contexts supplied in `cancer_contexts`.
+Identifies which transcription factors are most likely driving a list of differentially expressed genes. RegNetAgents ranks TFs by Fisher's exact test enrichment in the input gene set (ARACNe regulon overlap); p-values are Benjamini-Hochberg FDR-corrected across all regulators tested (typically 250–270). CASCADE validates the top candidates with 7-source perturbation evidence. Output: ranked driver table with raw and BH-adjusted p-values, signature coverage %, cross-system corroboration count, and DoRothEA regulon overlap count (number of signature genes in the TF's curated DoRothEA regulon). Candidates with ≤ 2 overlapping signature genes are flagged as indicative only — fold-enrichment at that scale is driven by 1–2 gene overlap counts and should not be over-interpreted. Supply `tcga_network` (e.g. `"hnsc"`) to run enrichment against a TCGA tumor network instead of the population-averaged GREmLN network — recommended for tumor-derived signatures. When `tcga_network` is set, the corresponding cancer context is automatically included in the cross-context novelty gap table alongside any additional contexts supplied in `cancer_contexts`.
 
 ### `compare_cell_contexts(gene, cell_types)`
 
@@ -301,7 +301,7 @@ Key variables:
 pytest tests/
 ```
 
-278 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+370 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -464,14 +464,15 @@ Orchestra/
 │   ├── tp53_causal_chain.py         # TP53 TF path demonstration
 │   └── brd4_target_validation.py    # MYC/BRD4 therapeutic target validation
 └── tests/
-    ├── test_orchestra.py            # Routing, synthesis, report formatting (75+ unit tests)
-    ├── test_mcp_client.py           # MCP client lifecycle and tool call tests (17 tests)
-    ├── test_graceful_degradation.py # Degradation with mock clients (17 unit tests)
-    ├── test_effector_analysis.py    # APC integration test (8 tests; requires child servers)
-    ├── test_causal_chain.py         # TP53 integration test (9 tests; requires child servers)
-    ├── test_gene_signature.py       # Gene signature path: routing, enrichment, synthesis (30 unit tests + 1 integration)
-    ├── test_network_comparison.py   # GREmLN vs TCGA network comparison (33 unit tests + 1 integration)
-    └── test_novelty_assessment.py   # PubMed novelty assessment + edge pair novelty: mocked HTTP, verdict thresholds, workflow, edge extraction (50 unit tests)
+    ├── test_orchestra.py               # Routing, synthesis, report formatting (121 unit tests)
+    ├── test_mcp_client.py              # MCP client lifecycle and tool call tests (17 tests)
+    ├── test_graceful_degradation.py    # Degradation with mock clients (17 unit tests)
+    ├── test_effector_analysis.py       # APC integration test (8 tests; requires child servers)
+    ├── test_causal_chain.py            # TP53 integration test (9 tests; requires child servers)
+    ├── test_gene_signature.py          # Gene signature path: routing, enrichment, synthesis, DoRothEA overlap (55 tests)
+    ├── test_network_comparison.py      # GREmLN vs TCGA network comparison (68 tests)
+    ├── test_novelty_assessment.py      # PubMed novelty: mocked HTTP, verdict thresholds, cancer synonyms, pair thresholds (66 tests)
+    └── test_methylation_correlation.py # TCGA methylation-expression correlation: mocked cBioPortal REST (29 unit tests)
 ```
 
 ## Performance
@@ -516,7 +517,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (267) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
+Unit tests (370) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1
