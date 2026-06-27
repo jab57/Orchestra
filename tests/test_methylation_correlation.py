@@ -52,8 +52,9 @@ class TestStudyIdMapping:
         assert set(_TCGA_STUDY_IDS.keys()) == expected
 
     def test_study_id_format(self):
-        assert _TCGA_STUDY_IDS["cesc"] == "tcga_cesc"
-        assert _TCGA_STUDY_IDS["hnsc"] == "tcga_hnsc"
+        assert _TCGA_STUDY_IDS["cesc"] == "cesc_tcga"
+        assert _TCGA_STUDY_IDS["hnsc"] == "hnsc_tcga"
+        assert _TCGA_STUDY_IDS["coad"] == "coadread_tcga"  # cBioPortal merges COAD+READ
 
 
 # ---------------------------------------------------------------------------
@@ -265,11 +266,13 @@ class TestCorrelationSync:
             return _mock_get_response({})
 
         def _mock_post(url, *args, json=None, params=None, **kwargs):
-            profile_id = (params or {}).get("molecularProfileId", "")
-            body = json or {}
-            entrez = (body.get("entrezGeneIds") or [None])[0]
+            # Gene batch fetch — raise so _entrez_ids falls back to serial GET
+            if "/genes/fetch" in url:
+                raise Exception("gene batch not mocked; use serial GET fallback")
+            body = json or {} if isinstance(json, dict) else {}
             batch_ids = body.get("sampleIds", [])
-            if "rna_seq" in profile_id:
+            # Dispatch on URL: rna_seq profile → expression vals, methylation → meth vals
+            if "rna_seq" in url:
                 vals = expr_vals
             else:
                 vals = meth_vals

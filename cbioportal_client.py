@@ -22,10 +22,20 @@ _TIMEOUT = (_CONNECT_TIMEOUT, _READ_TIMEOUT)
 _SSL_VERIFY = os.getenv("ORCHESTRA_SSL_NO_VERIFY") != "1"
 
 _TCGA_STUDY_IDS: dict[str, str] = {
-    code: f"tcga_{code}" for code in [
-        "blca", "brca", "cesc", "coad", "hnsc", "kirc",
-        "lihc", "luad", "lusc", "ov", "paad", "prad", "stad", "ucec",
-    ]
+    "blca": "blca_tcga",
+    "brca": "brca_tcga",
+    "cesc": "cesc_tcga",
+    "coad": "coadread_tcga",   # cBioPortal merges COAD+READ under coadread_tcga
+    "hnsc": "hnsc_tcga",
+    "kirc": "kirc_tcga",
+    "lihc": "lihc_tcga",
+    "luad": "luad_tcga",
+    "lusc": "lusc_tcga",
+    "ov":   "ov_tcga",
+    "paad": "paad_tcga",
+    "prad": "prad_tcga",
+    "stad": "stad_tcga",
+    "ucec": "ucec_tcga",
 }
 
 
@@ -87,7 +97,7 @@ def _discover_profiles(study_id: str) -> tuple[str | None, str | None]:
     MRNA_EXPRESSION / METHYLATION profile if the preferred ID is absent.
     """
     try:
-        profiles = _get("/molecular-profiles", studyId=study_id)
+        profiles = _get(f"/studies/{study_id}/molecular-profiles")
     except Exception:
         return None, None
 
@@ -125,7 +135,10 @@ def _get_sample_ids(study_id: str) -> list[str]:
     ids: list[str] = []
     page = 0
     while True:
-        batch = _get(f"/studies/{study_id}/samples", pageSize=500, pageNumber=page)
+        try:
+            batch = _get(f"/studies/{study_id}/samples", pageSize=500, pageNumber=page)
+        except Exception:
+            break
         if not batch:
             break
         ids.extend(s["sampleId"] for s in batch)
@@ -145,9 +158,8 @@ def _fetch_values(profile_id: str, entrez_id: int, sample_ids: list[str]) -> dic
         batch = sample_ids[i:i + 500]
         try:
             rows = _post(
-                "/molecular-data/fetch",
+                f"/molecular-profiles/{profile_id}/molecular-data/fetch",
                 body={"entrezGeneIds": [entrez_id], "sampleIds": batch},
-                molecularProfileId=profile_id,
                 projection="SUMMARY",
             )
             for row in rows:
