@@ -11,6 +11,7 @@ No authentication required. SSL bypass via ORCHESTRA_SSL_NO_VERIFY=1.
 import asyncio
 import math
 import os
+import time
 
 import requests
 from scipy.stats import spearmanr
@@ -175,16 +176,29 @@ def _fetch_values(profile_id: str, entrez_id: int, sample_ids: list[str]) -> dic
     return values
 
 
+_SYNC_BUDGET = 30.0  # wall-clock seconds; checked between steps so asyncio cancel is not needed
+
+
 def _correlation_sync(
     regulator: str,
     target_genes: list[str],
     tcga_network: str,
 ) -> dict:
+    t0 = time.monotonic()
+
+    def _check(step: str = "") -> None:
+        if time.monotonic() - t0 > _SYNC_BUDGET:
+            raise TimeoutError(
+                f"cBioPortal request exceeded {_SYNC_BUDGET:.0f}s budget"
+                + (f" at '{step}'" if step else "")
+            )
+
     study_id = _TCGA_STUDY_IDS.get(tcga_network.lower())
     if not study_id:
         valid = ", ".join(sorted(_TCGA_STUDY_IDS))
         return {"error": f"Unknown TCGA code {tcga_network!r}. Valid: {valid}"}
 
+    _check("discover profiles")
     rna_profile, meth_profile = _discover_profiles(study_id)
     if not rna_profile:
         return {"error": f"No RNA-seq expression profile found for {study_id}"}
@@ -192,15 +206,18 @@ def _correlation_sync(
         return {"error": f"No methylation profile found for {study_id}"}
 
     all_genes = [regulator] + list(target_genes)
+    _check("resolve gene IDs")
     entrez_map = _entrez_ids(all_genes)
 
     if regulator not in entrez_map:
         return {"error": f"Could not resolve Entrez ID for regulator {regulator!r}"}
 
+    _check("fetch sample list")
     sample_ids = _get_sample_ids(study_id)
     if not sample_ids:
         return {"error": f"No samples found for {study_id}"}
 
+    _check("fetch expression data")
     expr = _fetch_values(rna_profile, entrez_map[regulator], sample_ids)
     if not expr:
         return {"error": f"No expression data returned for {regulator} in {rna_profile}"}
@@ -218,6 +235,7 @@ def _correlation_sync(
             })
             continue
 
+        _check(f"fetch methylation for {target}")
         meth = _fetch_values(meth_profile, entrez_map[target], sample_ids)
         shared = sorted(set(expr) & set(meth))
 
