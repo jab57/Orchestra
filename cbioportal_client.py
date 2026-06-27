@@ -16,7 +16,9 @@ import requests
 from scipy.stats import spearmanr
 
 _BASE = "https://www.cbioportal.org/api"
-_TIMEOUT = 30
+_CONNECT_TIMEOUT = 5   # fail fast if server is unreachable
+_READ_TIMEOUT = 15     # allow time for payload once connected
+_TIMEOUT = (_CONNECT_TIMEOUT, _READ_TIMEOUT)
 _SSL_VERIFY = os.getenv("ORCHESTRA_SSL_NO_VERIFY") != "1"
 
 _TCGA_STUDY_IDS: dict[str, str] = {

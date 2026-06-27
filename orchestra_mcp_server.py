@@ -622,13 +622,14 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         try:
             corr_result = await asyncio.wait_for(
                 _meth_corr(regulator, target_genes, tcga_network),
-                timeout=120.0,
+                timeout=45.0,
             )
         except asyncio.TimeoutError:
             corr_result = {
                 "error": (
-                    "cBioPortal request timed out after 120 s — the public API may be "
-                    "under load. Please retry in a moment."
+                    "cBioPortal request timed out after 45 s — the public API may be "
+                    "unreachable from this machine (firewall/SSL proxy) or under load. "
+                    "Check outbound access to www.cbioportal.org and retry."
                 )
             }
         report = _fmt_corr(corr_result)
