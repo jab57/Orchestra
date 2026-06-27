@@ -619,7 +619,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             f"[Orchestra] Fetching TCGA methylation-expression correlation: "
             f"{regulator} vs {', '.join(target_genes)} in {tcga_network.upper()}..."
         )
-        corr_result = await _meth_corr(regulator, target_genes, tcga_network)
+        try:
+            corr_result = await asyncio.wait_for(
+                _meth_corr(regulator, target_genes, tcga_network),
+                timeout=120.0,
+            )
+        except asyncio.TimeoutError:
+            corr_result = {
+                "error": (
+                    "cBioPortal request timed out after 120 s — the public API may be "
+                    "under load. Please retry in a moment."
+                )
+            }
         report = _fmt_corr(corr_result)
         return [TextContent(type="text", text=report)]
     else:

@@ -33,7 +33,7 @@ def _get(path: str, **params) -> list | dict:
     return r.json()
 
 
-def _post(path: str, body: dict, **params) -> list:
+def _post(path: str, body: dict | list, **params) -> list:
     r = requests.post(f"{_BASE}{path}", json=body, params=params, timeout=_TIMEOUT, verify=_SSL_VERIFY)
     r.raise_for_status()
     return r.json()
@@ -51,7 +51,25 @@ def _entrez_id(gene: str) -> int | None:
 
 
 def _entrez_ids(genes: list[str]) -> dict[str, int]:
-    """Batch Hugo symbol → Entrez ID mapping. Silently drops unresolved genes."""
+    """
+    Batch Hugo symbol → Entrez ID via single POST to /genes/fetch.
+    Falls back to serial GET calls if the batch endpoint fails.
+    """
+    if not genes:
+        return {}
+    try:
+        data = _post("/genes/fetch", body=genes, geneIdType="HUGO_GENE_SYMBOL")
+        if isinstance(data, list):
+            return {
+                item["hugoGeneSymbol"]: item["entrezGeneId"]
+                for item in data
+                if isinstance(item, dict)
+                and "hugoGeneSymbol" in item
+                and "entrezGeneId" in item
+            }
+    except Exception:
+        pass
+    # Serial fallback (batch endpoint unavailable or returned unexpected shape)
     result = {}
     for gene in genes:
         eid = _entrez_id(gene)

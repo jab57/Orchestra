@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock
 
 from cbioportal_client import (
     _entrez_id,
+    _entrez_ids,
     _discover_profiles,
     _get_sample_ids,
     _fetch_values,
@@ -77,6 +78,42 @@ class TestEntrezId:
         # API occasionally returns a list for unknown symbols
         with patch("cbioportal_client.requests.get", return_value=_mock_get_response([])):
             assert _entrez_id("GENE") is None
+
+
+# ---------------------------------------------------------------------------
+# _entrez_ids  (batch path + serial fallback)
+# ---------------------------------------------------------------------------
+
+class TestEntrezIds:
+    def test_batch_path_maps_all_genes(self):
+        batch_data = [
+            {"hugoGeneSymbol": "FOS", "entrezGeneId": 2353},
+            {"hugoGeneSymbol": "CDKN2A", "entrezGeneId": 1029},
+        ]
+        with patch("cbioportal_client.requests.post", return_value=_mock_post_response(batch_data)):
+            result = _entrez_ids(["FOS", "CDKN2A"])
+        assert result == {"FOS": 2353, "CDKN2A": 1029}
+
+    def test_batch_path_skips_items_missing_fields(self):
+        batch_data = [
+            {"hugoGeneSymbol": "FOS", "entrezGeneId": 2353},
+            {"hugoGeneSymbol": "PARTIAL"},  # missing entrezGeneId
+        ]
+        with patch("cbioportal_client.requests.post", return_value=_mock_post_response(batch_data)):
+            result = _entrez_ids(["FOS", "PARTIAL"])
+        assert result == {"FOS": 2353}
+        assert "PARTIAL" not in result
+
+    def test_falls_back_to_serial_on_batch_failure(self):
+        individual_data = {"entrezGeneId": 2353, "hugoGeneSymbol": "FOS"}
+        with patch("cbioportal_client.requests.post", side_effect=Exception("network error")), \
+             patch("cbioportal_client.requests.get", return_value=_mock_get_response(individual_data)):
+            result = _entrez_ids(["FOS"])
+        assert result == {"FOS": 2353}
+
+    def test_empty_gene_list_returns_empty_dict(self):
+        result = _entrez_ids([])
+        assert result == {}
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +327,9 @@ class TestCorrelationSync:
             # Gene resolution fails for everything
             return _mock_get_response({})
 
-        with patch("cbioportal_client.requests.get", side_effect=_mock_get):
+        # POST mock forces batch path to fail → falls back to serial GET (also fails → None)
+        with patch("cbioportal_client.requests.get", side_effect=_mock_get), \
+             patch("cbioportal_client.requests.post", side_effect=Exception("batch unavailable")):
             result = _correlation_sync("FAKEGENE", ["CDKN2A"], "cesc")
         assert "error" in result
         assert "FAKEGENE" in result["error"]
