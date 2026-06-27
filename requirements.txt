@@ -1,5 +1,6 @@
 anthropic==0.97.0
 requests==2.32.5
+scipy==1.16.3
 langgraph==0.2.34
 mcp==1.9.1
 ollama==0.6.1

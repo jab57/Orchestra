@@ -64,7 +64,7 @@ RegNetAgents           CASCADE
 
 ## Composite Tools
 
-Orchestra exposes ten composite tools:
+Orchestra exposes eleven composite tools:
 
 ### `causal_chain_analysis(gene, cell_type)`
 
@@ -126,6 +126,12 @@ For each requested cancer type, Orchestra calls `compare_network_contexts` and r
 - **Mixed** — partial core with substantial type-specific regulators
 
 Output: pairwise overlap table, convergent core table with CASCADE validation (top 3 core regulators) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (rewiring vs. normal for each type). Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to normal?"
+
+### `fetch_tcga_methylation_correlation(regulator, target_genes, tcga_network)`
+
+Orthogonal TCGA validation tool. Queries cBioPortal for matched RNA-seq expression (RSEM) and HM450 methylation beta values across all tumour samples in the specified TCGA cohort, then computes the Spearman rank correlation between the regulator's expression and each target gene's methylation beta. A negative ρ (high regulator expression → low methylation) supports the hypothesis that regulator activity antagonises epigenetic silencing of that target.
+
+Output: per-target Spearman ρ, two-tailed p-value, matched sample count, and direction annotation. Calls cBioPortal directly — no child server hop required.
 
 ## How It Works
 
@@ -326,7 +332,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
-Restart Claude Desktop after editing. The ten Orchestra tools will appear in the tools list.
+Restart Claude Desktop after editing. The eleven Orchestra tools will appear in the tools list.
 
 ## Usage
 
@@ -436,9 +442,10 @@ LLM_MODEL=claude-haiku-4-5-20251001
 
 ```
 Orchestra/
-├── orchestra_mcp_server.py          # MCP server — exposes 9 composite tools to Claude Desktop
+├── orchestra_mcp_server.py          # MCP server — exposes 11 composite tools to Claude Desktop
 ├── orchestra_langgraph_workflow.py  # LangGraph DAG, OrchestraState, all analysis paths
 ├── pubmed_client.py                 # NCBI E-utilities client for novelty_assessment
+├── cbioportal_client.py             # cBioPortal REST client for fetch_tcga_methylation_correlation
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
 ├── generate_figure.py               # Architecture figure generator (JOSS paper)
@@ -498,7 +505,7 @@ Orchestra/
 - Python 3.10+
 - [RegNetAgents](https://github.com/jab57/RegNetAgents) — regulatory network analysis
 - [CASCADE](https://github.com/jab57/CASCADE) — perturbation simulation and experimental corroboration
-- `mcp==1.9.1`, `langgraph==0.2.34`, `python-dotenv==1.0.1`, `requests==2.32.5`
+- `mcp==1.9.1`, `langgraph==0.2.34`, `python-dotenv==1.0.1`, `requests==2.32.5`, `scipy==1.16.3`
 - `ollama==0.6.1` — required only when `USE_LLM_SYNTHESIS=true` and `LLM_PROVIDER=ollama`
 - `anthropic==0.97.0` — required only when `LLM_PROVIDER=anthropic`
 

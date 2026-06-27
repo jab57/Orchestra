@@ -193,6 +193,27 @@ Steps — run exactly these tools in this order, nothing else:
 
 ---
 
+## Pipeline 10 — TCGA Methylation-Expression Correlation
+**Trigger**: user asks whether a regulator's activity correlates with epigenetic
+silencing of target genes in TCGA data, wants orthogonal TCGA validation of a
+network finding, or asks about methylation-expression relationships in a cohort.
+
+Steps — run exactly these tools in this order, nothing else:
+1. Confirm: regulator gene, target genes (typically from a prior Pipeline 2/3/5
+   result), and TCGA network code. If not specified, ask before proceeding.
+2. Call `fetch_tcga_methylation_correlation` with regulator, target_genes, tcga_network.
+3. Present the Spearman ρ table. Interpret each result:
+   - Negative ρ (high regulator expression → low methylation beta): supports the
+     hypothesis that regulator activity antagonises epigenetic silencing of that target.
+   - Positive ρ or |ρ| < 0.2: the methylation-expression relationship is absent or
+     concordant — does not support the silencing hypothesis for that target.
+   - Flag any target with n < 5 matched samples as uninformative.
+4. Flag all findings as computationally derived from bulk tumour data. Suggest
+   wet-lab validation (e.g. ChIP-seq, bisulfite sequencing after regulator knockdown).
+5. If further analysis seems relevant, suggest it — do not run it automatically.
+
+---
+
 ## Global rules
 - Default cell type: epithelial_cell. Ask if unclear.
 - For tumor analyses, ask which TCGA network if not specified.

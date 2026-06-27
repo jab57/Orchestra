@@ -15,6 +15,8 @@ from pubmed_client import (
     _verdict,
     _rationale,
     _novelty_assessment_sync,
+    _CANCER_SYNONYMS,
+    _VERDICT_THRESHOLDS,
 )
 from orchestra_langgraph_workflow import OrchestraWorkflow, _TCGA_TO_CANCER_CONTEXT
 
@@ -56,6 +58,7 @@ class TestQueryConstruction:
     def test_single_gene_query(self):
         q = _build_base_query("FOXM1", "head and neck squamous", None)
         assert '"FOXM1"[tiab]' in q
+        # synonym expansion keeps the original term inside the OR clause
         assert '"head and neck squamous"[tiab]' in q
         assert "gene2" not in q.lower()
 
@@ -72,12 +75,36 @@ class TestQueryConstruction:
         assert "in vitro" in exp
         assert "computational" in exp
 
+    def test_synonym_expansion_adds_aliases_for_known_context(self):
+        q = _build_base_query("FOS", "cervical cancer", None)
+        assert '"FOS"[tiab]' in q
+        assert "CESC" in q
+        assert '"cervical cancer"' in q
+
+    def test_synonym_expansion_for_hnsc(self):
+        q = _build_base_query("FOS", "head and neck squamous", "JUN")
+        assert "HNSCC" in q
+        assert '"FOS"[tiab]' in q
+        assert '"JUN"[tiab]' in q
+
+    def test_unknown_context_falls_back_to_literal_tiab(self):
+        q = _build_base_query("GENE", "rare sarcoma xyz", None)
+        assert '"rare sarcoma xyz"[tiab]' in q
+
+    def test_all_tcga_contexts_have_synonyms(self):
+        # Every value in _TCGA_TO_CANCER_CONTEXT must have a synonym entry so
+        # no context silently falls back to a plain literal.
+        from orchestra_langgraph_workflow import _TCGA_TO_CANCER_CONTEXT
+        missing = [v for v in _TCGA_TO_CANCER_CONTEXT.values() if v not in _CANCER_SYNONYMS]
+        assert missing == [], f"Contexts missing synonym entries: {missing}"
+
 
 # ---------------------------------------------------------------------------
 # Verdict thresholds
 # ---------------------------------------------------------------------------
 
 class TestVerdictThresholds:
+    # --- single query (default) ---
     def test_novel_zero(self):
         assert _verdict(0) == "novel"
 
@@ -95,6 +122,35 @@ class TestVerdictThresholds:
 
     def test_established_large(self):
         assert _verdict(500) == "established"
+
+    # --- pair query ---
+    def test_pair_novel_below_emerging(self):
+        assert _verdict(2, "pair") == "novel"
+
+    def test_pair_emerging_at_threshold(self):
+        assert _verdict(3, "pair") == "emerging"
+
+    def test_pair_emerging_mid(self):
+        assert _verdict(8, "pair") == "emerging"
+
+    def test_pair_established_above_threshold(self):
+        assert _verdict(11, "pair") == "established"
+
+    def test_pair_thresholds_lower_than_single(self):
+        # 11 hits: "emerging" for single, "established" for pair
+        assert _verdict(11, "single") == "emerging"
+        assert _verdict(11, "pair") == "established"
+
+    def test_unknown_query_type_falls_back_to_single(self):
+        assert _verdict(21, "unknown") == "established"
+        assert _verdict(3, "unknown") == "novel"
+
+    def test_threshold_dict_has_expected_keys(self):
+        assert "single" in _VERDICT_THRESHOLDS
+        assert "pair" in _VERDICT_THRESHOLDS
+        for tier in _VERDICT_THRESHOLDS.values():
+            assert "established" in tier
+            assert "emerging" in tier
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +277,41 @@ class TestNoveltAssessmentSync:
         with patch("pubmed_client.requests.get", side_effect=self._make_responses(5, "444", 8, "2020")):
             result = _novelty_assessment_sync("GENE", "context", None)
         assert result["computational_hits"] >= 0
+
+    def test_top_pmids_empty_by_default(self):
+        with patch("pubmed_client.requests.get", side_effect=self._make_responses(5, "111", 2, "2022")):
+            result = _novelty_assessment_sync("TP53", "breast cancer", None)
+        assert result["top_pmids"] == []
+
+    def test_return_pmids_true_adds_fourth_call(self):
+        # 4 HTTP calls: total+recent, experimental, year, relevance pmids
+        responses = self._make_responses(5, "111", 2, "2022")
+        responses.append(_mock_response(_xml_esearch(5, ["AAA", "BBB", "CCC"])))
+        with patch("pubmed_client.requests.get", side_effect=responses) as mock_get:
+            result = _novelty_assessment_sync("TP53", "breast cancer", None, return_pmids=True)
+        assert mock_get.call_count == 4
+        assert result["top_pmids"] == ["AAA", "BBB", "CCC"]
+
+    def test_return_pmids_skipped_when_total_zero(self):
+        xml_zero = _xml_esearch(0)
+        with patch("pubmed_client.requests.get", return_value=_mock_response(xml_zero)) as mock_get:
+            result = _novelty_assessment_sync("NEWGENE", "rare xyz", None, return_pmids=True)
+        # total=0 → calls 2, 3, 4 all skipped
+        assert mock_get.call_count == 1
+        assert result["top_pmids"] == []
+
+    def test_pair_query_uses_pair_thresholds(self):
+        # 4 hits: novel under single (4 < 5), still novel under pair (4 >= 3 → emerging)
+        # 4 >= 3 means this should be "emerging" for a pair query
+        with patch("pubmed_client.requests.get", side_effect=self._make_responses(4, "555", 1, "2023")):
+            result = _novelty_assessment_sync("FOS", "cervical cancer", "JUN")
+        assert result["novelty_verdict"] == "emerging"
+
+    def test_single_query_still_uses_single_thresholds(self):
+        # 4 hits single → novel (4 < 5)
+        with patch("pubmed_client.requests.get", side_effect=self._make_responses(4, "666", 1, "2023")):
+            result = _novelty_assessment_sync("FOS", "cervical cancer", None)
+        assert result["novelty_verdict"] == "novel"
 
 
 # ---------------------------------------------------------------------------

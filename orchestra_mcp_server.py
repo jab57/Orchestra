@@ -16,6 +16,8 @@ Ten composite tools:
   novelty_assessment                — PubMed hit count + novelty verdict for a gene in a cancer context (Issue #15)
   novelty_assessment_batch          — atomic batch variant: novelty_assessment for N genes in one call
   compare_network_contexts_batch    — atomic batch variant: compare_network_contexts for N genes in one call
+  fetch_tcga_methylation_correlation — Spearman correlation between regulator RNA-seq expression and
+                                       target gene methylation beta values across a TCGA cohort (cBioPortal)
 """
 
 import asyncio
@@ -346,6 +348,38 @@ async def list_tools() -> list[Tool]:
                 "required": ["gene", "cancer_types"],
             },
         ),
+        Tool(
+            name="fetch_tcga_methylation_correlation",
+            description=(
+                "Compute Spearman correlation between a regulator's RNA-seq expression and "
+                "target gene promoter methylation beta values across a TCGA tumour cohort "
+                "(via cBioPortal). Use this to test whether a regulator's activity is "
+                "associated with epigenetic silencing of its predicted targets: a negative "
+                "ρ (high expression → low methylation) supports the regulatory hypothesis. "
+                "Returns a per-target table of ρ, p-value, sample count, and direction."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "regulator": {
+                        "type": "string",
+                        "description": "Gene whose RNA-seq expression to use (e.g. 'FOS')",
+                    },
+                    "target_genes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Genes whose methylation beta values to correlate against regulator expression (e.g. ['CDKN2A', 'SOCS1', 'TIMP3'])",
+                        "minItems": 1,
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc", "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"],
+                        "description": "TCGA cancer cohort code (e.g. 'cesc' for cervical cancer)",
+                    },
+                },
+                "required": ["regulator", "target_genes", "tcga_network"],
+            },
+        ),
     ]
 
 
@@ -573,6 +607,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             progress=progress,
         )
         label = f"{gene} across {', '.join(cell_types)}"
+    elif name == "fetch_tcga_methylation_correlation":
+        from cbioportal_client import (
+            methylation_expression_correlation as _meth_corr,
+            format_correlation_report as _fmt_corr,
+        )
+        regulator = arguments.get("regulator", "")
+        target_genes = arguments.get("target_genes", [])
+        tcga_network = arguments.get("tcga_network", "")
+        await progress(
+            f"[Orchestra] Fetching TCGA methylation-expression correlation: "
+            f"{regulator} vs {', '.join(target_genes)} in {tcga_network.upper()}..."
+        )
+        corr_result = await _meth_corr(regulator, target_genes, tcga_network)
+        report = _fmt_corr(corr_result)
+        return [TextContent(type="text", text=report)]
     else:
         gene = arguments.get("gene", "")
         depth = arguments.get("analysis_depth", "comprehensive")

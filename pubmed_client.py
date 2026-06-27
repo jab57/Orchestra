@@ -22,6 +22,54 @@ NCBI_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _REQUEST_TIMEOUT = 15  # seconds
 _SSL_VERIFY = os.getenv("ORCHESTRA_SSL_NO_VERIFY") != "1"
 
+# Synonym expansion for each cancer context string produced by _TCGA_TO_CANCER_CONTEXT.
+# Each value is a self-contained OR clause ready to embed in a PubMed boolean query.
+# Unknown contexts fall back to a plain [tiab] literal in _build_base_query.
+_CANCER_SYNONYMS: dict[str, str] = {
+    "cervical cancer": (
+        '("cervical cancer"[tiab] OR "cervical carcinoma"[tiab] OR '
+        '"cervical squamous cell carcinoma"[tiab] OR "CESC"[tiab])'
+    ),
+    "head and neck squamous": (
+        '("head and neck squamous"[tiab] OR "HNSCC"[tiab] OR '
+        '"head and neck cancer"[tiab] OR "head and neck squamous cell carcinoma"[tiab])'
+    ),
+    "colorectal": (
+        '("colorectal"[tiab] OR "colorectal cancer"[tiab] OR '
+        '"colon cancer"[tiab] OR "rectal cancer"[tiab])'
+    ),
+    "breast cancer": '("breast cancer"[tiab] OR "breast carcinoma"[tiab])',
+    "lung adenocarcinoma": '("lung adenocarcinoma"[tiab] OR "LUAD"[tiab])',
+    "lung squamous cell carcinoma": (
+        '("lung squamous cell carcinoma"[tiab] OR "LUSC"[tiab] OR '
+        '"lung squamous carcinoma"[tiab])'
+    ),
+    "hepatocellular carcinoma": (
+        '("hepatocellular carcinoma"[tiab] OR "liver cancer"[tiab] OR "HCC"[tiab])'
+    ),
+    "ovarian cancer": '("ovarian cancer"[tiab] OR "ovarian carcinoma"[tiab])',
+    "bladder cancer": '("bladder cancer"[tiab] OR "urothelial carcinoma"[tiab])',
+    "kidney clear cell carcinoma": (
+        '("kidney clear cell carcinoma"[tiab] OR "clear cell renal cell carcinoma"[tiab] OR '
+        '"ccRCC"[tiab])'
+    ),
+    "gastric cancer": '("gastric cancer"[tiab] OR "stomach cancer"[tiab])',
+    "pancreatic cancer": (
+        '("pancreatic cancer"[tiab] OR "pancreatic ductal adenocarcinoma"[tiab] OR "PDAC"[tiab])'
+    ),
+    "prostate cancer": '("prostate cancer"[tiab] OR "prostate carcinoma"[tiab])',
+    "endometrial cancer": (
+        '("endometrial cancer"[tiab] OR "endometrial carcinoma"[tiab] OR "uterine cancer"[tiab])'
+    ),
+}
+
+# Pair queries are far more specific than single-gene queries, so a lower hit count
+# still indicates a well-characterised relationship.
+_VERDICT_THRESHOLDS: dict[str, dict[str, int]] = {
+    "single": {"established": 20, "emerging": 5},
+    "pair":   {"established": 10, "emerging": 3},
+}
+
 
 def _ncbi_params(extra: dict) -> dict:
     params = {"db": "pubmed", "retmode": "xml", **extra}
@@ -32,9 +80,10 @@ def _ncbi_params(extra: dict) -> dict:
 
 
 def _build_base_query(gene: str, cancer_context: str, gene2: str | None) -> str:
+    ctx = _CANCER_SYNONYMS.get(cancer_context, f'"{cancer_context}"[tiab]')
     if gene2:
-        return f'"{gene}"[tiab] AND "{gene2}"[tiab] AND "{cancer_context}"[tiab]'
-    return f'"{gene}"[tiab] AND "{cancer_context}"[tiab]'
+        return f'"{gene}"[tiab] AND "{gene2}"[tiab] AND {ctx}'
+    return f'"{gene}"[tiab] AND {ctx}'
 
 
 def _build_experimental_query(base: str) -> str:
@@ -75,10 +124,11 @@ def _efetch_year(pmid: str) -> int | None:
     return None
 
 
-def _verdict(pubmed_hits: int) -> str:
-    if pubmed_hits > 20:
+def _verdict(pubmed_hits: int, query_type: str = "single") -> str:
+    t = _VERDICT_THRESHOLDS.get(query_type, _VERDICT_THRESHOLDS["single"])
+    if pubmed_hits > t["established"]:
         return "established"
-    if pubmed_hits >= 5:
+    if pubmed_hits >= t["emerging"]:
         return "emerging"
     return "novel"
 
@@ -97,7 +147,13 @@ def _rationale(pubmed_hits: int, experimental_hits: int, verdict: str) -> str:
     return f"{base} — well-characterized in this context"
 
 
-def _novelty_assessment_sync(gene: str, cancer_context: str, gene2: str | None) -> dict:
+def _novelty_assessment_sync(
+    gene: str,
+    cancer_context: str,
+    gene2: str | None,
+    return_pmids: bool = False,
+) -> dict:
+    query_type = "pair" if gene2 else "single"
     base_query = _build_base_query(gene, cancer_context, gene2)
     exp_query = _build_experimental_query(base_query)
 
@@ -114,7 +170,12 @@ def _novelty_assessment_sync(gene: str, cancer_context: str, gene2: str | None) 
     if recent_ids:
         most_recent_year = _efetch_year(recent_ids[0])
 
-    verdict = _verdict(total)
+    # Call 4 (opt-in): top-10 PMIDs by relevance for independent spot-checking
+    top_pmids: list[str] = []
+    if return_pmids and total > 0:
+        _, top_pmids = _esearch(base_query, retmax=10, sort="relevance")
+
+    verdict = _verdict(total, query_type)
     return {
         "gene": gene,
         "gene2": gene2,
@@ -125,6 +186,7 @@ def _novelty_assessment_sync(gene: str, cancer_context: str, gene2: str | None) 
         "most_recent_year": most_recent_year,
         "novelty_verdict": verdict,
         "verdict_rationale": _rationale(total, experimental, verdict),
+        "top_pmids": top_pmids,
     }
 
 
@@ -132,9 +194,10 @@ async def novelty_assessment(
     gene: str,
     cancer_context: str,
     gene2: str | None = None,
+    return_pmids: bool = False,
 ) -> dict:
     """Query PubMed and return a structured novelty verdict for a gene (or gene pair) in a cancer context."""
-    return await asyncio.to_thread(_novelty_assessment_sync, gene, cancer_context, gene2)
+    return await asyncio.to_thread(_novelty_assessment_sync, gene, cancer_context, gene2, return_pmids)
 
 
 def format_novelty_report(result: dict) -> str:
