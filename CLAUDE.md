@@ -107,8 +107,9 @@ Steps — run exactly these tools in this order, nothing else:
 2. Call `analyze_gene_signature` with genes, cell_type, tcga_network (if tumor
    context), cancer_contexts (for novelty gap if provided).
 3. Report top TF drivers with Fisher p and BH-adjusted p-values, CASCADE scores,
-   and novelty gap if available. Call out any driver marked † (≤ 2 overlapping
-   genes) as a provisional finding — do not present its fold-enrichment as reliable.
+   DoRothEA regulon overlap count, and novelty gap if available. Call out any
+   driver marked † (≤ 2 overlapping genes) as a provisional finding — do not
+   present its fold-enrichment as reliable.
 4. If further analysis seems relevant, suggest it — do not run it automatically.
 
 ---
