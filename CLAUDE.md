@@ -42,18 +42,22 @@ Steps:
 gene panel in the conversation.
 
 Steps — run exactly these tools in this order, nothing else:
-1. Call `analyze_gene_signature` with the panel genes, cell_type, tcga_network
+1. Before calling the tool, state which network will be used: if a TCGA network
+   was specified, name it (e.g. "TCGA CESC ARACNe"); if not, say "GREmLN
+   population-average baseline — specify a TCGA network if you want tumor-specific
+   regulons" and wait one turn for the user to confirm or redirect.
+2. Call `analyze_gene_signature` with the panel genes, cell_type, tcga_network
    (if specified), and cancer_contexts set to both cancer contexts being compared.
    Do NOT call per-gene tools on individual panel members.
-2. Present the gap table from the built-in cross-context novelty output:
+3. Present the gap table from the built-in cross-context novelty output:
    Driver | p-adj (BH) | CASCADE score | Context 1 papers | Context 2 papers | Classification.
    Use BH-adjusted p as the primary significance criterion, not raw Fisher p.
    Flag any driver marked † (≤ 2 overlapping panel genes) as a provisional finding —
    its fold-enrichment is not robust to gene list variation.
-3. For each transfer opportunity or bilateral novel finding write 2–3 sentences:
+4. For each transfer opportunity or bilateral novel finding write 2–3 sentences:
    what the driver regulates, why the finding is meaningful, what validation would
    look like. Flag all findings as computationally derived.
-4. If further analysis of a specific driver seems warranted, suggest it —
+5. If further analysis of a specific driver seems warranted, suggest it —
    do not run it automatically.
 
 ---
@@ -104,13 +108,17 @@ of a pathway, or asks to analyze a specific gene signature.
 
 Steps — run exactly these tools in this order, nothing else:
 1. Confirm the gene list with the user before calling anything.
-2. Call `analyze_gene_signature` with genes, cell_type, tcga_network (if tumor
+2. State which network will be used: if a TCGA network was specified, name it
+   (e.g. "TCGA CESC ARACNe"); if not, say "GREmLN population-average baseline —
+   specify a TCGA network if you want tumor-specific regulons" and wait one turn
+   for the user to confirm or redirect.
+3. Call `analyze_gene_signature` with genes, cell_type, tcga_network (if tumor
    context), cancer_contexts (for novelty gap if provided).
-3. Report top TF drivers with Fisher p and BH-adjusted p-values, CASCADE scores,
+4. Report top TF drivers with Fisher p and BH-adjusted p-values, CASCADE scores,
    DoRothEA regulon overlap count, and novelty gap if available. Call out any
    driver marked † (≤ 2 overlapping genes) as a provisional finding — do not
    present its fold-enrichment as reliable.
-4. If further analysis seems relevant, suggest it — do not run it automatically.
+5. If further analysis seems relevant, suggest it — do not run it automatically.
 
 ---
 
