@@ -1754,10 +1754,17 @@ class OrchestraWorkflow:
                 "by_context": ctx_results,
             })
 
+        tcga_net = state.get("cancer_type")
+        network_label = (
+            f"TCGA {tcga_net.upper()} ARACNe" if tcga_net
+            else f"GREmLN population-average baseline ({state['cell_type']})"
+        )
+
         state["synthesis"] = {
             "gene": "",
             "cell_type": state["cell_type"],
             "routing": "signature",
+            "network_label": network_label,
             "gene_signature": gene_signature,
             "signature_size": signature_size,
             "genes_found_in_network": query_summary.get("genes_found_in_network", 0),
@@ -2460,8 +2467,11 @@ class OrchestraWorkflow:
         regnetagents_available = synthesis.get("regnetagents_available", True)
         cascade_available = synthesis.get("cascade_available", True)
 
+        network_label = synthesis.get("network_label", f"GREmLN population-average baseline ({cell_type})")
+
         lines = [
             f"## Orchestra Gene Signature Driver Analysis — {cell_type}",
+            f"**Network (ARACNe regulons):** {network_label}",
             f"**Signature size:** {signature_size} genes  |  "
             f"**Found in network:** {genes_found}  |  "
             f"**Regulators tested:** {total_tested}",
