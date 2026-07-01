@@ -150,6 +150,28 @@ def _get_sample_ids(study_id: str) -> list[str]:
     return ids
 
 
+def _get_sample_ids_by_clinical_attr(
+    study_id: str,
+    attribute_id: str,
+    allowed_values: list[str],
+) -> list[str]:
+    """
+    Return sample IDs where a clinical attribute matches one of the allowed values.
+    Useful for histotype filtering (e.g. CANCER_TYPE_DETAILED = 'Cervical Squamous Cell Carcinoma').
+    Returns empty list if the attribute is unavailable or the call fails.
+    """
+    try:
+        records = _get(
+            f"/studies/{study_id}/clinical-data",
+            clinicalDataType="SAMPLE",
+            attributeId=attribute_id,
+        )
+    except Exception:
+        return []
+    allowed = set(allowed_values)
+    return [r["sampleId"] for r in records if r.get("value") in allowed]
+
+
 def _fetch_values(profile_id: str, entrez_id: int, sample_ids: list[str]) -> dict[str, float]:
     """
     Return {sampleId: float_value} for one gene in one molecular profile.
