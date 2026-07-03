@@ -1,4 +1,4 @@
-name: Draft JOSS Paper PDF
+name: Draft Paper PDF
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
 jobs:
   paper:
     runs-on: ubuntu-latest
-    name: Build JOSS Paper PDF
+    name: Build Draft Paper PDF
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

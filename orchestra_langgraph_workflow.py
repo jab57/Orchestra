@@ -412,7 +412,7 @@ class OrchestraWorkflow:
         TF / master regulator path: run RegNetAgents comprehensive network analysis and
         CASCADE perturbation in parallel, then cross-system synthesis in _synthesize.
 
-        This is the core JOSS contribution — genes corroborated by both RegNetAgents
+        This is the core contribution — genes corroborated by both RegNetAgents
         network topology and CASCADE experimental data score higher than either alone.
         """
         gene = state["gene"]

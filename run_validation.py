@@ -1,7 +1,7 @@
 """
 Issue #6 Biological Validation Runner
 
-Runs the three canonical JOSS validation cases against live child servers
+Runs the three canonical validation cases against live child servers
 and writes results to outputs/validation_<case>_<timestamp>.txt
 
 Usage:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Orchestra architecture figure for the JOSS paper."""
+"""Generate the Orchestra architecture figure for the paper."""
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches

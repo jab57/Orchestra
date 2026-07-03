@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/jab57/Orchestra/actions/workflows/test.yml/badge.svg)](https://github.com/jab57/Orchestra/actions/workflows/test.yml)
-[![Draft JOSS Paper](https://github.com/jab57/Orchestra/actions/workflows/draft-pdf.yml/badge.svg)](https://github.com/jab57/Orchestra/actions/workflows/draft-pdf.yml)
 
 **MCP Orchestrator for Multi-System Causal Reasoning in Bioinformatics**
 
@@ -448,10 +447,10 @@ Orchestra/
 ├── cbioportal_client.py             # cBioPortal REST client for fetch_tcga_methylation_correlation
 ├── mcp_client.py                    # MCPClient class, subprocess lifecycle, factory functions
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
-├── generate_figure.py               # Architecture figure generator (JOSS paper)
+├── generate_figure.py               # Architecture figure generator
 ├── figure_architecture.png/.pdf     # Architecture figure
-├── paper.md                         # JOSS paper draft
-├── paper.bib                        # JOSS bibliography
+├── paper.md                         # Paper draft
+├── paper.bib                        # Bibliography
 ├── pyproject.toml                   # pytest configuration
 ├── requirements.txt                 # Python dependencies (exact versions)
 ├── .env.example                     # Environment variable template
@@ -528,15 +527,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
 
 ## Citation
 
-JOSS submission planned September 2026 after v1.0.0 release. Until then, please cite the GitHub repository.
+Please cite the GitHub repository:
 
 ```bibtex
 @software{bird2026orchestra,
   author       = {Bird, Jose},
   title        = {Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning},
   year         = {2026},
-  url          = {https://github.com/jab57/Orchestra},
-  note         = {JOSS submission planned September 2026}
+  url          = {https://github.com/jab57/Orchestra}
 }
 ```
 
