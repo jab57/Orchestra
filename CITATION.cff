@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: 'Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning'
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Bird
+    given-names: Jose A.
+    orcid: https://orcid.org/0009-0006-2744-0606
+    affiliation: Independent Researcher
+repository-code: https://github.com/jab57/Orchestra
+url: https://github.com/jab57/Orchestra
+license: MIT
+version: 1.0.0
+date-released: 2026-07-04
+keywords:
+  - gene-regulatory-networks
+  - multi-agent-systems
+  - bioinformatics
+  - model-context-protocol
+  - langgraph
+  - causal-reasoning
+abstract: >-
+  Orchestra is an MCP orchestrator that composes two specialized MCP
+  servers — RegNetAgents and CASCADE — to automate multi-step causal
+  reasoning across gene regulatory networks. A single natural language
+  query triggers an orchestrated LangGraph workflow that combines
+  regulatory network analysis, perturbation simulation, protein
+  interactions, and pathway enrichment into a unified causal report.
