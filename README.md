@@ -538,6 +538,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
 }
 ```
 
+## Related Publications
+
+- Bird, J. (2026). *DACH1 expression is inversely associated with promoter methylation of CADM1, ESR1, and SLIT2 in TCGA cervical squamous carcinoma: a network-based candidate regulator discovery.* Research Square preprint. https://doi.org/10.21203/rs.3.rs-10386608/v1
+
+  A biological application of Orchestra's `analyze_gene_signature` and `fetch_tcga_methylation_correlation` tools. Preprint, not yet peer-reviewed.
+
 ## License
 
 MIT License — see [LICENSE](LICENSE)
