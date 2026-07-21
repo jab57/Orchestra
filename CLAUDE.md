@@ -4,6 +4,62 @@ This project exposes an MCP server (`orchestra_mcp_server.py`) that composes
 RegNetAgents and CASCADE for regulatory network analysis. When assisting a user
 with Orchestra tools, follow the pipelines and rules below.
 
+## Potential project (not yet decided): remote access for a second user
+
+Carried over from a prior session (`c:\Dev` root) as planning context only —
+**nothing below has been committed to or started.** The user was still
+weighing whether to do this at all. Don't act on it unless the user
+explicitly confirms they want to proceed.
+
+**Goal**: let one other person try Orchestra via a Claude Desktop custom
+connector, without disrupting the existing local stdio setup on this PC.
+
+**Direction leaned toward, if pursued**: do NOT containerize / do NOT deploy
+to Render. Render's free *and* $7/mo Starter tiers both cap at 512MB RAM
+(only Standard, ~$25/mo, gets more) — too tight for PyTorch +
+RegNetAgents/CASCADE running as subprocesses. Instead: keep everything
+running locally on this PC, add a Cloudflare Tunnel for a public HTTPS front
+door, and convert only Orchestra's own transport to HTTP + OAuth.
+RegNetAgents/CASCADE would stay as local subprocesses, unchanged.
+
+**Why no path patching would be needed**: `mcp_client.py`'s
+`make_cascade_client`/`make_regnetagents_client` already hardcode
+`c:\Dev\CASCADE` and `c:\Dev\RegNetAgents`. Since this stays on this machine
+(not Docker), those paths are already correct.
+
+**State as of inspection**: `orchestra_mcp_server.py` currently only
+implements stdio transport (`stdio_server()` via the low-level
+`mcp.server.Server`). No HTTP, no OAuth exists yet. `mcp==1.9.1` is pinned in
+requirements.txt — check whether it has mature Streamable HTTP + OAuth
+support before relying on it, bump and re-pin exact version if not.
+
+**If pursued, the work would be**:
+1. Add Streamable HTTP transport (`/mcp` endpoint) in `main()`. Tool logic
+   (`list_tools`/`call_tool`/the LangGraph workflow) does not change.
+2. Add OAuth 2.1 + PKCE — the biggest lift, no existing scaffolding. Claude
+   Desktop's connector flow expects standard discovery/authorize/token
+   endpoints even for one user; can simplify to auto-approve a single
+   hardcoded user behind that standard flow shape.
+3. Add `/health` endpoint; bind `0.0.0.0`; read port from env, don't hardcode.
+4. Set up Cloudflare Tunnel (`cloudflared`) pointed at localhost as the public
+   HTTPS front door.
+5. Test: local HTTP handshake first, then full OAuth consent through the
+   tunnel from the other person's actual Claude Desktop.
+
+**Both access paths would coexist**: the existing local stdio entry in
+`claude_desktop_config.json` stays as-is; the new HTTP+OAuth connector would
+be additive (for the other person, and optionally you, to use).
+
+**Rough estimate if pursued**: transport swap + tunnel ~half a day. OAuth is
+the wildcard — budget a day, possibly two if the consent flow needs
+iteration against Claude Desktop's connector implementation.
+
+**If resuming this**: first confirm with the user whether they still want to
+do it at all — this was scoping only, not a commitment. If yes, start with
+the transport swap (self-contained, testable before touching auth).
+
+---
+
 ## Reference
 
 **Cell types**: cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, nk_cells,
