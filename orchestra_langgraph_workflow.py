@@ -100,6 +100,7 @@ class OrchestraState(TypedDict):
     # GREmLN vs TCGA network context comparison (Issue #13)
     cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
     network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
+    validate_tumor_acquired: Optional[bool]  # opt-in: also CASCADE-validate the tumor_state_only tier (default False)
 
     # Tumor-vs-tumor comparison (GitHub #14)
     cancer_types: Optional[list]           # list of TCGA codes for compare_tumor_networks
@@ -936,8 +937,10 @@ class OrchestraWorkflow:
         Synthesis classifies each conserved regulator as:
           Conserved + CASCADE-validated  → highest confidence therapeutic candidates
           Conserved, not CASCADE-validated → regulatory inference without experimental support
-        Tumor-state-only regulators are reported without CASCADE validation (shown as
-        emerging in tumor context, not yet experimentally corroborated here).
+        Tumor-state-only regulators are reported without CASCADE validation by default (shown
+        as emerging in tumor context, not yet experimentally corroborated) — unless the caller
+        opts in via validate_tumor_acquired=True, in which case up to 10 of them (in whatever
+        order RegNetAgents returned them, not ranked by centrality) are also CASCADE-validated.
         """
         gene = state["gene"]
         cell_type = state.get("cell_type") or "epithelial_cell"
@@ -996,6 +999,99 @@ class OrchestraWorkflow:
                 )
 
         context_result["cascade_validation"] = cascade_validation
+
+        # Step 3: CASCADE validation on tumor-acquired regulators (opt-in, off by default —
+        # existing callers get unchanged behavior/latency unless they explicitly ask for this).
+        # Capped at 10: the tumor_state_only list is not ranked by centrality/importance, so
+        # this is an arbitrary (RegNetAgents-order) subset, not "top 10 most important."
+        #
+        # Uses 4 lightweight, structured CASCADE tools (LINCS, super-enhancer, DoRothEA,
+        # DepMap) rather than comprehensive_perturbation_analysis — the heavy tool's full
+        # GPU perturbation-propagation model contends badly under concurrency (confirmed
+        # empirically: individual calls took 150-180s once more than one ran at a time,
+        # blowing past TIMEOUT_PERTURBATION=60s) and its narrative key_findings text is a
+        # less direct signal than these tools' structured fields anyway.
+        tumor_acquired_validation: dict = {}
+        if state.get("validate_tumor_acquired"):
+            tumor_acquired = context_result.get("regulators", {}).get("tumor_state_only", [])[:10]
+            if tumor_acquired:
+                await self._emit(
+                    f"[Orchestra] Running lightweight CASCADE evidence checks on "
+                    f"{len(tumor_acquired)} tumor-acquired regulators: {', '.join(tumor_acquired)}..."
+                )
+
+                # LINCS: one call for the focal gene's own knockdown effects; check which
+                # tumor-acquired candidates appear in that affected-gene list.
+                lincs_genes: set[str] = set()
+                try:
+                    lincs = await self._cascade.call_tool(
+                        "get_knockdown_effects", {"gene": gene, "top_k": 300},
+                        timeout_seconds=TIMEOUT_NETWORK,
+                    )
+                    for entry in (lincs.get("affected_genes") or lincs.get("results") or []):
+                        sym = entry.get("gene") if isinstance(entry, dict) else entry
+                        if sym:
+                            lincs_genes.add(sym.upper())
+                except Exception as e:
+                    state["errors"]["tumor_acquired_lincs"] = str(e)
+
+                # Super-enhancer: one batch call covering all candidates at once.
+                se_hits: set[str] = set()
+                try:
+                    se = await self._cascade.call_tool(
+                        "check_genes_super_enhancers", {"genes": tumor_acquired},
+                        timeout_seconds=TIMEOUT_NETWORK,
+                    )
+                    se_results = se.get("results") or se
+                    if isinstance(se_results, dict):
+                        for sym, val in se_results.items():
+                            has_se = val.get("has_super_enhancer") if isinstance(val, dict) else bool(val)
+                            if has_se:
+                                se_hits.add(sym.upper())
+                    elif isinstance(se_results, list):
+                        for entry in se_results:
+                            if isinstance(entry, dict) and entry.get("has_super_enhancer"):
+                                se_hits.add((entry.get("gene") or "").upper())
+                except Exception as e:
+                    state["errors"]["tumor_acquired_super_enhancer"] = str(e)
+
+                # DoRothEA + DepMap: per-candidate, but lightweight (no GPU/model) — safe to
+                # run all concurrently, unlike comprehensive_perturbation_analysis.
+                async def _score_one(reg: str) -> tuple[str, dict]:
+                    dorothea_hit = False
+                    depmap_hit = False
+                    try:
+                        dr = await self._cascade.call_tool(
+                            "validate_tf_classification", {"gene": reg}, timeout_seconds=TIMEOUT_NETWORK,
+                        )
+                        dorothea_hit = bool(dr.get("is_known_tf") or dr.get("is_tf"))
+                    except Exception:
+                        pass
+                    try:
+                        dm = await self._cascade.call_tool(
+                            "get_depmap_essentiality", {"gene": reg}, timeout_seconds=TIMEOUT_NETWORK,
+                        )
+                        depmap_hit = bool(dm.get("pan_cancer_essential")) or (
+                            (dm.get("mean_chronos_score") or 0) < -0.5
+                        )
+                    except Exception:
+                        pass
+                    lincs_hit = reg.upper() in lincs_genes
+                    se_hit = reg.upper() in se_hits
+                    return reg, {
+                        "lincs_knockdown": lincs_hit,
+                        "super_enhancer": se_hit,
+                        "dorothea_tf": dorothea_hit,
+                        "depmap_essential": depmap_hit,
+                        "corroboration_count": sum([lincs_hit, se_hit, dorothea_hit, depmap_hit]),
+                        "corroboration_denominator": 4,
+                    }
+
+                pairs = await asyncio.gather(*(_score_one(reg) for reg in tumor_acquired))
+                tumor_acquired_validation = dict(pairs)
+
+            context_result["tumor_acquired_cascade_validation"] = tumor_acquired_validation
+
         state["network_comparison"] = context_result
         state["completed_steps"].append("run_network_comparison_path")
         return state
@@ -1942,6 +2038,35 @@ class OrchestraWorkflow:
                 "cascade_error": casc.get("error"),
             })
 
+        # Score tumor-acquired regulators, if the caller opted into validate_tumor_acquired.
+        # Already-scored by the lightweight-tool checks (LINCS/super-enhancer/DoRothEA/DepMap) —
+        # no key_findings parsing needed here, unlike the conserved tier above. Tier threshold
+        # (>=2 of 4) matches the validated result in manuscript/corroboration_threshold_findings.md:
+        # a single source is confounded by data-availability bias, >=2 is not.
+        tumor_acquired_validation = nc.get("tumor_acquired_cascade_validation") or {}
+        validated_tumor_acquired = []
+        for reg in tumor_only_regs[:10]:
+            tav = tumor_acquired_validation.get(reg) or {}
+            if "corroboration_count" not in tav:
+                validated_tumor_acquired.append({
+                    "gene": reg, "tier": "tumor_acquired_not_validated",
+                    "corroboration_count": 0, "corroboration_denominator": 4,
+                    "sources": {}, "cascade_error": tav.get("error"),
+                })
+                continue
+            count = tav["corroboration_count"]
+            tier = "tumor_acquired_corroborated" if count >= 2 else "tumor_acquired_weak_evidence"
+            validated_tumor_acquired.append({
+                "gene": reg, "tier": tier,
+                "corroboration_count": count,
+                "corroboration_denominator": tav.get("corroboration_denominator", 4),
+                "sources": {
+                    k: tav.get(k) for k in
+                    ("lincs_knockdown", "super_enhancer", "dorothea_tf", "depmap_essential")
+                },
+                "cascade_error": None,
+            })
+
         state["synthesis"] = {
             "routing": "network_comparison",
             "gene": gene,
@@ -1956,6 +2081,7 @@ class OrchestraWorkflow:
             "tumor_state_only_regulators": tumor_only_regs,
             "population_averaged_only_regulators": pop_only_regs,
             "validated_conserved": validated_conserved,
+            "validated_tumor_acquired": validated_tumor_acquired,
             "tgt_conserved_count": tgt_data.get("conserved_count", 0),
             "tgt_conserved_fraction": tgt_data.get("conserved_fraction", 0.0),
             "tgt_tumor_only": tgt_data.get("tumor_state_only") or [],
@@ -2805,6 +2931,7 @@ class OrchestraWorkflow:
         tumor_only_regs = synthesis.get("tumor_state_only_regulators") or []
         pop_only_regs = synthesis.get("population_averaged_only_regulators") or []
         validated_conserved = synthesis.get("validated_conserved") or []
+        validated_tumor_acquired = synthesis.get("validated_tumor_acquired") or []
         tgt_conserved_count = synthesis.get("tgt_conserved_count", 0)
         tgt_conserved_fraction = synthesis.get("tgt_conserved_fraction", 0.0)
         tgt_tumor_only = synthesis.get("tgt_tumor_only") or []
@@ -2878,12 +3005,54 @@ class OrchestraWorkflow:
         # Tumor-state-only regulators
         lines.append("### Tumor-State-Only Regulators (emerging in TCGA, absent from GREmLN)")
         lines.append("")
-        if tumor_only_regs:
+        was_validated = any(e["tier"] != "tumor_acquired_not_validated" for e in validated_tumor_acquired)
+        if not tumor_only_regs:
+            lines.append("_None identified._")
+        elif not was_validated:
             lines.append(", ".join(tumor_only_regs[:15]))
             if len(tumor_only_regs) > 15:
                 lines.append(f"_…and {len(tumor_only_regs) - 15} more_")
+            lines.append("")
+            lines.append(
+                "_Not experimentally validated — call with `validate_tumor_acquired=true` to "
+                "check LINCS, super-enhancer, DoRothEA, and DepMap evidence for these regulators._"
+            )
         else:
-            lines.append("_None identified._")
+            lines.append(
+                f"**{len(tumor_only_regs)} tumor-acquired regulators** — "
+                f"first {len(validated_tumor_acquired)} checked against 4 independent CASCADE "
+                f"evidence sources (LINCS, super-enhancer, DoRothEA, DepMap):"
+            )
+            lines.append("")
+            _SRC_LABELS = {
+                "lincs_knockdown": "LINCS", "super_enhancer": "super-enhancer",
+                "dorothea_tf": "DoRothEA TF", "depmap_essential": "DepMap essential",
+            }
+            for entry in validated_tumor_acquired:
+                reg = entry["gene"]
+                count = entry["corroboration_count"]
+                denom = entry["corroboration_denominator"]
+                if entry["tier"] == "tumor_acquired_corroborated":
+                    label = f"**corroborated ({count}/{denom})** ✓ — meets the validated ≥2 bar"
+                elif entry.get("cascade_error"):
+                    label = f"validation error: {entry['cascade_error']}"
+                else:
+                    label = f"weak evidence ({count}/{denom}) — below the validated ≥2 bar"
+                hits = [_SRC_LABELS[k] for k, v in entry.get("sources", {}).items() if v]
+                hit_str = f" ({', '.join(hits)})" if hits else ""
+                lines.append(f"- **{reg}** — {label}{hit_str}")
+            remaining = [r for r in tumor_only_regs if r not in {e["gene"] for e in validated_tumor_acquired}]
+            if remaining:
+                lines.append("")
+                lines.append(f"**Additional tumor-acquired regulators (not checked, beyond the "
+                             f"10-candidate cap):** {', '.join(remaining[:15])}"
+                             + (f", …and {len(remaining) - 15} more" if len(remaining) > 15 else ""))
+            lines.append("")
+            lines.append(
+                "_A single source can reflect data-availability bias rather than real signal — "
+                "only the ≥2 tier is validated as distinguishing real cancer regulators from "
+                "background genes. See manuscript/corroboration_threshold_findings.md._"
+            )
         lines.append("")
 
         # Population-averaged-only regulators
@@ -3416,6 +3585,7 @@ class OrchestraWorkflow:
         cancer_contexts: Optional[list] = None,
         cancer_types: Optional[list] = None,
         include_gremln_baseline: Optional[bool] = None,
+        validate_tumor_acquired: Optional[bool] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -3445,6 +3615,7 @@ class OrchestraWorkflow:
             comparison_results=None,
             cancer_type=cancer_type,
             network_comparison=None,
+            validate_tumor_acquired=validate_tumor_acquired,
             cancer_types=cancer_types,
             include_gremln_baseline=include_gremln_baseline,
             tumor_network_results=None,
