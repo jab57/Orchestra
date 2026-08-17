@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://github.com/jab57/Orchestra/actions/workflows/test.yml/badge.svg)](https://github.com/jab57/Orchestra/actions/workflows/test.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21192969.svg)](https://doi.org/10.5281/zenodo.21192969)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21192968.svg)](https://doi.org/10.5281/zenodo.21192968)
 
 **MCP Orchestrator for Multi-System Causal Reasoning in Bioinformatics**
 
@@ -534,7 +534,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
   title        = {Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning},
   year         = {2026},
   url          = {https://github.com/jab57/Orchestra},
-  doi          = {10.5281/zenodo.21192969}
+  doi          = {10.5281/zenodo.21986321}
 }
 ```
 
