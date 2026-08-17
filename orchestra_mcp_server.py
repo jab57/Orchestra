@@ -243,8 +243,17 @@ async def list_tools() -> list[Tool]:
                         "description": (
                             "Also CASCADE-validate up to 10 tumor-state-only regulators "
                             "(default: false — only the conserved tier is CASCADE-validated). "
-                            "The tumor-state-only tier is often larger and is not ranked by "
-                            "centrality, so this is an arbitrary subset, not the top 10."
+                            "By default this subset is RegNetAgents' alphabetical order, not "
+                            "ranked by centrality/importance — see rank_tumor_acquired."
+                        ),
+                        "default": False,
+                    },
+                    "rank_tumor_acquired": {
+                        "type": "boolean",
+                        "description": (
+                            "Only applies when validate_tumor_acquired is true. Order the "
+                            "tumor-state-only tier by ARACNe MI edge weight before capping at "
+                            "10, instead of RegNetAgents' default alphabetical order."
                         ),
                         "default": False,
                     },
@@ -514,12 +523,14 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         cancer_type = arguments.get("cancer_type", "")
         cell_type = arguments.get("cell_type", "epithelial_cell")
         validate_tumor_acquired = arguments.get("validate_tumor_acquired", False)
+        rank_tumor_acquired = arguments.get("rank_tumor_acquired", False)
         result = await workflow.run_analysis(
             gene=gene,
             cell_type=cell_type,
             analysis_type="network_comparison",
             cancer_type=cancer_type,
             validate_tumor_acquired=validate_tumor_acquired,
+            rank_tumor_acquired=rank_tumor_acquired,
             progress=progress,
         )
         label = f"{gene}: {cell_type} (GREmLN) vs TCGA {cancer_type.upper()}"

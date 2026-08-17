@@ -101,6 +101,7 @@ class OrchestraState(TypedDict):
     cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
     network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
     validate_tumor_acquired: Optional[bool]  # opt-in: also CASCADE-validate the tumor_state_only tier (default False)
+    rank_tumor_acquired: Optional[bool]  # opt-in: order the tumor_state_only tier by ARACNe MI weight before capping (default False = alphabetical)
 
     # Tumor-vs-tumor comparison (GitHub #14)
     cancer_types: Optional[list]           # list of TCGA codes for compare_tumor_networks
@@ -939,8 +940,10 @@ class OrchestraWorkflow:
           Conserved, not CASCADE-validated → regulatory inference without experimental support
         Tumor-state-only regulators are reported without CASCADE validation by default (shown
         as emerging in tumor context, not yet experimentally corroborated) — unless the caller
-        opts in via validate_tumor_acquired=True, in which case up to 10 of them (in whatever
-        order RegNetAgents returned them, not ranked by centrality) are also CASCADE-validated.
+        opts in via validate_tumor_acquired=True, in which case up to 10 of them are also
+        CASCADE-validated. By default that subset is RegNetAgents' alphabetical order; if the
+        caller also opts into rank_tumor_acquired=True, it is instead ordered by ARACNe MI
+        edge weight before capping.
         """
         gene = state["gene"]
         cell_type = state.get("cell_type") or "epithelial_cell"
@@ -1002,8 +1005,13 @@ class OrchestraWorkflow:
 
         # Step 3: CASCADE validation on tumor-acquired regulators (opt-in, off by default —
         # existing callers get unchanged behavior/latency unless they explicitly ask for this).
-        # Capped at 10: the tumor_state_only list is not ranked by centrality/importance, so
-        # this is an arbitrary (RegNetAgents-order) subset, not "top 10 most important."
+        # Capped at 10. By default this is an arbitrary (RegNetAgents alphabetical-order)
+        # subset, not "top 10 most important" — unless the caller also opts into
+        # rank_tumor_acquired=True, in which case the tumor-acquired set is re-ordered by
+        # ARACNe MI edge weight (query_network's "likelihood" field, 0-1) before capping.
+        # compare_network_contexts computes this weight internally but discards it before
+        # returning tumor_state_only as bare gene names, so ranking requires one additional
+        # query_network call — an existing, unmodified RegNetAgents tool (<50ms per call).
         #
         # Uses 4 lightweight, structured CASCADE tools (LINCS, super-enhancer, DoRothEA,
         # DepMap) rather than comprehensive_perturbation_analysis — the heavy tool's full
@@ -1013,7 +1021,36 @@ class OrchestraWorkflow:
         # less direct signal than these tools' structured fields anyway.
         tumor_acquired_validation: dict = {}
         if state.get("validate_tumor_acquired"):
-            tumor_acquired = context_result.get("regulators", {}).get("tumor_state_only", [])[:10]
+            tumor_acquired_all = context_result.get("regulators", {}).get("tumor_state_only", [])
+            tumor_acquired_ranking_method = "alphabetical"
+
+            if state.get("rank_tumor_acquired") and tumor_acquired_all:
+                try:
+                    neighbors = await self._regnetagents.call_tool(
+                        "query_network",
+                        {
+                            "query_type": "gene_neighbors",
+                            "network_source": "tcga",
+                            "tcga_network": cancer_type,
+                            "gene": gene,
+                        },
+                        timeout_seconds=TIMEOUT_NETWORK,
+                    )
+                    weights = {
+                        r["gene"]: r["likelihood"]
+                        for r in (neighbors.get("regulators") or [])
+                        if "gene" in r and "likelihood" in r
+                    }
+                    if weights:
+                        tumor_acquired_all = sorted(
+                            tumor_acquired_all, key=lambda g: weights.get(g, -1.0), reverse=True
+                        )
+                        tumor_acquired_ranking_method = "mi_weight"
+                except Exception as e:
+                    state["errors"]["tumor_acquired_ranking"] = str(e)
+
+            tumor_acquired = tumor_acquired_all[:10]
+            context_result["tumor_acquired_ranking_method"] = tumor_acquired_ranking_method
             if tumor_acquired:
                 await self._emit(
                     f"[Orchestra] Running lightweight CASCADE evidence checks on "
@@ -3586,6 +3623,7 @@ class OrchestraWorkflow:
         cancer_types: Optional[list] = None,
         include_gremln_baseline: Optional[bool] = None,
         validate_tumor_acquired: Optional[bool] = None,
+        rank_tumor_acquired: Optional[bool] = None,
         progress: Optional[Callable] = None,
     ) -> dict:
         """Run a full Orchestra analysis. Opens MCP client connections for the duration."""
@@ -3616,6 +3654,7 @@ class OrchestraWorkflow:
             cancer_type=cancer_type,
             network_comparison=None,
             validate_tumor_acquired=validate_tumor_acquired,
+            rank_tumor_acquired=rank_tumor_acquired,
             cancer_types=cancer_types,
             include_gremln_baseline=include_gremln_baseline,
             tumor_network_results=None,
