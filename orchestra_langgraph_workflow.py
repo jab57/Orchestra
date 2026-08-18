@@ -1008,10 +1008,11 @@ class OrchestraWorkflow:
         # Capped at 10. By default this is an arbitrary (RegNetAgents alphabetical-order)
         # subset, not "top 10 most important" — unless the caller also opts into
         # rank_tumor_acquired=True, in which case the tumor-acquired set is re-ordered by
-        # ARACNe MI edge weight (query_network's "likelihood" field, 0-1) before capping.
-        # compare_network_contexts computes this weight internally but discards it before
-        # returning tumor_state_only as bare gene names, so ranking requires one additional
-        # query_network call — an existing, unmodified RegNetAgents tool (<50ms per call).
+        # ARACNe MI edge weight before capping. RegNetAgents >=1.2.5's compare_network_contexts
+        # exposes this directly as regulators.tumor_state_only_weights (a {gene: weight} dict
+        # alongside the unchanged, still-alphabetical tumor_state_only list) — no extra network
+        # call needed; prior versions required a second query_network call to recover it, which
+        # is why this reads the weight from context_result rather than issuing another call.
         #
         # Uses 4 lightweight, structured CASCADE tools (LINCS, super-enhancer, DoRothEA,
         # DepMap) rather than comprehensive_perturbation_analysis — the heavy tool's full
@@ -1025,29 +1026,12 @@ class OrchestraWorkflow:
             tumor_acquired_ranking_method = "alphabetical"
 
             if state.get("rank_tumor_acquired") and tumor_acquired_all:
-                try:
-                    neighbors = await self._regnetagents.call_tool(
-                        "query_network",
-                        {
-                            "query_type": "gene_neighbors",
-                            "network_source": "tcga",
-                            "tcga_network": cancer_type,
-                            "gene": gene,
-                        },
-                        timeout_seconds=TIMEOUT_NETWORK,
+                weights = context_result.get("regulators", {}).get("tumor_state_only_weights") or {}
+                if weights:
+                    tumor_acquired_all = sorted(
+                        tumor_acquired_all, key=lambda g: weights.get(g, -1.0), reverse=True
                     )
-                    weights = {
-                        r["gene"]: r["likelihood"]
-                        for r in (neighbors.get("regulators") or [])
-                        if "gene" in r and "likelihood" in r
-                    }
-                    if weights:
-                        tumor_acquired_all = sorted(
-                            tumor_acquired_all, key=lambda g: weights.get(g, -1.0), reverse=True
-                        )
-                        tumor_acquired_ranking_method = "mi_weight"
-                except Exception as e:
-                    state["errors"]["tumor_acquired_ranking"] = str(e)
+                    tumor_acquired_ranking_method = "mi_weight"
 
             tumor_acquired = tumor_acquired_all[:10]
             context_result["tumor_acquired_ranking_method"] = tumor_acquired_ranking_method
