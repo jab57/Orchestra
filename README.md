@@ -534,7 +534,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
   title        = {Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning},
   year         = {2026},
   url          = {https://github.com/jab57/Orchestra},
-  doi          = {10.5281/zenodo.22033313}
+  doi          = {10.5281/zenodo.22033732}
 }
 ```
 
