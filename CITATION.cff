@@ -7,11 +7,11 @@ authors:
     given-names: Jose A.
     orcid: https://orcid.org/0009-0006-2744-0606
     affiliation: Independent Researcher
-doi: 10.5281/zenodo.22031033
+doi: 10.5281/zenodo.22033313
 repository-code: https://github.com/jab57/Orchestra
 url: https://github.com/jab57/Orchestra
 license: MIT
-version: 1.3.0
+version: 1.3.1
 date-released: 2026-08-20
 keywords:
   - gene-regulatory-networks
