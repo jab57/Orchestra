@@ -1020,6 +1020,42 @@ class OrchestraWorkflow:
         # empirically: individual calls took 150-180s once more than one ran at a time,
         # blowing past TIMEOUT_PERTURBATION=60s) and its narrative key_findings text is a
         # less direct signal than these tools' structured fields anyway.
+        #
+        # LINCS is relationship-specific (find_expression_regulators(focal_gene), checking
+        # whether the candidate is among the genes whose knockdown moves the focal gene) —
+        # the correct causal direction, swapped from the earlier get_knockdown_effects
+        # reading; verified 2026-08-20 against the full BRCA/COAD panel (43 queries, 427
+        # candidates) that the paper's >=2-corroboration finding survives unchanged
+        # (p=0.0086 -> 0.0091). DoRothEA, super-enhancer, and DepMap remain intrinsic-
+        # property checks on the candidate alone (not specific to the claimed
+        # candidate->focal_gene edge) — see the corroboration paper's Limitations section.
+        # Two relationship-specific alternatives were tried and reverted 2026-08-20, both
+        # verified against the same full BRCA/COAD panel:
+        #   - DoRothEA: get_tf_regulon(candidate), checking focal_gene in its regulon.
+        #     Collapses the >=2-corroboration signal (p=0.0086 -> 0.085, no longer
+        #     significant) because DoRothEA's curated regulons are themselves literature-
+        #     derived, so requiring the exact candidate->focal_gene edge to already be
+        #     curated is near-tautologically sparse for RegNetAgents' tumor-acquired/novel
+        #     candidate tier by construction.
+        #   - DepMap: get_gene_codependency(candidate, focal_gene) (CASCADE v1.4.0, pairwise
+        #     Pearson correlation of CRISPR fitness scores across matched cell lines, hit =
+        #     p<0.05). Not sparse (fires for ~40% of candidates), but not specific either:
+        #     it fires at nearly the same rate for negative-control candidates (housekeeping/
+        #     non-driver focal genes, 78/198 = 39%) as for real focal-gene candidates
+        #     (92/229 = 40%) — it's picking up a general essentiality/proliferation module
+        #     confound (broadly-essential genes correlate with each other genome-wide,
+        #     independent of any real pathway link), not focal-gene-specific coupling. This
+        #     makes the paper's negative-control specificity check newly *fail* at >=2
+        #     (p=0.135 -> 0.012, 11.5%->25.4% OncoKB rate) — a worse failure mode than
+        #     DoRothEA's sparsity, since it would have made corroboration look like it works
+        #     for the wrong reason. get_gene_codependency remains a valid, tested CASCADE
+        #     tool (reference values hold: MYC/MAX r=0.32 p=1.2e-29, BRD4/MYC r=0.12 p=2.6e-5,
+        #     CTNNB1/TP53 r=0.01 n.s.) — the confound is in using it unconditionally as a
+        #     corroboration source, not a defect in the tool itself. A partial-correlation
+        #     variant (controlling for general essentiality) might fix this but wasn't
+        #     attempted; out of scope for now.
+        # LINCS has no such circularity (experimental, not curated) and is the only source
+        # made relationship-specific to date.
         tumor_acquired_validation: dict = {}
         if state.get("validate_tumor_acquired"):
             tumor_acquired_all = context_result.get("regulators", {}).get("tumor_state_only", [])
@@ -1041,16 +1077,17 @@ class OrchestraWorkflow:
                     f"{len(tumor_acquired)} tumor-acquired regulators: {', '.join(tumor_acquired)}..."
                 )
 
-                # LINCS: one call for the focal gene's own knockdown effects; check which
-                # tumor-acquired candidates appear in that affected-gene list.
+                # LINCS: one call asking who regulates the focal gene's expression (correct
+                # direction — knockdowns of these genes move the focal gene, not the other
+                # way around); check which tumor-acquired candidates appear in that set.
                 lincs_genes: set[str] = set()
                 try:
                     lincs = await self._cascade.call_tool(
-                        "get_knockdown_effects", {"gene": gene, "top_k": 300},
+                        "find_expression_regulators", {"gene": gene, "top_k": 300},
                         timeout_seconds=TIMEOUT_NETWORK,
                     )
-                    for entry in (lincs.get("affected_genes") or lincs.get("results") or []):
-                        sym = entry.get("gene") if isinstance(entry, dict) else entry
+                    for entry in (lincs.get("regulators") or []):
+                        sym = entry.get("gene_ko") if isinstance(entry, dict) else entry
                         if sym:
                             lincs_genes.add(sym.upper())
                 except Exception as e:
