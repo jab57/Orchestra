@@ -517,7 +517,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (370) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
+Unit tests (374) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1
@@ -534,7 +534,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
   title        = {Orchestra: MCP-Level Composition of Bioinformatics Servers for Multi-System Causal Reasoning},
   year         = {2026},
   url          = {https://github.com/jab57/Orchestra},
-  doi          = {10.5281/zenodo.22001167}
+  doi          = {10.5281/zenodo.22031033}
 }
 ```
 
