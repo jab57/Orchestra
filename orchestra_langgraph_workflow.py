@@ -1026,9 +1026,18 @@ class OrchestraWorkflow:
         # the correct causal direction, swapped from the earlier get_knockdown_effects
         # reading; verified 2026-08-20 against the full BRCA/COAD panel (43 queries, 427
         # candidates) that the paper's >=2-corroboration finding survives unchanged
-        # (p=0.0086 -> 0.0091). DoRothEA, super-enhancer, and DepMap remain intrinsic-
-        # property checks on the candidate alone (not specific to the claimed
-        # candidate->focal_gene edge) — see the corroboration paper's Limitations section.
+        # (p=0.0086 -> 0.0091). Note LINCS fires rarely on this panel (1/229 focal, 4/198
+        # negative candidates) — mostly a coverage limit, not an absence-of-signal finding:
+        # only 5,049 genes were ever knocked down in the underlying LINCS L1000 CRISPR
+        # library, and 62.8% of this panel's 368 unique candidate genes fall outside that
+        # set, so lincs_knockdown=False for those means "never testable," not "checked and
+        # no relationship." Confirmed via counterfactual the >=2 finding doesn't depend on
+        # LINCS either way (still significant without it, p=0.0179; negative controls still
+        # non-significant, p=0.1180) — this is a data-coverage caveat, not a validity risk.
+        #
+        # DoRothEA, super-enhancer, and DepMap remain intrinsic-property checks on the
+        # candidate alone (not specific to the claimed candidate->focal_gene edge) — see
+        # the corroboration paper's Limitations section.
         # Two relationship-specific alternatives were tried and reverted 2026-08-20, both
         # verified against the same full BRCA/COAD panel:
         #   - DoRothEA: get_tf_regulon(candidate), checking focal_gene in its regulon.
