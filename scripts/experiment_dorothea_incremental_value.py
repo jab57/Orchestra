@@ -17,6 +17,11 @@ gene, matching the paper's existing methodology throughout):
    since it uses the full candidate set (not just the DoRothEA-negative subset) and
    treats the other-source count continuously rather than at a single threshold.
 
+Also emits the DoRothEA-alone-vs-OncoKB Fisher test quoted in the opening
+paragraph of that section (DoRothEA as a lone predictor: p=0.0071 on the
+deduplicated BRCA/COAD focal set, p=0.2860 on the non-deduplicated negative
+controls), so every number in the section is script-reproducible.
+
 Inputs (already produced by scripts/experiment_corroboration_ranked_brca_coad.py
 and scripts/experiment_corroboration_ranked_stad.py):
     outputs/corroboration_ranked_brca_coad_raw.json
@@ -54,6 +59,42 @@ def load_focal_dedup(path, oncokb):
     for r in rows:
         seen.setdefault(r["gene"], r)
     return list(seen.values())
+
+
+def load_controls(path, oncokb):
+    """Negative-control candidates, NOT deduplicated -- matching the paper's
+    negative-control convention (Section "Statistical framework"): keeping every
+    row gives the control test more power, so a null result there is not an
+    artifact of a smaller sample."""
+    rows = []
+    for q in json.load(open(path, encoding="utf-8")):
+        if q["category"] not in ("housekeeping", "non_driver"):
+            continue
+        for c in q["scored_candidates"]:
+            rows.append({
+                "gene": c["gene"],
+                "dorothea": int(c["dorothea_tf"]),
+                "oncokb": int(c["gene"] in oncokb),
+            })
+    return rows
+
+
+def dorothea_alone_test(rows):
+    """DoRothEA as a lone predictor of OncoKB membership: Fisher's exact,
+    one-tailed 'greater', DoRothEA-positive vs DoRothEA-negative candidates.
+    Quoted in the opening paragraph of the incremental-value section."""
+    pos = [r for r in rows if r["dorothea"] == 1]
+    neg = [r for r in rows if r["dorothea"] == 0]
+    if not pos or not neg:
+        return None
+    a = sum(r["oncokb"] for r in pos)
+    b = sum(r["oncokb"] for r in neg)
+    odds, p = fisher_exact([[a, len(pos) - a], [b, len(neg) - b]], alternative="greater")
+    return {
+        "n_dorothea_positive": len(pos), "n_dorothea_negative": len(neg),
+        "rate_dorothea_positive": a / len(pos), "rate_dorothea_negative": b / len(neg),
+        "OR": odds, "fisher_p": p,
+    }
 
 
 def stratified_test(rows, n_perm=1000, seed=42):
@@ -117,11 +158,30 @@ def main():
         ("stad", OUTPUTS / "corroboration_ranked_stad_raw.json"),
     ]:
         rows = load_focal_dedup(path, oncokb)
+        controls = load_controls(path, oncokb)
         stratified = stratified_test(rows)
         logistic = logistic_lr_test(rows)
-        results[name] = {"n_unique_focal": len(rows), "stratified": stratified, "logistic_lr": logistic}
+        dorothea_alone_focal = dorothea_alone_test(rows)
+        dorothea_alone_controls = dorothea_alone_test(controls)
+        results[name] = {
+            "n_unique_focal": len(rows),
+            "stratified": stratified,
+            "logistic_lr": logistic,
+            "dorothea_alone_focal_dedup": dorothea_alone_focal,
+            "dorothea_alone_controls_raw": dorothea_alone_controls,
+        }
 
         print(f"\n=== {name} (n={len(rows)} unique focal candidates) ===")
+        if dorothea_alone_focal:
+            print(f"  DoRothEA alone (focal, dedup):    "
+                  f"DoRothEA+ {dorothea_alone_focal['rate_dorothea_positive']:.1%} vs "
+                  f"DoRothEA- {dorothea_alone_focal['rate_dorothea_negative']:.1%}, "
+                  f"OR={dorothea_alone_focal['OR']:.2f}, Fisher p={dorothea_alone_focal['fisher_p']:.4f}")
+        if dorothea_alone_controls:
+            print(f"  DoRothEA alone (controls, raw):   "
+                  f"DoRothEA+ {dorothea_alone_controls['rate_dorothea_positive']:.1%} vs "
+                  f"DoRothEA- {dorothea_alone_controls['rate_dorothea_negative']:.1%}, "
+                  f"OR={dorothea_alone_controls['OR']:.2f}, Fisher p={dorothea_alone_controls['fisher_p']:.4f}")
         if stratified:
             print(f"  Stratified (DoRothEA-negative, n={stratified['n_dorothea_negative']}): "
                   f"corrob n={stratified['n_corroborated']} rate={stratified['rate_corroborated']:.1%}, "
