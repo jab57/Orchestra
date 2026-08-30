@@ -57,6 +57,10 @@ async def list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Plain-text cancer context for PubMed pair-novelty queries (e.g. 'cervical cancer', 'colorectal'). Optional — omit to skip pair novelty.",
                     },
+                    "tcga_network": {
+                        "type": "string",
+                        "description": "Optional TCGA tumor network to use instead of the population-averaged GREmLN network (e.g. 'cesc' for cervical cancer). Supported: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec. When omitted, uses GREmLN.",
+                    },
                 },
                 "required": ["gene", "cell_type"],
             },
@@ -76,6 +80,10 @@ async def list_tools() -> list[Tool]:
                     "cancer_context": {
                         "type": "string",
                         "description": "Plain-text cancer context for PubMed pair-novelty queries (e.g. 'cervical cancer', 'colorectal'). Optional — omit to skip pair novelty.",
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "description": "Optional TCGA tumor network to use instead of the population-averaged GREmLN network (e.g. 'cesc' for cervical cancer). Supported: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec. When omitted, uses GREmLN.",
                     },
                 },
                 "required": ["gene", "cell_type"],
@@ -645,15 +653,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         gene = arguments.get("gene", "")
         depth = arguments.get("analysis_depth", "comprehensive")
         cancer_context = arguments.get("cancer_context") or None
+        tcga_network = arguments.get("tcga_network") or None
         result = await workflow.run_analysis(
             gene=gene,
             cell_type=cell_type,
             analysis_type="therapeutic_validation",
             analysis_depth=depth,
             cancer_context=cancer_context,
+            cancer_type=tcga_network,
             progress=progress,
         )
-        label = f"{gene} in {cell_type}"
+        network_label = f"TCGA {tcga_network.upper()}" if tcga_network else f"GREmLN {cell_type}"
+        label = f"{gene} in {network_label}"
     elif name == "effector_analysis":
         gene = arguments.get("gene", "")
         result = await workflow.run_analysis(
@@ -685,15 +696,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         gene = arguments.get("gene", "")
         depth = arguments.get("analysis_depth", "comprehensive")
         cancer_context = arguments.get("cancer_context") or None
+        tcga_network = arguments.get("tcga_network") or None
         result = await workflow.run_analysis(
             gene=gene,
             cell_type=cell_type,
             analysis_type=name,
             analysis_depth=depth,
             cancer_context=cancer_context,
+            cancer_type=tcga_network,
             progress=progress,
         )
-        label = f"{gene} in {cell_type}"
+        network_label = f"TCGA {tcga_network.upper()}" if tcga_network else f"GREmLN {cell_type}"
+        label = f"{gene} in {network_label}"
 
     return [TextContent(
         type="text",

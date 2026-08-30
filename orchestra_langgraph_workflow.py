@@ -414,6 +414,25 @@ class OrchestraWorkflow:
         state["completed_steps"].append("route_analysis")
         return state
 
+    @staticmethod
+    def _rna_gene_analysis_params(gene: str, cell_type: str, cancer_type: Optional[str]) -> dict:
+        """RegNetAgents comprehensive_gene_analysis params — TCGA-scoped when cancer_type is set,
+        else the population-averaged GREmLN network (comprehensive_gene_analysis's own default)."""
+        params = {"gene": gene, "cell_type": cell_type}
+        if cancer_type:
+            params["tcga_network"] = cancer_type
+        return params
+
+    @staticmethod
+    def _cascade_perturbation_params(gene: str, cell_type: str, cancer_type: Optional[str]) -> dict:
+        """CASCADE comprehensive_perturbation_analysis params — TCGA-scoped when cancer_type is
+        set, else the population-averaged GREmLN network (the tool's own default)."""
+        params = {"gene": gene, "cell_type": cell_type}
+        if cancer_type:
+            params["network_source"] = "tcga"
+            params["tcga_network"] = cancer_type
+        return params
+
     async def _run_tf_path(self, state: OrchestraState) -> OrchestraState:
         """
         TF / master regulator path: run RegNetAgents comprehensive network analysis and
@@ -424,22 +443,28 @@ class OrchestraWorkflow:
         """
         gene = state["gene"]
         cell_type = state["cell_type"]
+        cancer_type = state.get("cancer_type") or None
 
-        await self._emit(f"[Orchestra] Running RegNetAgents + CASCADE in parallel for {gene} in {cell_type}...")
+        network_label = f"TCGA {cancer_type.upper()}" if cancer_type else f"GREmLN {cell_type}"
+        await self._emit(f"[Orchestra] Running RegNetAgents + CASCADE in parallel for {gene} in {network_label}...")
+        neighbors_params = {"query_type": "gene_neighbors", "gene": gene, "cell_type": cell_type}
+        if cancer_type:
+            neighbors_params["network_source"] = "tcga"
+            neighbors_params["tcga_network"] = cancer_type
         rna_result, cascade_result, neighbors_result = await asyncio.gather(
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
-                {"gene": gene, "cell_type": cell_type},
+                self._rna_gene_analysis_params(gene, cell_type, cancer_type),
                 timeout_seconds=TIMEOUT_NETWORK,
             ),
             self._cascade.call_tool(
                 "comprehensive_perturbation_analysis",
-                {"gene": gene, "cell_type": cell_type},
+                self._cascade_perturbation_params(gene, cell_type, cancer_type),
                 timeout_seconds=TIMEOUT_PERTURBATION,
             ),
             self._regnetagents.call_tool(
                 "query_network",
-                {"query_type": "gene_neighbors", "gene": gene, "cell_type": cell_type},
+                neighbors_params,
                 timeout_seconds=TIMEOUT_NETWORK,
             ),
             return_exceptions=True,
@@ -468,6 +493,7 @@ class OrchestraWorkflow:
         """
         gene = state["gene"]
         cell_type = state["cell_type"]
+        cancer_type = state.get("cancer_type") or None
 
         # Step 1: get PPI partners and find the most influential TF
         await self._emit(f"[Orchestra] Finding TF partner for {gene} via STRING PPI...")
@@ -495,12 +521,12 @@ class OrchestraWorkflow:
         cascade_result, rna_result = await asyncio.gather(
             self._cascade.call_tool(
                 "comprehensive_perturbation_analysis",
-                {"gene": tf_partner, "cell_type": cell_type},
+                self._cascade_perturbation_params(tf_partner, cell_type, cancer_type),
                 timeout_seconds=TIMEOUT_PERTURBATION,
             ),
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
-                {"gene": tf_partner, "cell_type": cell_type},
+                self._rna_gene_analysis_params(tf_partner, cell_type, cancer_type),
                 timeout_seconds=TIMEOUT_NETWORK,
             ),
             return_exceptions=True,
@@ -734,17 +760,21 @@ class OrchestraWorkflow:
         """
         gene = state["gene"]
         cell_type = state["cell_type"]
+        cancer_type = state.get("cancer_type") or None
 
         import re
 
-        await self._emit(f"[Orchestra] Querying RegNetAgents PageRank + CASCADE drug discovery for {gene} in {cell_type}...")
+        network_label = f"TCGA {cancer_type.upper()}" if cancer_type else f"GREmLN {cell_type}"
+        await self._emit(f"[Orchestra] Querying RegNetAgents PageRank + CASCADE drug discovery for {gene} in {network_label}...")
         # Step 1: parallel — RegNetAgents network analysis + CASCADE drug discovery + CASCADE PPI
         # Three calls cover complementary layers: network topology, drug db, protein interactions.
+        # therapeutic_target_discovery and get_protein_interactions have no TCGA-scoping
+        # parameter (network-agnostic by design — drug DB / STRING PPI, not ARACNe-derived).
         # The two CASCADE calls serialize within the same subprocess but are fast.
         rna_result, cascade_discovery, ppi_result = await asyncio.gather(
             self._regnetagents.call_tool(
                 "comprehensive_gene_analysis",
-                {"gene": gene, "cell_type": cell_type},
+                self._rna_gene_analysis_params(gene, cell_type, cancer_type),
                 timeout_seconds=TIMEOUT_NETWORK,
             ),
             self._cascade.call_tool(
@@ -838,7 +868,7 @@ class OrchestraWorkflow:
                 *[
                     self._cascade.call_tool(
                         "comprehensive_perturbation_analysis",
-                        {"gene": c["gene"], "cell_type": cell_type},
+                        self._cascade_perturbation_params(c["gene"], cell_type, cancer_type),
                         timeout_seconds=TIMEOUT_PERTURBATION,
                     )
                     for c in top
@@ -1490,6 +1520,7 @@ class OrchestraWorkflow:
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
+            "cancer_type": state.get("cancer_type"),
             "routing": "tf",
             "gene_role": state.get("gene_role"),
             "cascade_key_findings": key_findings,
@@ -1541,6 +1572,7 @@ class OrchestraWorkflow:
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
+            "cancer_type": state.get("cancer_type"),
             "routing": "effector",
             "tf_partner": state.get("tf_partner"),
             "cascade_key_findings": key_findings,
@@ -2020,6 +2052,7 @@ class OrchestraWorkflow:
         state["synthesis"] = {
             "gene": state["gene"],
             "cell_type": state["cell_type"],
+            "cancer_type": state.get("cancer_type"),
             "routing": "validation",
             "validated_targets": validated_targets,
             "evidence_table": evidence_table,
@@ -2515,6 +2548,8 @@ class OrchestraWorkflow:
     def _format_tf_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
+        cancer_type = synthesis.get("cancer_type")
+        network_label = f"TCGA {cancer_type.upper()}" if cancer_type else f"GREmLN {cell_type}"
         gene_role = synthesis.get("gene_role", "transcription_factor")
         key_findings = synthesis.get("cascade_key_findings", [])
         corroborated = synthesis.get("corroborated_targets", [])
@@ -2531,6 +2566,7 @@ class OrchestraWorkflow:
 
         lines = [
             f"## Orchestra Analysis: {gene} in {cell_type}",
+            f"**Network:** {network_label}",
             f"**Routing:** TF / {gene_role}",
             "",
         ]
@@ -2629,6 +2665,8 @@ class OrchestraWorkflow:
     def _format_effector_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
+        cancer_type = synthesis.get("cancer_type")
+        network_label = f"TCGA {cancer_type.upper()}" if cancer_type else f"GREmLN {cell_type}"
         tf_partner = synthesis.get("tf_partner") or "not identified"
         key_findings = synthesis.get("cascade_key_findings", [])
         corroborated = synthesis.get("corroborated_targets", [])
@@ -2641,6 +2679,7 @@ class OrchestraWorkflow:
 
         lines = [
             f"## Orchestra Analysis: {gene} in {cell_type}",
+            f"**Network:** {network_label}",
             f"**Routing:** effector/scaffold",
             f"**TF partner (via PPI):** {tf_partner}",
             "",
@@ -3470,6 +3509,8 @@ class OrchestraWorkflow:
     def _format_validation_report(self, synthesis: dict) -> list[str]:
         gene = synthesis.get("gene", "unknown")
         cell_type = synthesis.get("cell_type", "unknown")
+        cancer_type = synthesis.get("cancer_type")
+        network_label = f"TCGA {cancer_type.upper()}" if cancer_type else f"GREmLN {cell_type}"
         candidates = synthesis.get("validated_targets") or []
         evidence_table = synthesis.get("evidence_table") or []
         errors = synthesis.get("errors", {})
@@ -3478,6 +3519,7 @@ class OrchestraWorkflow:
 
         lines = [
             f"## Orchestra Therapeutic Target Validation: {gene} in {cell_type}",
+            f"**Network:** {network_label}",
             f"**Routing:** therapeutic_validation",
             f"**Candidates evaluated:** {len(candidates)}",
             "",

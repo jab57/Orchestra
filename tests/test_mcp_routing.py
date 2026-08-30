@@ -102,6 +102,49 @@ async def test_causal_chain_analysis_unaffected(mock_run_analysis):
     assert mock_run_analysis["gene"] == "TP53"
 
 
+@pytest.mark.asyncio
+async def test_causal_chain_analysis_tcga_network_threads_to_cancer_type(mock_run_analysis):
+    token = _install_request_context()
+    try:
+        await orchestra_mcp_server.call_tool(
+            "causal_chain_analysis",
+            {"gene": "TP53", "cell_type": "epithelial_cell", "tcga_network": "cesc"},
+        )
+    finally:
+        _mcp_server_module.request_ctx.reset(token)
+
+    assert mock_run_analysis["cancer_type"] == "cesc"
+
+
+@pytest.mark.asyncio
+async def test_validate_therapeutic_targets_tcga_network_threads_to_cancer_type(mock_run_analysis):
+    token = _install_request_context()
+    try:
+        await orchestra_mcp_server.call_tool(
+            "validate_therapeutic_targets",
+            {"gene": "MYC", "cell_type": "epithelial_cell", "tcga_network": "brca"},
+        )
+    finally:
+        _mcp_server_module.request_ctx.reset(token)
+
+    assert mock_run_analysis["cancer_type"] == "brca"
+    assert mock_run_analysis["analysis_type"] == "therapeutic_validation"
+
+
+@pytest.mark.asyncio
+async def test_causal_chain_analysis_no_tcga_network_leaves_cancer_type_none(mock_run_analysis):
+    """Regression guard: omitting tcga_network must not change existing GREmLN-only behavior."""
+    token = _install_request_context()
+    try:
+        await orchestra_mcp_server.call_tool(
+            "causal_chain_analysis", {"gene": "TP53", "cell_type": "epithelial_cell"}
+        )
+    finally:
+        _mcp_server_module.request_ctx.reset(token)
+
+    assert mock_run_analysis["cancer_type"] is None
+
+
 class TestRoutingDecisionEffectorAnalysis:
     """Direct _routing_decision unit coverage for the effector_analysis fix."""
 
