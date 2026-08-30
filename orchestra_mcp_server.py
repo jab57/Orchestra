@@ -641,6 +641,28 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             progress=progress,
         )
         label = f"{gene} across {', '.join(cell_types)}"
+    elif name == "validate_therapeutic_targets":
+        gene = arguments.get("gene", "")
+        depth = arguments.get("analysis_depth", "comprehensive")
+        cancer_context = arguments.get("cancer_context") or None
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type=cell_type,
+            analysis_type="therapeutic_validation",
+            analysis_depth=depth,
+            cancer_context=cancer_context,
+            progress=progress,
+        )
+        label = f"{gene} in {cell_type}"
+    elif name == "effector_analysis":
+        gene = arguments.get("gene", "")
+        result = await workflow.run_analysis(
+            gene=gene,
+            cell_type=cell_type,
+            analysis_type="effector_analysis",
+            progress=progress,
+        )
+        label = f"{gene} in {cell_type}"
     elif name == "fetch_tcga_methylation_correlation":
         regulator = arguments.get("regulator", "")
         target_genes = arguments.get("target_genes", [])

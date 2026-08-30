@@ -375,6 +375,8 @@ class OrchestraWorkflow:
             return "novelty_path"
         if state.get("analysis_type") == "therapeutic_validation":
             return "validation_path"
+        if state.get("analysis_type") == "effector_analysis":
+            return "effector_path"
         role = state.get("gene_role") or "isolated"
         if role in ("master_regulator", "transcription_factor", "minor_regulator"):
             return "tf_path"
