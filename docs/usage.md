@@ -17,11 +17,13 @@ See `examples/` for focused single-case scripts you can adapt for your own genes
 
 ## Three Composite Tools
 
-### `causal_chain_analysis(gene, cell_type, cancer_context=None)`
+### `causal_chain_analysis(gene, cell_type, cancer_context=None, tcga_network=None)`
 
 Full causal chain: classifies a gene, runs regulatory network analysis (RegNetAgents) and perturbation simulation (CASCADE) in parallel, and synthesizes the results.
 
 The optional `cancer_context` parameter (plain-text, e.g. `"colorectal"`, `"breast cancer"`) enables embedded pair novelty: after synthesis, Orchestra queries PubMed for each of the top 5 identified regulatory edges concurrently and appends a "Regulatory Pair Novelty" table to the report. Omit to skip pair novelty queries.
+
+The optional `tcga_network` parameter (e.g. `"cesc"`) scopes the analysis to a TCGA tumor network instead of the population-averaged GREmLN network. In the effector path, only the TF partner's own analysis is scoped — PPI discovery and TF-partner classification have no TCGA-scoping equivalent.
 
 **Routing:**
 - If the gene is a TF or master regulator → parallel RegNetAgents + CASCADE, cross-system corroboration
@@ -55,7 +57,7 @@ result = await workflow.run_analysis(
 )
 ```
 
-### `validate_therapeutic_targets(gene, cell_type, cancer_context=None)`
+### `validate_therapeutic_targets(gene, cell_type, cancer_context=None, tcga_network=None)`
 
 Identifies druggable regulators upstream of a gene using three candidate sources:
 1. RegNetAgents: upstream regulators ranked by PageRank centrality
@@ -65,6 +67,8 @@ Identifies druggable regulators upstream of a gene using three candidate sources
 Top candidates are validated via CASCADE comprehensive perturbation analysis. Returns a 7-source corroboration table.
 
 The optional `cancer_context` parameter enables the same embedded pair novelty as `causal_chain_analysis` — top 5 regulator→gene edges are queried against PubMed and a "Regulatory Pair Novelty" table is appended.
+
+The optional `tcga_network` parameter scopes the RegNetAgents ranking and CASCADE validation to a TCGA tumor network instead of GREmLN. Drug target discovery and PPI lookup have no TCGA-scoping equivalent and remain network-agnostic.
 
 **Example — therapeutic targets for MYC in T cells:**
 
