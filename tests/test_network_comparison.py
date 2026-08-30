@@ -100,7 +100,10 @@ def _context_result(
 def _cascade_result(gene: str, has_lincs=True, has_depmap=False) -> dict:
     findings = []
     if has_lincs:
-        findings.append(f"LINCS: {gene} knockdown suppresses downstream targets")
+        findings.append(
+            "1 gene(s) confirmed by both network propagation and LINCS "
+            "experimental knockdown data (directional agreement)."
+        )
     if has_depmap:
         findings.append(f"DepMap: {gene} is essential in cancer cell lines")
     return {

@@ -211,18 +211,39 @@ class TestSynthesizeSignaturePath:
         state = _sig_state(
             master_regulators=_mr_result([
                 _tf_entry("CTNNB1", overlap=3,
-                          key_findings=["LINCS: knockdown confirmed downstream effect"]),
+                          key_findings=[
+                              "1 gene(s) confirmed by both network propagation and LINCS "
+                              "experimental knockdown data (directional agreement)."
+                          ]),
             ]),
         )
         result = wf._synthesize_signature_path(state)
         ev_row = result["synthesis"]["evidence_table"][0]
         assert ev_row["lincs_knockdown"] is True
 
+    def test_lincs_disagreement_not_counted_as_confirmation(self, wf):
+        state = _sig_state(
+            master_regulators=_mr_result([
+                _tf_entry("CTNNB1", overlap=3,
+                          key_findings=[
+                              "1 gene(s) show directional disagreement between network "
+                              "prediction and LINCS experimental data — requires investigation."
+                          ]),
+            ]),
+        )
+        result = wf._synthesize_signature_path(state)
+        ev_row = result["synthesis"]["evidence_table"][0]
+        assert ev_row["lincs_knockdown"] is False
+
     def test_corroboration_count_in_evidence_table(self, wf):
         state = _sig_state(
             master_regulators=_mr_result([
                 _tf_entry("CTNNB1", overlap=3, enrichment=2.5,
-                          key_findings=["LINCS: confirmed", "super-enhancer: present"]),
+                          key_findings=[
+                              "1 gene(s) confirmed by both network propagation and LINCS "
+                              "experimental knockdown data (directional agreement).",
+                              "super-enhancer: present",
+                          ]),
             ]),
         )
         result = wf._synthesize_signature_path(state)

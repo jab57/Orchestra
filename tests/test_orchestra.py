@@ -640,9 +640,20 @@ class TestScoreCandidateEvidence:
         assert scores["pagerank_rank"] is False
 
     def test_lincs_flag_from_key_findings(self, wf):
-        c = self._candidate(key_findings=["LINCS knockdown confirms downregulation"])
+        c = self._candidate(key_findings=[
+            "1 gene(s) confirmed by both network propagation and LINCS "
+            "experimental knockdown data (directional agreement)."
+        ])
         scores = wf._score_candidate_evidence(c, {})
         assert scores["lincs_knockdown"] is True
+
+    def test_lincs_disagreement_not_counted_as_confirmation(self, wf):
+        c = self._candidate(key_findings=[
+            "1 gene(s) show directional disagreement between network prediction "
+            "and LINCS experimental data — requires investigation."
+        ])
+        scores = wf._score_candidate_evidence(c, {})
+        assert scores["lincs_knockdown"] is False
 
     def test_depmap_essential_sets_flag(self, wf):
         c = self._candidate(key_findings=["DepMap: gene is essential in 42/50 cell lines"])
@@ -679,7 +690,8 @@ class TestScoreCandidateEvidence:
             source="regnetagents_pagerank",
             pagerank=0.05,
             key_findings=[
-                "LINCS knockdown confirmed",
+                "1 gene(s) confirmed by both network propagation and LINCS "
+                "experimental knockdown data (directional agreement).",
                 "super-enhancer present",
                 "DoRothEA tier B",
             ],
@@ -727,7 +739,11 @@ class TestSynthesizeValidationPathEnhanced:
             {
                 "gene": "BRD4",
                 "source": "cascade_drug_discovery",
-                "key_findings": ["super-enhancer present", "LINCS confirmed"],
+                "key_findings": [
+                    "super-enhancer present",
+                    "1 gene(s) confirmed by both network propagation and LINCS "
+                    "experimental knockdown data (directional agreement).",
+                ],
                 "multi_source_genes": [],
             }
         ]
@@ -1134,8 +1150,24 @@ class TestScoreCellTypeEvidence:
         assert scores["pathway_member"] is True
 
     def test_lincs_detected(self, wf):
-        scores = wf._score_cell_type_evidence(None, self._perturb(["LINCS knockdown confirmed"]))
+        scores = wf._score_cell_type_evidence(
+            None,
+            self._perturb([
+                "1 gene(s) confirmed by both network propagation and LINCS "
+                "experimental knockdown data (directional agreement)."
+            ]),
+        )
         assert scores["lincs_knockdown"] is True
+
+    def test_lincs_disagreement_not_counted_as_confirmation(self, wf):
+        scores = wf._score_cell_type_evidence(
+            None,
+            self._perturb([
+                "1 gene(s) show directional disagreement between network prediction "
+                "and LINCS experimental data — requires investigation."
+            ]),
+        )
+        assert scores["lincs_knockdown"] is False
 
     def test_depmap_not_essential_is_false(self, wf):
         scores = wf._score_cell_type_evidence(None, self._perturb(["DepMap: not essential"]))
@@ -1152,7 +1184,11 @@ class TestScoreCellTypeEvidence:
     def test_corroboration_count(self, wf):
         scores = wf._score_cell_type_evidence(
             self._net(is_hub=True, pathways=["MAPK"]),
-            self._perturb(["LINCS knockdown confirmed", "super-enhancer present"]),
+            self._perturb([
+                "1 gene(s) confirmed by both network propagation and LINCS "
+                "experimental knockdown data (directional agreement).",
+                "super-enhancer present",
+            ]),
         )
         assert scores["corroboration_count"] == 4
 

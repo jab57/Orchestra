@@ -1656,7 +1656,11 @@ class OrchestraWorkflow:
         pathway_hit = self._is_in_pathway_enrichment(candidate["gene"], network_analysis)
 
         # CASCADE sources — inferred from key_findings text
-        lincs_hit = "lincs" in findings_text
+        # LINCS: match the directional-agreement phrase precisely. CASCADE also emits a
+        # directional-disagreement sentence ("... requires investigation") that contains
+        # the substring "lincs" too — a bare substring check would count a documented
+        # network/LINCS conflict as LINCS confirmation.
+        lincs_hit = "confirmed by both network propagation and lincs" in findings_text
         # DepMap: "not essential" is a negative signal; any other DepMap mention is positive
         depmap_hit = "depmap" in findings_text and "not essential" not in findings_text
         se_hit = (
@@ -2092,9 +2096,14 @@ class OrchestraWorkflow:
                 ev = (casc.get("evidence_synthesis") or {})
                 key_findings = ev.get("key_findings") or []
                 findings_text = "\n".join(str(f) for f in key_findings).lower()
-                has_cascade = any(
-                    kw in findings_text
-                    for kw in ("lincs", "depmap", "super-enhancer", "dorothea", "cbioportal")
+                # LINCS matched precisely (see _score_candidate_evidence) — a bare "lincs"
+                # substring also matches CASCADE's directional-disagreement sentence.
+                has_cascade = (
+                    "confirmed by both network propagation and lincs" in findings_text
+                    or any(
+                        kw in findings_text
+                        for kw in ("depmap", "super-enhancer", "dorothea", "cbioportal")
+                    )
                 )
                 tier = "conserved_cascade_validated" if has_cascade else "conserved_not_validated"
 
@@ -2361,7 +2370,9 @@ class OrchestraWorkflow:
         key_findings = ev.get("key_findings") or []
         findings_text = "\n".join(str(f) for f in key_findings).lower()
 
-        lincs_hit = "lincs" in findings_text
+        # See _score_candidate_evidence for why this matches the agreement phrase
+        # precisely rather than a bare "lincs" substring.
+        lincs_hit = "confirmed by both network propagation and lincs" in findings_text
         depmap_hit = "depmap" in findings_text and "not essential" not in findings_text
         se_hit = (
             "super-enhancer" in findings_text
@@ -2479,6 +2490,7 @@ class OrchestraWorkflow:
         corroborated = synthesis.get("corroborated_targets", [])
         cross_system_hits = synthesis.get("cross_system_hits", [])
         agreements = synthesis.get("source_agreements", [])
+        disagreements = synthesis.get("source_disagreements", [])
         network_ctx = synthesis.get("network_context", {})
         rna_target_count = synthesis.get("regnetagents_target_count", 0)
         rna_true_target_count = synthesis.get("regnetagents_true_target_count")
@@ -2520,6 +2532,12 @@ class OrchestraWorkflow:
             lines.append("**Cross-source agreements (within CASCADE):**")
             for a in agreements[:5]:
                 lines.append(f"- {a}")
+
+        if disagreements:
+            lines.append("")
+            lines.append("**Cross-source disagreements (within CASCADE) — requires investigation:**")
+            for d in disagreements[:5]:
+                lines.append(f"- {d}")
 
         lines.append("")
         lines.append("### Cross-System Corroboration")
@@ -2585,6 +2603,7 @@ class OrchestraWorkflow:
         key_findings = synthesis.get("cascade_key_findings", [])
         corroborated = synthesis.get("corroborated_targets", [])
         agreements = synthesis.get("source_agreements", [])
+        disagreements = synthesis.get("source_disagreements", [])
         network_ctx = synthesis.get("network_context", {})
         errors = synthesis.get("errors", {})
         regnetagents_available = synthesis.get("regnetagents_available", True)
@@ -2624,6 +2643,12 @@ class OrchestraWorkflow:
             lines.append("**Cross-source agreements:**")
             for a in agreements[:5]:
                 lines.append(f"- {a}")
+
+        if disagreements:
+            lines.append("")
+            lines.append("**Cross-source disagreements — requires investigation:**")
+            for d in disagreements[:5]:
+                lines.append(f"- {d}")
 
         if network_ctx:
             lines.append("")
