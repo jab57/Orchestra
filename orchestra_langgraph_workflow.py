@@ -397,11 +397,16 @@ class OrchestraWorkflow:
         if state.get("analysis_type") in ("gene_signature", "cell_context_comparison", "novelty_assessment", "tumor_network_comparison"):
             state["completed_steps"].append("classify_gene")
             return state
+        cancer_type = state.get("cancer_type") or None
+        params = {"gene": state["gene"], "cell_type": state["cell_type"]}
+        if cancer_type:
+            # get_gene_metadata now supports TCGA scoping (CASCADE, 2026-08-30) -- classify
+            # against the requested tumor network instead of always GREmLN, so a gene whose
+            # role differs between networks routes to the correct path (TF vs. effector).
+            params["network_source"] = "tcga"
+            params["tcga_network"] = cancer_type
         try:
-            meta = await self._cascade.call_tool(
-                "get_gene_metadata",
-                {"gene": state["gene"], "cell_type": state["cell_type"]},
-            )
+            meta = await self._cascade.call_tool("get_gene_metadata", params)
             state["gene_role"] = meta.get("gene_type")
             state["ensembl_id"] = meta.get("ensembl_id")
         except Exception as e:

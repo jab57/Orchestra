@@ -9,10 +9,16 @@ scoping at the child-server level.
 Confirms both directions:
   - cancer_type set -> TCGA-scoped params passed to the RegNetAgents/CASCADE calls
     that support it, and NOT passed to the calls that don't (get_protein_interactions,
-    therapeutic_target_discovery, get_gene_metadata) -- those tools have no
-    tcga_network/network_source parameter in their schemas at all.
+    therapeutic_target_discovery) -- those tools have no tcga_network/network_source
+    parameter in their schemas at all.
   - cancer_type unset -> behavior is byte-identical to before this change (regression
     guard for the default/existing GREmLN-only usage).
+
+get_gene_metadata gained network_source/tcga_network support on the CASCADE side
+2026-08-30 (see FUTURE_ROADMAP.md, "Future work: TCGA-aware gene-role classification"
+-- now implemented, not future work) -- _classify_gene now threads cancer_type through
+to it too, so routing itself (not just the downstream analysis calls) honors the
+requested network.
 """
 import pytest
 from orchestra_langgraph_workflow import OrchestraWorkflow
@@ -67,6 +73,61 @@ class TestParamHelpers:
             "gene": "TP53", "cell_type": "epithelial_cell",
             "network_source": "tcga", "tcga_network": "cesc",
         }
+
+
+class TestClassifyGeneTcgaScoping:
+    """_classify_gene threads cancer_type through to get_gene_metadata now that CASCADE
+    supports network_source/tcga_network on that tool (2026-08-30)."""
+
+    @pytest.mark.asyncio
+    async def test_cancer_type_set_scopes_classification_call(self):
+        wf = _make_workflow()
+        cascade = _RecordingClient({
+            "get_gene_metadata": {"gene_type": "master_regulator", "ensembl_id": "ENSG00000180264"},
+        })
+        wf._cascade = cascade
+        state = _tf_state(gene="ADGRD2", cancer_type="cesc")
+
+        result = await wf._classify_gene(state)
+
+        assert result["gene_role"] == "master_regulator"
+        assert result["ensembl_id"] == "ENSG00000180264"
+        call_params = cascade.calls[0][1]
+        assert call_params["network_source"] == "tcga"
+        assert call_params["tcga_network"] == "cesc"
+
+    @pytest.mark.asyncio
+    async def test_no_cancer_type_is_unchanged(self):
+        """Regression guard: default GREmLN-only classification call is byte-identical
+        to before this change -- no network_source/tcga_network keys at all."""
+        wf = _make_workflow()
+        cascade = _RecordingClient({
+            "get_gene_metadata": {"gene_type": "effector", "ensembl_id": "X"},
+        })
+        wf._cascade = cascade
+        state = _tf_state(gene="ADGRD2")  # cancer_type=None
+
+        result = await wf._classify_gene(state)
+
+        assert result["gene_role"] == "effector"
+        call_params = cascade.calls[0][1]
+        assert call_params == {"gene": "ADGRD2", "cell_type": "epithelial_cell"}
+        assert "network_source" not in call_params
+        assert "tcga_network" not in call_params
+
+    @pytest.mark.asyncio
+    async def test_skipped_for_analysis_types_with_no_single_gene(self):
+        """gene_signature etc. skip classification entirely -- cancer_type being set
+        must not change that."""
+        wf = _make_workflow()
+        cascade = _RecordingClient({})
+        wf._cascade = cascade
+        state = _tf_state(cancer_type="cesc")
+        state["analysis_type"] = "gene_signature"
+
+        await wf._classify_gene(state)
+
+        assert cascade.calls == []
 
 
 class TestRunTfPathTcgaScoping:
