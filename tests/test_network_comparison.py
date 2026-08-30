@@ -7,6 +7,7 @@ Integration test is gated on ORCHESTRA_INTEGRATION_TESTS=1.
 
 import os
 import pytest
+from unittest.mock import AsyncMock
 from orchestra_langgraph_workflow import OrchestraWorkflow, OrchestraState
 
 
@@ -388,6 +389,122 @@ class TestNetworkComparisonGracefulDegradation:
         assert syn["routing"] == "network_comparison"
         assert syn["conserved_regulators"] == []
         assert syn["regnetagents_available"] is False
+
+    # -----------------------------------------------------------------
+    # TCGA-only fallback when the gene has no GREmLN baseline
+    # -----------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_gremln_failure_fetches_tcga_fallback(self, wf):
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "compare_network_contexts":
+                return {"error": True, "message": "Gene 'FKBP6' not found in epithelial_cell network"}
+            if name == "query_network":
+                assert args["query_type"] == "gene_neighbors"
+                assert args["network_source"] == "tcga"
+                assert args["tcga_network"] == "hnsc"
+                assert args["gene"] == "FOXM1"
+                return {
+                    "regulators": [{"gene": "ZNF211"}, {"gene": "SOX30"}],
+                    "targets": [{"gene": "MMP9"}],
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        state = _nc_state()
+
+        result = await wf._run_network_comparison_path(state)
+
+        assert "network_comparison" in result["errors"]
+        fallback = result.get("network_comparison_tcga_fallback")
+        assert fallback is not None
+        assert [r["gene"] for r in fallback["regulators"]] == ["ZNF211", "SOX30"]
+        assert result.get("network_comparison") is None  # unchanged: still absent on GREmLN failure
+
+    @pytest.mark.asyncio
+    async def test_gremln_failure_fallback_also_fails(self, wf):
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "compare_network_contexts":
+                return {"error": True, "message": "not found"}
+            if name == "query_network":
+                return {"error": True, "message": "gene not in TCGA network either"}
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        state = _nc_state()
+
+        result = await wf._run_network_comparison_path(state)
+
+        assert "network_comparison" in result["errors"]
+        assert result.get("network_comparison_tcga_fallback") is None
+
+    @pytest.mark.asyncio
+    async def test_gremln_failure_never_calls_cascade_even_with_validate_tumor_acquired(self, wf):
+        """
+        Paper-reproducibility guard: the corroboration paper's scripts call this path with
+        validate_tumor_acquired=True. A GREmLN-absent gene must keep being dropped from that
+        scoring entirely (existing, documented behavior) -- the TCGA fallback is display-only
+        and must never reach CASCADE or the tumor_acquired_cascade_validation step.
+        """
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "compare_network_contexts":
+                return {"error": True, "message": "not found"}
+            if name == "query_network":
+                return {"regulators": [{"gene": "ZNF211"}], "targets": []}
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = AsyncMock()
+        wf._cascade.call_tool = AsyncMock(side_effect=AssertionError("CASCADE must not be called"))
+        state = _nc_state(validate_tumor_acquired=True, rank_tumor_acquired=True)
+
+        result = await wf._run_network_comparison_path(state)
+
+        wf._cascade.call_tool.assert_not_called()
+        assert result.get("network_comparison") is None
+
+    def test_synthesize_surfaces_tcga_fallback(self, wf):
+        fallback = {"regulators": [{"gene": "ZNF211"}], "targets": []}
+        state = _nc_state(
+            network_comparison=None,
+            network_comparison_tcga_fallback=fallback,
+            errors={"network_comparison": "not found"},
+        )
+        result = wf._synthesize_network_comparison_path(state)
+        syn = result["synthesis"]
+        assert syn["regnetagents_available"] is False
+        assert syn["tcga_only_fallback"] == fallback
+
+    def test_format_shows_tcga_fallback_instead_of_generic_error(self, wf):
+        synthesis = {
+            "gene": "FKBP6", "cell_type": "epithelial_cell", "cancer_type": "cesc",
+            "regnetagents_available": False,
+            "tcga_only_fallback": {
+                "regulators": [{"gene": "ZNF211"}, {"gene": "SOX30"}],
+                "targets": [],
+            },
+            "errors": {"network_comparison": "not found"},
+        }
+        lines = wf._format_network_comparison_report(synthesis)
+        text = "\n".join(lines)
+        assert "No GREmLN baseline for FKBP6" in text
+        assert "ZNF211" in text and "SOX30" in text
+        assert "RegNetAgents unavailable" not in text
+
+    def test_format_falls_back_to_generic_error_without_fallback_data(self, wf):
+        synthesis = {
+            "gene": "FKBP6", "cell_type": "epithelial_cell", "cancer_type": "cesc",
+            "regnetagents_available": False,
+            "tcga_only_fallback": None,
+            "errors": {"network_comparison": "not found"},
+        }
+        lines = wf._format_network_comparison_report(synthesis)
+        text = "\n".join(lines)
+        assert "RegNetAgents unavailable" in text
+        assert "No GREmLN baseline" not in text
 
 
 # ---------------------------------------------------------------------------

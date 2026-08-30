@@ -100,6 +100,9 @@ class OrchestraState(TypedDict):
     # GREmLN vs TCGA network context comparison (Issue #13)
     cancer_type: Optional[str]        # TCGA cancer type (e.g. "hnsc", "brca")
     network_comparison: Optional[dict] # RegNetAgents compare_network_contexts output + CASCADE validation
+    network_comparison_tcga_fallback: Optional[dict]  # TCGA-only regulator view when the gene has no
+        # GREmLN baseline (compare_network_contexts errors) — purely additive/display-only; never
+        # feeds validate_tumor_acquired scoring, so that path's existing behavior is unchanged.
     validate_tumor_acquired: Optional[bool]  # opt-in: also CASCADE-validate the tumor_state_only tier (default False)
     rank_tumor_acquired: Optional[bool]  # opt-in: order the tumor_state_only tier by ARACNe MI weight before capping (default False = alphabetical)
 
@@ -975,6 +978,29 @@ class OrchestraWorkflow:
             state["errors"]["network_comparison"] = context_result.get(
                 "message", "compare_network_contexts failed"
             )
+            # No GREmLN population-average baseline for this gene (e.g. absent from the
+            # epithelial_cell network) -- the tumor-vs-baseline comparison this path exists
+            # for is undefined, but the TCGA side alone is still independently queryable and
+            # otherwise gets discarded. Fetch it as a supplementary, display-only fallback.
+            # Deliberately NOT wired into validate_tumor_acquired scoring below (that block
+            # only ever reads from context_result, which stays absent here) -- existing
+            # reproduction scripts that call this path with validate_tumor_acquired=True see
+            # byte-identical behavior to before this fallback existed.
+            try:
+                tcga_only = await self._regnetagents.call_tool(
+                    "query_network",
+                    {
+                        "query_type": "gene_neighbors",
+                        "network_source": "tcga",
+                        "tcga_network": cancer_type,
+                        "gene": gene,
+                    },
+                    timeout_seconds=TIMEOUT_NETWORK,
+                )
+                if not tcga_only.get("error"):
+                    state["network_comparison_tcga_fallback"] = tcga_only
+            except Exception:
+                pass  # fallback is best-effort; the recorded error above already covers this call
             state["completed_steps"].append("run_network_comparison_path")
             return state
 
@@ -2075,6 +2101,7 @@ class OrchestraWorkflow:
         cancer_type = state.get("cancer_type") or ""
         nc = state.get("network_comparison") or {}
         errors = state.get("errors") or {}
+        tcga_fallback = state.get("network_comparison_tcga_fallback")
 
         reg_data = nc.get("regulators") or {}
         tgt_data = nc.get("targets") or {}
@@ -2163,6 +2190,7 @@ class OrchestraWorkflow:
             "tgt_tumor_only": tgt_data.get("tumor_state_only") or [],
             "regnetagents_available": bool(nc) and "network_comparison" not in errors,
             "cascade_available": not conserved_regs or bool(cascade_validation),
+            "tcga_only_fallback": tcga_fallback,
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -3030,6 +3058,7 @@ class OrchestraWorkflow:
         errors = synthesis.get("errors") or {}
         regnetagents_available = synthesis.get("regnetagents_available", True)
         cascade_available = synthesis.get("cascade_available", True)
+        tcga_only_fallback = synthesis.get("tcga_only_fallback")
 
         lines: list[str] = []
         lines.append(f"## Network Context Comparison: {gene}")
@@ -3038,6 +3067,24 @@ class OrchestraWorkflow:
         lines.append("")
 
         if not regnetagents_available:
+            if tcga_only_fallback:
+                lines.append(
+                    f"> ⚠️ **No GREmLN baseline for {gene}** — this gene is absent from the "
+                    f"{cell_type} population-average network, so tumor-vs-baseline rewiring "
+                    "cannot be computed. Showing the TCGA-only regulatory neighborhood instead."
+                )
+                lines.append("")
+                fallback_regs = tcga_only_fallback.get("regulators") or []
+                fallback_targets = tcga_only_fallback.get("targets") or []
+                reg_syms = [r.get("gene") if isinstance(r, dict) else r for r in fallback_regs]
+                tgt_syms = [t.get("gene") if isinstance(t, dict) else t for t in fallback_targets]
+                lines.append(f"**TCGA {cancer_type.upper()} upstream regulators:** {len(reg_syms)}")
+                if reg_syms:
+                    lines.append(f"  {', '.join(reg_syms[:20])}" + (" ..." if len(reg_syms) > 20 else ""))
+                lines.append(f"**TCGA {cancer_type.upper()} downstream targets:** {len(tgt_syms)}")
+                if tgt_syms:
+                    lines.append(f"  {', '.join(tgt_syms[:20])}" + (" ..." if len(tgt_syms) > 20 else ""))
+                return lines
             lines.append("> ⚠️ **RegNetAgents unavailable** — network comparison could not be completed.")
             if errors:
                 for k, v in errors.items():
@@ -3708,6 +3755,7 @@ class OrchestraWorkflow:
             comparison_results=None,
             cancer_type=cancer_type,
             network_comparison=None,
+            network_comparison_tcga_fallback=None,
             validate_tumor_acquired=validate_tumor_acquired,
             rank_tumor_acquired=rank_tumor_acquired,
             cancer_types=cancer_types,
