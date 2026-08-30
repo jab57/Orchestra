@@ -66,16 +66,18 @@ RegNetAgents           CASCADE
 
 Orchestra exposes eleven composite tools:
 
-### `causal_chain_analysis(gene, cell_type)`
+### `causal_chain_analysis(gene, cell_type, tcga_network=None)`
 
 Classifies a gene, runs regulatory network analysis (RegNetAgents) and perturbation simulation (CASCADE) in parallel, and synthesizes results into an integrated causal report. Two routing paths:
 
 - **TF path** (master regulators, transcription factors): parallel RegNetAgents comprehensive analysis + CASCADE perturbation; identifies downstream genes corroborated by both network topology and experimental data
 - **Effector path** (scaffold proteins, effectors): PPI → TF partner → simulate TF partner → pathway enrichment
 
-### `validate_therapeutic_targets(gene, cell_type)`
+Supply `tcga_network` (e.g. `"cesc"`) to scope both the network analysis and perturbation simulation to a TCGA tumor network instead of the population-averaged GREmLN network. In the effector path, only the TF partner's own analysis is scoped — PPI discovery and TF-partner classification have no TCGA-scoping equivalent. The report header shows which network was actually used.
 
-Ranks upstream regulators by PageRank centrality (RegNetAgents), combines with drug target discovery (CASCADE super-enhancers, PPI), and validates top candidates against LINCS experimental knockdown data. Output: 7-source corroboration table.
+### `validate_therapeutic_targets(gene, cell_type, tcga_network=None)`
+
+Ranks upstream regulators by PageRank centrality (RegNetAgents), combines with drug target discovery (CASCADE super-enhancers, PPI), and validates top candidates against LINCS experimental knockdown data. Output: 7-source corroboration table. Supply `tcga_network` to scope the RegNetAgents ranking and CASCADE validation to a TCGA tumor network instead of GREmLN — drug target discovery and PPI lookup have no TCGA-scoping equivalent and remain network-agnostic.
 
 ### `effector_analysis(gene, cell_type)`
 
@@ -92,6 +94,8 @@ Compares a gene's regulatory evidence across multiple cell types. Runs RegNetAge
 ### `compare_network_contexts(gene, cancer_type, cell_type="epithelial_cell")`
 
 Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only).
+
+If the gene has no GREmLN population-average baseline entry (absent from the network), the tumor-vs-baseline comparison is undefined — Orchestra falls back to a direct TCGA-only regulatory-neighborhood query and reports that instead of an empty error, clearly labeled as having no baseline to compare against.
 
 Available TCGA cancer types: `blca`, `brca`, `cesc`, `coad`, `hnsc`, `kirc`, `lihc`, `luad`, `lusc`, `ov`, `paad`, `prad`, `stad`, `ucec`.
 
@@ -301,7 +305,7 @@ Key variables:
 pytest tests/
 ```
 
-374 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+402 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -464,15 +468,17 @@ Orchestra/
 │   ├── tp53_causal_chain.py         # TP53 TF path demonstration
 │   └── brd4_target_validation.py    # MYC/BRD4 therapeutic target validation
 └── tests/
-    ├── test_orchestra.py               # Routing, synthesis, report formatting (121 unit tests)
+    ├── test_orchestra.py               # Routing, synthesis, report formatting (123 unit tests)
     ├── test_mcp_client.py              # MCP client lifecycle and tool call tests (17 tests)
     ├── test_graceful_degradation.py    # Degradation with mock clients (17 unit tests)
     ├── test_effector_analysis.py       # APC integration test (8 tests; requires child servers)
     ├── test_causal_chain.py            # TP53 integration test (9 tests; requires child servers)
-    ├── test_gene_signature.py          # Gene signature path: routing, enrichment, synthesis, DoRothEA overlap (55 tests)
-    ├── test_network_comparison.py      # GREmLN vs TCGA network comparison (68 tests)
+    ├── test_gene_signature.py          # Gene signature path: routing, enrichment, synthesis, DoRothEA overlap (56 tests)
+    ├── test_network_comparison.py      # GREmLN vs TCGA network comparison, incl. TCGA-only fallback when a gene has no GREmLN baseline (74 tests)
     ├── test_novelty_assessment.py      # PubMed novelty: mocked HTTP, verdict thresholds, cancer synonyms, pair thresholds (66 tests)
-    └── test_methylation_correlation.py # TCGA methylation-expression correlation: mocked cBioPortal REST (33 unit tests)
+    ├── test_methylation_correlation.py # TCGA methylation-expression correlation: mocked cBioPortal REST (33 unit tests)
+    ├── test_mcp_routing.py             # MCP tool name -> analysis_type routing, incl. tcga_network dispatch threading (7 tests)
+    └── test_tcga_scoped_paths.py       # tcga_network scoping for causal_chain_analysis / validate_therapeutic_targets (12 tests)
 ```
 
 ## Performance
@@ -517,7 +523,7 @@ pip install pytest pytest-cov pytest-asyncio
 pytest tests/ -v
 ```
 
-Unit tests (374) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
+Unit tests (402) run without live child servers. Integration tests (20) require RegNetAgents and CASCADE:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1
