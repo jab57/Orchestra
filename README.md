@@ -117,7 +117,7 @@ Atomic batch variant of `compare_network_contexts`. Accepts a list of gene symbo
 
 ### `compare_tumor_networks(gene, cancer_types, cell_type="epithelial_cell", include_gremln_baseline=True)`
 
-Tumor-vs-tumor cross-cancer convergence analysis. Compares a gene's TCGA tumor regulatory network directly across 2–4 cancer types — not against GREmLN normal tissue — to identify which regulators are shared across cancer types (convergent) and which are cancer-type-specific (divergent).
+Tumor-vs-tumor cross-cancer convergence analysis. Compares a gene's TCGA tumor regulatory network directly across 2–4 cancer types — not against the GREmLN population-average baseline network — to identify which regulators are shared across cancer types (convergent) and which are cancer-type-specific (divergent).
 
 For each requested cancer type, Orchestra calls `compare_network_contexts` and reconstructs the full TCGA tumor regulator set (`conserved ∪ tumor-acquired`; no display truncation). It then computes pairwise regulator overlap (Jaccard similarity) across all C(N,2) cancer-type pairs, identifies the convergent core (regulators present in all tested types), and classifies the overall pattern as:
 
@@ -125,7 +125,7 @@ For each requested cancer type, Orchestra calls `compare_network_contexts` and r
 - **Divergent** — mean pairwise Jaccard < 0.15 or empty core: type-specific regulatory programs
 - **Mixed** — partial core with substantial type-specific regulators
 
-Output: pairwise overlap table, convergent core table with CASCADE validation (top 3 core regulators) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (rewiring vs. normal for each type). Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to normal?"
+Output: pairwise overlap table, convergent core table with CASCADE validation (top 3 core regulators) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (each type's tumor-vs-population-average-baseline rewiring). Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to the population-average baseline?"
 
 ### `fetch_tcga_methylation_correlation(regulator, target_genes, tcga_network)`
 
@@ -301,7 +301,7 @@ Key variables:
 pytest tests/
 ```
 
-370 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
+374 unit tests should pass. Integration tests (requiring live child servers) are skipped by default:
 
 ```bash
 set ORCHESTRA_INTEGRATION_TESTS=1   # Windows
@@ -472,7 +472,7 @@ Orchestra/
     ├── test_gene_signature.py          # Gene signature path: routing, enrichment, synthesis, DoRothEA overlap (55 tests)
     ├── test_network_comparison.py      # GREmLN vs TCGA network comparison (68 tests)
     ├── test_novelty_assessment.py      # PubMed novelty: mocked HTTP, verdict thresholds, cancer synonyms, pair thresholds (66 tests)
-    └── test_methylation_correlation.py # TCGA methylation-expression correlation: mocked cBioPortal REST (29 unit tests)
+    └── test_methylation_correlation.py # TCGA methylation-expression correlation: mocked cBioPortal REST (33 unit tests)
 ```
 
 ## Performance
