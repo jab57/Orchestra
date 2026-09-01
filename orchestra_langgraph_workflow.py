@@ -2152,6 +2152,13 @@ class OrchestraWorkflow:
         tumor_only_regs = reg_data.get("tumor_state_only") or []
         pop_only_regs = reg_data.get("population_averaged_only") or []
 
+        # Cancer-driver annotation (RegNetAgents >=1.3.0's compare_network_contexts, IntOGen-
+        # sourced) — purely additive read of fields RegNetAgents already computes; no new call.
+        driver_roles = reg_data.get("driver_gene_roles") or {}
+        tumor_state_only_known_drivers = reg_data.get("tumor_state_only_known_drivers") or []
+        tumor_state_only_known_driver_count = interp.get("tumor_state_only_known_driver_count", 0)
+        driver_annotation_available = nc.get("driver_annotation_available", False)
+
         # Score CASCADE evidence for each validated conserved regulator
         validated_conserved = []
         for reg in conserved_regs[:3]:
@@ -2222,6 +2229,10 @@ class OrchestraWorkflow:
             "reg_tumor_total": reg_data.get("tumor_state_total", 0),
             "conserved_regulators": conserved_regs,
             "tumor_state_only_regulators": tumor_only_regs,
+            "tumor_state_only_known_drivers": tumor_state_only_known_drivers,
+            "tumor_state_only_known_driver_count": tumor_state_only_known_driver_count,
+            "driver_gene_roles": driver_roles,
+            "driver_annotation_available": driver_annotation_available,
             "population_averaged_only_regulators": pop_only_regs,
             "validated_conserved": validated_conserved,
             "validated_tumor_acquired": validated_tumor_acquired,
@@ -2265,6 +2276,14 @@ class OrchestraWorkflow:
         tumor_tgt_sets: dict[str, set] = {}  # tumor-state-only targets (GREmLN-shared excluded)
         gremln_baseline: dict[str, dict] = {}
 
+        # Cancer-driver annotation (RegNetAgents >=1.3.0, IntOGen-sourced), merged across all
+        # queried cancer types — the reference data is static/context-independent, so any
+        # cancer type's driver_gene_roles contributes the same per-symbol roles. Skipped calls
+        # (guarded by the `if not raw or raw.get("error"): continue` below) simply don't
+        # contribute, same as for tumor_reg_sets.
+        merged_driver_roles: dict[str, str] = {}
+        any_driver_annotation_available = False
+
         for ct in cancer_types:
             raw = tumor_results.get(ct)
             if not raw or raw.get("error"):
@@ -2276,6 +2295,13 @@ class OrchestraWorkflow:
 
             tgt_data = raw.get("targets", {})
             tumor_tgt_sets[ct] = set(tgt_data.get("tumor_state_only") or [])
+
+            merged_driver_roles.update(
+                {k: v for k, v in (reg_data.get("driver_gene_roles") or {}).items() if v}
+            )
+            any_driver_annotation_available = any_driver_annotation_available or bool(
+                raw.get("driver_annotation_available")
+            )
 
             if include_gremln_baseline:
                 interp = raw.get("interpretation", {})
@@ -2350,6 +2376,8 @@ class OrchestraWorkflow:
                 "tier": tier,
                 "cascade_key_findings": findings[:3],
                 "cascade_error": casc.get("error"),
+                "driver_role": merged_driver_roles.get(reg),
+                "is_known_driver": reg in merged_driver_roles,
             })
 
         # Verdict with explicit numeric thresholds
@@ -2381,6 +2409,7 @@ class OrchestraWorkflow:
             "verdict": verdict,
             "mean_jaccard": mean_jaccard,
             "gremln_baseline": gremln_baseline,
+            "driver_annotation_available": any_driver_annotation_available,
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -3240,6 +3269,40 @@ class OrchestraWorkflow:
             )
         lines.append("")
 
+        # Known cancer-driver status among tumor-acquired regulators (IntOGen-sourced,
+        # RegNetAgents >=1.3.0). Separate signal from CASCADE validation above — purely additive.
+        driver_annotation_available = synthesis.get("driver_annotation_available", False)
+        known_drivers = synthesis.get("tumor_state_only_known_drivers") or []
+        driver_roles = synthesis.get("driver_gene_roles") or {}
+        if tumor_only_regs:
+            lines.append("### Known Cancer-Driver Status (tumor-acquired regulators)")
+            lines.append("")
+            if not driver_annotation_available:
+                lines.append(
+                    "_Driver annotation unavailable for this call — status below is **unknown**, "
+                    "not confirmed absent._"
+                )
+            elif known_drivers:
+                labeled = [f"{g} ({driver_roles.get(g, 'ambiguous')})" for g in known_drivers]
+                lines.append(
+                    f"**{len(known_drivers)} of {len(tumor_only_regs)} tumor-acquired regulators "
+                    f"are known cancer drivers** (IntOGen): {', '.join(labeled)}"
+                )
+                lines.append(
+                    "_A gene not listed here is not a positive-selection driver in IntOGen's "
+                    "compendium — this does not confirm it isn't a cancer driver identified by "
+                    "other mechanisms (fusion, copy-number, epigenetic silencing). Source: "
+                    "Martínez-Jiménez et al. 2020._"
+                )
+            else:
+                lines.append(
+                    "_None of the tumor-acquired regulators are known drivers in IntOGen's "
+                    "compendium — treat this list as lower-confidence candidates, possibly "
+                    "ARACNe network noise, pending other validation. Source: Martínez-Jiménez "
+                    "et al. 2020._"
+                )
+            lines.append("")
+
         # Population-averaged-only regulators
         lines.append("### Population-Averaged-Only Regulators (lost in tumor context)")
         lines.append("")
@@ -3349,8 +3412,8 @@ class OrchestraWorkflow:
                 f"(all {len(available_cts)} cancer types):"
             )
             lines.append("")
-            lines.append("| Regulator | CASCADE-validated | Key evidence |")
-            lines.append("|-----------|-------------------|--------------|")
+            lines.append("| Regulator | CASCADE-validated | Known driver (IntOGen) | Key evidence |")
+            lines.append("|-----------|-------------------|-------------------------|--------------|")
             for entry in convergent_core_cascade:
                 reg = entry["gene"]
                 casc_label = "✓ YES" if entry["tier"] == "cascade_validated" else "No"
@@ -3359,8 +3422,25 @@ class OrchestraWorkflow:
                 err = entry.get("cascade_error")
                 if err:
                     evidence_note = f"CASCADE error: {err[:40]}"
-                lines.append(f"| {reg} | {casc_label} | {evidence_note} |")
+                driver_label = (
+                    f"✓ {entry['driver_role']}" if entry.get("is_known_driver")
+                    else "No"
+                )
+                lines.append(f"| {reg} | {casc_label} | {driver_label} | {evidence_note} |")
             lines.append("")
+            if not synthesis.get("driver_annotation_available", False):
+                lines.append(
+                    "_Driver annotation unavailable for this call — \"No\" above means "
+                    "**unknown**, not confirmed absent._"
+                )
+                lines.append("")
+            else:
+                lines.append(
+                    "_Driver source: Martínez-Jiménez et al. 2020 (IntOGen). \"No\" means not a "
+                    "positive-selection driver in IntOGen's compendium — not a confirmation the "
+                    "gene isn't a cancer driver by other mechanisms._"
+                )
+                lines.append("")
             # Full findings for CASCADE-validated entries
             for entry in convergent_core_cascade:
                 if entry["tier"] == "cascade_validated" and entry.get("cascade_key_findings"):
