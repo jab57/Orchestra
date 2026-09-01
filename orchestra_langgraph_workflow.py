@@ -2158,6 +2158,14 @@ class OrchestraWorkflow:
         tumor_state_only_known_drivers = reg_data.get("tumor_state_only_known_drivers") or []
         tumor_state_only_known_driver_count = interp.get("tumor_state_only_known_driver_count", 0)
         driver_annotation_available = nc.get("driver_annotation_available", False)
+        # Tissue-matched subset (RegNetAgents >=1.2.7) — of the known drivers above, which are
+        # specifically established in *this* cancer_type per IntOGen, not just "a driver somewhere."
+        # cancer_type is already required by compare_network_contexts itself, so this needs no new
+        # param on Orchestra's side — the field just appears in the response.
+        tumor_state_only_tissue_matched_drivers = reg_data.get("tumor_state_only_tissue_matched_drivers") or []
+        tumor_state_only_tissue_matched_driver_count = interp.get(
+            "tumor_state_only_tissue_matched_driver_count", 0
+        )
 
         # Score CASCADE evidence for each validated conserved regulator
         validated_conserved = []
@@ -2233,6 +2241,8 @@ class OrchestraWorkflow:
             "tumor_state_only_known_driver_count": tumor_state_only_known_driver_count,
             "driver_gene_roles": driver_roles,
             "driver_annotation_available": driver_annotation_available,
+            "tumor_state_only_tissue_matched_drivers": tumor_state_only_tissue_matched_drivers,
+            "tumor_state_only_tissue_matched_driver_count": tumor_state_only_tissue_matched_driver_count,
             "population_averaged_only_regulators": pop_only_regs,
             "validated_conserved": validated_conserved,
             "validated_tumor_acquired": validated_tumor_acquired,
@@ -2283,6 +2293,12 @@ class OrchestraWorkflow:
         # contribute, same as for tumor_reg_sets.
         merged_driver_roles: dict[str, str] = {}
         any_driver_annotation_available = False
+        # Tissue-matched status (RegNetAgents >=1.2.7) is inherently per-cancer-type — unlike
+        # merged_driver_roles above (context-independent, safe to merge), a regulator can be
+        # tissue-matched in one tested cancer type and not another. Kept per-ct here so the
+        # convergent-core table below can report exactly which tested cancer types independently
+        # confirm each regulator, not just a single merged yes/no.
+        tissue_matched_by_ct: dict[str, set[str]] = {}
 
         for ct in cancer_types:
             raw = tumor_results.get(ct)
@@ -2302,6 +2318,7 @@ class OrchestraWorkflow:
             any_driver_annotation_available = any_driver_annotation_available or bool(
                 raw.get("driver_annotation_available")
             )
+            tissue_matched_by_ct[ct] = set(reg_data.get("tumor_state_only_tissue_matched_drivers") or [])
 
             if include_gremln_baseline:
                 interp = raw.get("interpretation", {})
@@ -2378,6 +2395,9 @@ class OrchestraWorkflow:
                 "cascade_error": casc.get("error"),
                 "driver_role": merged_driver_roles.get(reg),
                 "is_known_driver": reg in merged_driver_roles,
+                "tissue_matched_cancer_types": sorted(
+                    ct for ct in available_cts if reg in tissue_matched_by_ct.get(ct, set())
+                ),
             })
 
         # Verdict with explicit numeric thresholds
@@ -3274,6 +3294,7 @@ class OrchestraWorkflow:
         driver_annotation_available = synthesis.get("driver_annotation_available", False)
         known_drivers = synthesis.get("tumor_state_only_known_drivers") or []
         driver_roles = synthesis.get("driver_gene_roles") or {}
+        tissue_matched_drivers = set(synthesis.get("tumor_state_only_tissue_matched_drivers") or [])
         if tumor_only_regs:
             lines.append("### Known Cancer-Driver Status (tumor-acquired regulators)")
             lines.append("")
@@ -3283,11 +3304,29 @@ class OrchestraWorkflow:
                     "not confirmed absent._"
                 )
             elif known_drivers:
-                labeled = [f"{g} ({driver_roles.get(g, 'ambiguous')})" for g in known_drivers]
+                labeled = [
+                    f"{g} ({driver_roles.get(g, 'ambiguous')}" +
+                    (", tissue-matched)" if g in tissue_matched_drivers else ")")
+                    for g in known_drivers
+                ]
                 lines.append(
                     f"**{len(known_drivers)} of {len(tumor_only_regs)} tumor-acquired regulators "
                     f"are known cancer drivers** (IntOGen): {', '.join(labeled)}"
                 )
+                if tissue_matched_drivers:
+                    lines.append(
+                        f"**{len(tissue_matched_drivers)} of those {len(known_drivers)} are "
+                        f"tissue-matched** — specifically established as drivers in this cancer "
+                        f"type ({cancer_type.upper()}), not just known drivers somewhere. Treat "
+                        f"these as the strongest candidates; the remaining known drivers are "
+                        f"real drivers, but established in other cancer types only."
+                    )
+                else:
+                    lines.append(
+                        f"_None of the known drivers above are specifically established in "
+                        f"{cancer_type.upper()} per IntOGen — they're real drivers elsewhere, not "
+                        f"yet confirmed in this cancer type._"
+                    )
                 lines.append(
                     "_A gene not listed here is not a positive-selection driver in IntOGen's "
                     "compendium — this does not confirm it isn't a cancer driver identified by "
@@ -3412,8 +3451,14 @@ class OrchestraWorkflow:
                 f"(all {len(available_cts)} cancer types):"
             )
             lines.append("")
-            lines.append("| Regulator | CASCADE-validated | Known driver (IntOGen) | Key evidence |")
-            lines.append("|-----------|-------------------|-------------------------|--------------|")
+            lines.append(
+                "| Regulator | CASCADE-validated | Known driver (IntOGen) | "
+                "Tissue-matched in | Key evidence |"
+            )
+            lines.append(
+                "|-----------|-------------------|-------------------------|"
+                "--------------------|--------------|"
+            )
             for entry in convergent_core_cascade:
                 reg = entry["gene"]
                 casc_label = "✓ YES" if entry["tier"] == "cascade_validated" else "No"
@@ -3426,11 +3471,18 @@ class OrchestraWorkflow:
                     f"✓ {entry['driver_role']}" if entry.get("is_known_driver")
                     else "No"
                 )
-                lines.append(f"| {reg} | {casc_label} | {driver_label} | {evidence_note} |")
+                tissue_matched_cts = entry.get("tissue_matched_cancer_types") or []
+                tissue_label = (
+                    ", ".join(ct.upper() for ct in tissue_matched_cts) if tissue_matched_cts
+                    else "None"
+                )
+                lines.append(
+                    f"| {reg} | {casc_label} | {driver_label} | {tissue_label} | {evidence_note} |"
+                )
             lines.append("")
             if not synthesis.get("driver_annotation_available", False):
                 lines.append(
-                    "_Driver annotation unavailable for this call — \"No\" above means "
+                    "_Driver annotation unavailable for this call — \"No\"/\"None\" above means "
                     "**unknown**, not confirmed absent._"
                 )
                 lines.append("")
@@ -3438,7 +3490,12 @@ class OrchestraWorkflow:
                 lines.append(
                     "_Driver source: Martínez-Jiménez et al. 2020 (IntOGen). \"No\" means not a "
                     "positive-selection driver in IntOGen's compendium — not a confirmation the "
-                    "gene isn't a cancer driver by other mechanisms._"
+                    "gene isn't a cancer driver by other mechanisms. \"Tissue-matched in\" lists "
+                    "which of the tested cancer types IntOGen independently confirms as a driver "
+                    "context for this regulator — a regulator convergent across all tested types "
+                    "**and** tissue-matched in those same types is corroborated by two independent "
+                    "methods (ARACNe network rewiring and IntOGen's mutational driver calling), "
+                    "not just one._"
                 )
                 lines.append("")
             # Full findings for CASCADE-validated entries

@@ -69,6 +69,7 @@ def _context_result(
     cascade_validation=None,
     driver_gene_roles=None, tumor_state_only_known_drivers=None,
     driver_annotation_available=None,
+    tumor_state_only_tissue_matched_drivers=None,
 ):
     tumor_only_regs = tumor_only or ["EGFR", "KRAS"]
     interpretation = {
@@ -78,6 +79,10 @@ def _context_result(
     }
     if tumor_state_only_known_drivers is not None:
         interpretation["tumor_state_only_known_driver_count"] = len(tumor_state_only_known_drivers)
+    if tumor_state_only_tissue_matched_drivers is not None:
+        interpretation["tumor_state_only_tissue_matched_driver_count"] = len(
+            tumor_state_only_tissue_matched_drivers
+        )
     result = {
         "gene": "FOXM1",
         "population_averaged_context": "epithelial_cell",
@@ -108,6 +113,10 @@ def _context_result(
         result["regulators"]["tumor_state_only_known_drivers"] = tumor_state_only_known_drivers
     if driver_annotation_available is not None:
         result["driver_annotation_available"] = driver_annotation_available
+    if tumor_state_only_tissue_matched_drivers is not None:
+        result["regulators"]["tumor_state_only_tissue_matched_drivers"] = (
+            tumor_state_only_tissue_matched_drivers
+        )
     return result
 
 
@@ -317,6 +326,26 @@ class TestSynthesizeNetworkComparisonPath:
         assert syn["tumor_state_only_known_driver_count"] == 0
         assert syn["driver_gene_roles"] == {}
         assert syn["driver_annotation_available"] is False
+        assert syn["tumor_state_only_tissue_matched_drivers"] == []
+        assert syn["tumor_state_only_tissue_matched_driver_count"] == 0
+
+    def test_tissue_matched_fields_propagated(self, wf):
+        state = _nc_state(
+            network_comparison=_context_result(
+                tumor_only=["EGFR", "KRAS", "MYC"],
+                driver_gene_roles={"EGFR": "oncogene", "KRAS": "oncogene", "MYC": "mixed"},
+                tumor_state_only_known_drivers=["EGFR", "KRAS", "MYC"],
+                tumor_state_only_tissue_matched_drivers=["EGFR"],
+                driver_annotation_available=True,
+            ),
+        )
+        result = wf._synthesize_network_comparison_path(state)
+        syn = result["synthesis"]
+        # EGFR is tissue-matched; KRAS and MYC are known drivers but not tissue-matched here —
+        # the tissue-matched set must be a strict subset of the known-drivers set, not equal to it.
+        assert syn["tumor_state_only_tissue_matched_drivers"] == ["EGFR"]
+        assert syn["tumor_state_only_tissue_matched_driver_count"] == 1
+        assert set(syn["tumor_state_only_tissue_matched_drivers"]) < set(syn["tumor_state_only_known_drivers"])
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +362,8 @@ class TestFormatNetworkComparisonReport:
                         regnetagents_available=True, cascade_available=True,
                         errors=None, driver_gene_roles=None,
                         tumor_state_only_known_drivers=None,
-                        driver_annotation_available=False):
+                        driver_annotation_available=False,
+                        tumor_state_only_tissue_matched_drivers=None):
         return {
             "routing": "network_comparison",
             "gene": "FOXM1",
@@ -354,6 +384,7 @@ class TestFormatNetworkComparisonReport:
             "driver_gene_roles": driver_gene_roles or {},
             "tumor_state_only_known_drivers": tumor_state_only_known_drivers or [],
             "driver_annotation_available": driver_annotation_available,
+            "tumor_state_only_tissue_matched_drivers": tumor_state_only_tissue_matched_drivers or [],
             "regnetagents_available": regnetagents_available,
             "cascade_available": cascade_available,
             "errors": errors or {},
@@ -449,6 +480,30 @@ class TestFormatNetworkComparisonReport:
         syn["tumor_state_only_regulators"] = []  # _make_synthesis's `or` default can't express this
         report = "\n".join(wf._format_network_comparison_report(syn))
         assert "Known Cancer-Driver Status" not in report
+
+    def test_tissue_matched_driver_labeled_and_summarized(self, wf):
+        syn = self._make_synthesis(
+            tumor_only=["EGFR", "KRAS", "MYC"],
+            driver_gene_roles={"EGFR": "oncogene", "KRAS": "oncogene", "MYC": "mixed"},
+            tumor_state_only_known_drivers=["EGFR", "KRAS", "MYC"],
+            tumor_state_only_tissue_matched_drivers=["EGFR"],
+            driver_annotation_available=True,
+        )
+        report = "\n".join(wf._format_network_comparison_report(syn))
+        assert "EGFR (oncogene, tissue-matched)" in report
+        assert "KRAS (oncogene)" in report and "KRAS (oncogene, tissue-matched)" not in report
+        assert "1 of those 3 are tissue-matched" in report
+
+    def test_no_tissue_matched_drivers_message(self, wf):
+        syn = self._make_synthesis(
+            tumor_only=["EGFR"],
+            driver_gene_roles={"EGFR": "oncogene"},
+            tumor_state_only_known_drivers=["EGFR"],
+            tumor_state_only_tissue_matched_drivers=[],
+            driver_annotation_available=True,
+        )
+        report = "\n".join(wf._format_network_comparison_report(syn))
+        assert "None of the known drivers above are specifically established in HNSC" in report
 
 
 # ---------------------------------------------------------------------------
@@ -787,6 +842,7 @@ def _tumor_raw(
     pop_total=5, tumor_total=10,
     tgt_tumor_only=None,
     driver_gene_roles=None, driver_annotation_available=None,
+    tumor_state_only_tissue_matched_drivers=None,
 ):
     conserved = conserved or []
     tumor_only = tumor_only or []
@@ -820,6 +876,10 @@ def _tumor_raw(
         result["regulators"]["driver_gene_roles"] = driver_gene_roles
     if driver_annotation_available is not None:
         result["driver_annotation_available"] = driver_annotation_available
+    if tumor_state_only_tissue_matched_drivers is not None:
+        result["regulators"]["tumor_state_only_tissue_matched_drivers"] = (
+            tumor_state_only_tissue_matched_drivers
+        )
     return result
 
 
@@ -1052,6 +1112,51 @@ class TestSynthesizeTumorNetworkComparison:
         assert syn["driver_annotation_available"] is True
         assert "B" not in syn["convergent_core"]  # B only in cesc+hnsc, not luad
 
+    def test_tissue_matched_tracked_per_cancer_type(self, wf):
+        # EGFR is convergent (tumor-acquired in both cesc and hnsc), but IntOGen only
+        # tissue-matches it in cesc, not hnsc — the per-cancer-type tracking must reflect
+        # that asymmetry, not merge it into a single yes/no like driver_gene_roles does.
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(
+                tumor_only=["EGFR", "KRAS"],
+                driver_gene_roles={"EGFR": "oncogene"},
+                tumor_state_only_tissue_matched_drivers=["EGFR"],
+                driver_annotation_available=True,
+            ),
+            "hnsc": _tumor_raw(
+                tumor_only=["EGFR", "MYC"],
+                driver_gene_roles={"EGFR": "oncogene"},
+                tumor_state_only_tissue_matched_drivers=[],
+                driver_annotation_available=True,
+            ),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        core_cascade = {e["gene"]: e for e in syn["convergent_core_cascade"]}
+        assert core_cascade["EGFR"]["tissue_matched_cancer_types"] == ["cesc"]
+
+    def test_tissue_matched_empty_when_no_type_matches(self, wf):
+        state = _tnc_state(tumor_network_results={
+            "cesc": _tumor_raw(
+                tumor_only=["EGFR", "KRAS"],
+                driver_gene_roles={"EGFR": "oncogene"},
+                tumor_state_only_tissue_matched_drivers=[],
+                driver_annotation_available=True,
+            ),
+            "hnsc": _tumor_raw(
+                tumor_only=["EGFR", "MYC"],
+                driver_gene_roles={"EGFR": "oncogene"},
+                tumor_state_only_tissue_matched_drivers=[],
+                driver_annotation_available=True,
+            ),
+            "_cascade_validation": {},
+        })
+        result = wf._synthesize_tumor_network_comparison_path(state)
+        syn = result["synthesis"]
+        core_cascade = {e["gene"]: e for e in syn["convergent_core_cascade"]}
+        assert core_cascade["EGFR"]["tissue_matched_cancer_types"] == []
+
 
 # ---------------------------------------------------------------------------
 # _format_tumor_network_comparison_report
@@ -1232,6 +1337,35 @@ class TestFormatTumorNetworkComparisonReport:
         )
         report = "\n".join(wf._format_tumor_network_comparison_report(syn))
         assert "Driver annotation unavailable" in report
+
+    def test_tissue_matched_column_shown(self, wf):
+        syn = self._make_tnc_synthesis(
+            convergent_core=["EGFR"],
+            convergent_core_cascade=[
+                {"gene": "EGFR", "n_cancer_types": 2, "tier": "not_validated",
+                 "cascade_key_findings": [], "cascade_error": None,
+                 "driver_role": "oncogene", "is_known_driver": True,
+                 "tissue_matched_cancer_types": ["cesc"]}
+            ],
+            driver_annotation_available=True,
+        )
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "Tissue-matched in" in report
+        assert "CESC" in report
+
+    def test_tissue_matched_none_shown_when_empty(self, wf):
+        syn = self._make_tnc_synthesis(
+            convergent_core=["EGFR"],
+            convergent_core_cascade=[
+                {"gene": "EGFR", "n_cancer_types": 2, "tier": "not_validated",
+                 "cascade_key_findings": [], "cascade_error": None,
+                 "driver_role": "oncogene", "is_known_driver": True,
+                 "tissue_matched_cancer_types": []}
+            ],
+            driver_annotation_available=True,
+        )
+        report = "\n".join(wf._format_tumor_network_comparison_report(syn))
+        assert "| EGFR | No | ✓ oncogene | None | — |" in report
 
 
 # ---------------------------------------------------------------------------
