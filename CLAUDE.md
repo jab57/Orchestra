@@ -133,7 +133,10 @@ Steps — run exactly these tools in this order, nothing else:
 4. If successful, report: conserved regulators, tumor-acquired regulators, rewiring
    classification (low/moderate/high), CASCADE validation status, and known-driver status
    (`tumor_state_only_known_drivers`, per-gene `driver_gene_roles`) for tumor-acquired
-   regulators. If `driver_annotation_available` is false, report driver status as "unknown,"
+   regulators. Within the known drivers, distinguish `tumor_state_only_tissue_matched_drivers`
+   (established as a driver specifically in this cancer_type) from the remainder (a known driver,
+   but only established in other cancer types) — treat tissue-matched drivers as the stronger
+   candidates. If `driver_annotation_available` is false, report driver status as "unknown,"
    not as "confirmed absent from the driver list."
 5. If further analysis seems relevant, suggest it — do not run it automatically.
 
@@ -219,7 +222,7 @@ Steps — run exactly these tools in this order, nothing else:
 3. Present a summary table:
    Cancer type | Rewiring classification | Conserved regulators (n) |
    Tumor-acquired regulators (n) | Known drivers among tumor-acquired (n) |
-   CASCADE-validated conserved (n).
+   Tissue-matched drivers (n) | CASCADE-validated conserved (n).
 4. Identify two cross-cancer patterns separately:
    - Conserved regulators appearing across all tested types are more robust
      baseline candidates than those conserved in only one type.
@@ -249,13 +252,18 @@ Steps — run exactly these tools in this order, nothing else:
 3. Present the results in this order:
    a. Pairwise overlap table (Cancer A | Cancer B | Shared regulators n | Jaccard %).
    b. Convergent core table (regulators in ALL tested types, CASCADE-validated status,
-      known driver? (role) from `driver_gene_roles`/`is_known_driver`, PubMed pair-novelty
-      verdict for each regulator→gene edge).
+      known driver? (role) from `driver_gene_roles`/`is_known_driver`, which of the tested
+      cancer types independently tissue-match per `tissue_matched_cancer_types`, PubMed
+      pair-novelty verdict for each regulator→gene edge).
    c. Cancer-specific divergent regulators per type.
    d. Overall verdict (convergent / mixed / divergent) with thresholds.
    e. GREmLN baseline table (each type's tumor-vs-normal rewiring) if returned.
 4. Interpret the verdict:
    - Convergent core regulators are the highest-priority cross-cancer candidates.
+   - A convergent core regulator that is ALSO tissue-matched in the same tested cancer types is
+     corroborated by two independent methods (ARACNe network convergence + IntOGen's
+     independently-derived mutational driver calling) — the strongest tier of finding this
+     pipeline can produce.
    - Divergent regulators require cancer-type-specific follow-up (Pipeline 2 or 3).
    - High GREmLN rewiring + high pairwise Jaccard = convergent oncogenic rewiring
      (shared program, not baseline variation); flag this if both conditions are met.
