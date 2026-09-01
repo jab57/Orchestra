@@ -93,7 +93,7 @@ Compares a gene's regulatory evidence across multiple cell types. Runs RegNetAge
 
 ### `compare_network_contexts(gene, cancer_type, cell_type="epithelial_cell")`
 
-Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only).
+Compares a gene's regulatory wiring between population-averaged GREmLN ARACNe networks and TCGA tumor-state ARACNe networks. Classifies rewiring as low/moderate/high (Jaccard ≥ 0.6 / 0.3 thresholds), then validates conserved regulators via CASCADE experimental data (LINCS, DepMap, super-enhancers, DoRothEA). Output: tiered regulator list (conserved + CASCADE-validated, conserved without experimental support, tumor-acquired only). Tumor-acquired regulators are additionally annotated against IntOGen's cancer-driver compendium (Martínez-Jiménez et al. 2020) — known drivers are flagged with their role (oncogene/tumor_suppressor/mixed/ambiguous), helping distinguish likely real signal from ARACNe network noise. If the reference data isn't available for a given call, driver status is reported as unknown rather than absent.
 
 If the gene has no GREmLN population-average baseline entry (absent from the network), the tumor-vs-baseline comparison is undefined — Orchestra falls back to a direct TCGA-only regulatory-neighborhood query and reports that instead of an empty error, clearly labeled as having no baseline to compare against.
 
@@ -129,7 +129,7 @@ For each requested cancer type, Orchestra calls `compare_network_contexts` and r
 - **Divergent** — mean pairwise Jaccard < 0.15 or empty core: type-specific regulatory programs
 - **Mixed** — partial core with substantial type-specific regulators
 
-Output: pairwise overlap table, convergent core table with CASCADE validation (top 3 core regulators) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (each type's tumor-vs-population-average-baseline rewiring). Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to the population-average baseline?"
+Output: pairwise overlap table, convergent core table with CASCADE validation, known-driver status (IntOGen-sourced, same annotation as `compare_network_contexts`) and PubMed pair-novelty verdict, cancer-type-specific divergent regulator lists, and an optional GREmLN baseline section (each type's tumor-vs-population-average-baseline rewiring). Convergent-core regulators that are also known drivers are the highest-priority cross-cancer candidates. Use this to answer "is gene X's tumor regulatory wiring shared between cancer types?" — a distinct question from `compare_network_contexts`, which asks "how much did each tumor type rewire relative to the population-average baseline?"
 
 ### `fetch_tcga_methylation_correlation(regulator, target_genes, tcga_network)`
 

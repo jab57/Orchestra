@@ -131,7 +131,10 @@ Steps — run exactly these tools in this order, nothing else:
    in both the normal tissue (GREmLN) and tumor (TCGA) networks, and suggest
    Pipeline 3 (causal chain analysis) as an alternative.
 4. If successful, report: conserved regulators, tumor-acquired regulators, rewiring
-   classification (low/moderate/high), CASCADE validation status.
+   classification (low/moderate/high), CASCADE validation status, and known-driver status
+   (`tumor_state_only_known_drivers`, per-gene `driver_gene_roles`) for tumor-acquired
+   regulators. If `driver_annotation_available` is false, report driver status as "unknown,"
+   not as "confirmed absent from the driver list."
 5. If further analysis seems relevant, suggest it — do not run it automatically.
 
 ---
@@ -215,7 +218,8 @@ Steps — run exactly these tools in this order, nothing else:
    Use the same gene and cell_type for each call.
 3. Present a summary table:
    Cancer type | Rewiring classification | Conserved regulators (n) |
-   Tumor-acquired regulators (n) | CASCADE-validated conserved (n).
+   Tumor-acquired regulators (n) | Known drivers among tumor-acquired (n) |
+   CASCADE-validated conserved (n).
 4. Identify two cross-cancer patterns separately:
    - Conserved regulators appearing across all tested types are more robust
      baseline candidates than those conserved in only one type.
@@ -245,7 +249,8 @@ Steps — run exactly these tools in this order, nothing else:
 3. Present the results in this order:
    a. Pairwise overlap table (Cancer A | Cancer B | Shared regulators n | Jaccard %).
    b. Convergent core table (regulators in ALL tested types, CASCADE-validated status,
-      PubMed pair-novelty verdict for each regulator→gene edge).
+      known driver? (role) from `driver_gene_roles`/`is_known_driver`, PubMed pair-novelty
+      verdict for each regulator→gene edge).
    c. Cancer-specific divergent regulators per type.
    d. Overall verdict (convergent / mixed / divergent) with thresholds.
    e. GREmLN baseline table (each type's tumor-vs-normal rewiring) if returned.
@@ -296,3 +301,8 @@ Steps — run exactly these tools in this order, nothing else:
   or summaries. Always call it the "GREmLN population-average baseline network" (or
   "population-average baseline" on repeat mentions). Frame rewiring comparisons as
   "tumor network vs. population-average baseline," not "tumor vs. normal."
+- Whenever `driver_gene_roles` / `tumor_state_only_known_drivers` informs a reported finding,
+  cite the source (Martínez-Jiménez et al. 2020, IntOGen) and never imply that a gene absent
+  from the annotation is confirmed *not* a cancer driver — only that it's not a
+  positive-selection driver in IntOGen's compendium (it may still be a real driver identified
+  by fusion, copy-number, or epigenetic mechanisms IntOGen doesn't cover).
