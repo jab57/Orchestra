@@ -2152,7 +2152,7 @@ class OrchestraWorkflow:
         tumor_only_regs = reg_data.get("tumor_state_only") or []
         pop_only_regs = reg_data.get("population_averaged_only") or []
 
-        # Cancer-driver annotation (RegNetAgents >=1.3.0's compare_network_contexts, IntOGen-
+        # Cancer-driver annotation (RegNetAgents >=1.2.6's compare_network_contexts, IntOGen-
         # sourced) — purely additive read of fields RegNetAgents already computes; no new call.
         driver_roles = reg_data.get("driver_gene_roles") or {}
         tumor_state_only_known_drivers = reg_data.get("tumor_state_only_known_drivers") or []
@@ -2276,7 +2276,7 @@ class OrchestraWorkflow:
         tumor_tgt_sets: dict[str, set] = {}  # tumor-state-only targets (GREmLN-shared excluded)
         gremln_baseline: dict[str, dict] = {}
 
-        # Cancer-driver annotation (RegNetAgents >=1.3.0, IntOGen-sourced), merged across all
+        # Cancer-driver annotation (RegNetAgents >=1.2.6, IntOGen-sourced), merged across all
         # queried cancer types — the reference data is static/context-independent, so any
         # cancer type's driver_gene_roles contributes the same per-symbol roles. Skipped calls
         # (guarded by the `if not raw or raw.get("error"): continue` below) simply don't
@@ -3270,7 +3270,7 @@ class OrchestraWorkflow:
         lines.append("")
 
         # Known cancer-driver status among tumor-acquired regulators (IntOGen-sourced,
-        # RegNetAgents >=1.3.0). Separate signal from CASCADE validation above — purely additive.
+        # RegNetAgents >=1.2.6). Separate signal from CASCADE validation above — purely additive.
         driver_annotation_available = synthesis.get("driver_annotation_available", False)
         known_drivers = synthesis.get("tumor_state_only_known_drivers") or []
         driver_roles = synthesis.get("driver_gene_roles") or {}
