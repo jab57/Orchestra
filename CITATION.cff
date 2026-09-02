@@ -11,8 +11,8 @@ doi: 10.5281/zenodo.22238712
 repository-code: https://github.com/jab57/Orchestra
 url: https://github.com/jab57/Orchestra
 license: MIT
-version: 1.3.8
-date-released: 2026-09-01
+version: 1.3.9
+date-released: 2026-09-02
 keywords:
   - gene-regulatory-networks
   - multi-agent-systems
