@@ -590,7 +590,7 @@ class OrchestraWorkflow:
            adds experimental validation (LINCS, DepMap, super-enhancers, etc.).
 
         Synthesis in _synthesize_signature_path combines:
-          - Signature coverage % (overlap_count / signature_size, from RegNetAgents)
+          - Signature coverage % (overlap_count / genes resolved in network, from RegNetAgents)
           - 7-source corroboration count (from CASCADE evidence_synthesis)
         to produce a ranked driver table neither system alone can generate.
         """
@@ -1940,13 +1940,22 @@ class OrchestraWorkflow:
         query_summary = mr_result.get("query_summary") or {}
 
         signature_size = len(gene_signature)
+        # Coverage % denominator: genes actually resolved in the network, not the raw
+        # input count — matches the denominator RegNetAgents' own Fisher enrichment math
+        # already uses internally (query_summary["genes_found_in_network"] == gene_set_found
+        # in find_master_regulators). Falls back to signature_size only if that field is
+        # absent (e.g. an older RegNetAgents). `signature_size` itself is left untouched —
+        # it still reports the full input panel size for the report header.
+        coverage_denominator = query_summary.get("genes_found_in_network") or signature_size
 
         # Build ranked_drivers list — one entry per TF candidate
         ranked_drivers = []
         evidence_table = []
         for entry in mr_list:
             overlap_count = entry.get("overlap_count", 0)
-            coverage_pct = round(overlap_count / signature_size * 100, 1) if signature_size else 0.0
+            coverage_pct = (
+                round(overlap_count / coverage_denominator * 100, 1) if coverage_denominator else 0.0
+            )
 
             # Build a candidate dict compatible with _score_candidate_evidence.
             # enrichment_score > 0 acts as the "network" signal (maps to pagerank_rank flag).

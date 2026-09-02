@@ -57,13 +57,13 @@ def _sig_state(**overrides) -> dict:
     return base
 
 
-def _mr_result(tfs: list[dict]) -> dict:
+def _mr_result(tfs: list[dict], genes_found_in_network: int = 18, gene_set_size: int = 20) -> dict:
     """Build a find_master_regulators-style result dict."""
     return {
         "master_regulators": tfs,
         "query_summary": {
-            "gene_set_size": 20,
-            "genes_found_in_network": 18,
+            "gene_set_size": gene_set_size,
+            "genes_found_in_network": genes_found_in_network,
             "genes_not_found": ["FAKEGENE1", "FAKEGENE2"],
             "network_size": 5000,
             "cell_type": "epithelial_cell",
@@ -155,15 +155,53 @@ class TestSynthesizeSignaturePath:
         assert drivers[2]["gene"] == "TP53"
 
     def test_coverage_pct_computed_correctly(self, wf):
+        """When every input gene resolves in the network, coverage_pct against the
+        resolved count and against the raw input count are the same number."""
         state = _sig_state(
             gene_signature=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],  # 10 genes
-            master_regulators=_mr_result([
-                _tf_entry("CTNNB1", overlap=4, regulon_size=200),
-            ]),
+            master_regulators=_mr_result(
+                [_tf_entry("CTNNB1", overlap=4, regulon_size=200)],
+                genes_found_in_network=10,  # all 10 resolved
+            ),
         )
         result = wf._synthesize_signature_path(state)
         drivers = result["synthesis"]["ranked_drivers"]
         assert drivers[0]["coverage_pct"] == 40.0  # 4/10 * 100
+
+    def test_coverage_pct_uses_resolved_count_not_raw_input_count(self, wf):
+        """Regression test: when some panel genes don't resolve in the network (e.g.
+        DACH1/CESC's 23-of-24 case), coverage_pct must divide by the resolved count
+        (genes_found_in_network) -- the same denominator RegNetAgents' own Fisher
+        enrichment math already uses internally -- not the raw input panel size.
+        Before the fix this silently understated coverage whenever any input gene
+        failed to resolve, requiring a manual post-hoc correction in the DACH1 paper."""
+        state = _sig_state(
+            gene_signature=[f"G{i}" for i in range(24)],  # 24-gene input panel
+            master_regulators=_mr_result(
+                [_tf_entry("DACH1", overlap=4, regulon_size=409)],
+                genes_found_in_network=23,  # only 23 resolved
+            ),
+        )
+        result = wf._synthesize_signature_path(state)
+        drivers = result["synthesis"]["ranked_drivers"]
+        # 4/23 = 17.4%, not 4/24 = 16.7%
+        assert drivers[0]["coverage_pct"] == 17.4
+        # signature_size (the reported input-panel-size header field) stays the full 24 --
+        # only the coverage_pct denominator changes, nothing else.
+        assert result["synthesis"]["signature_size"] == 24
+
+    def test_coverage_pct_falls_back_to_signature_size_when_genes_found_missing(self, wf):
+        """Defensive fallback for an older RegNetAgents that doesn't report
+        genes_found_in_network at all."""
+        mr = _mr_result([_tf_entry("CTNNB1", overlap=4, regulon_size=200)])
+        del mr["query_summary"]["genes_found_in_network"]
+        state = _sig_state(
+            gene_signature=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],  # 10 genes
+            master_regulators=mr,
+        )
+        result = wf._synthesize_signature_path(state)
+        drivers = result["synthesis"]["ranked_drivers"]
+        assert drivers[0]["coverage_pct"] == 40.0  # falls back to 4/10
 
     def test_synthesis_routing_is_signature(self, wf):
         state = _sig_state(
