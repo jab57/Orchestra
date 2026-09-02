@@ -109,7 +109,11 @@ Steps — run exactly these tools in this order, nothing else:
    Driver | p-adj (BH) | CASCADE score | Context 1 papers | Context 2 papers | Classification.
    Use BH-adjusted p as the primary significance criterion, not raw Fisher p.
    Flag any driver marked † (≤ 2 overlapping panel genes) as a provisional finding —
-   its fold-enrichment is not robust to gene list variation.
+   its fold-enrichment is not robust to gene list variation. Include each driver's
+   known cancer-driver status (`is_known_driver`, `driver_role`) from the tool's
+   built-in IntOGen annotation, and `tissue_matched` when a TCGA network was specified.
+   If `driver_annotation_available` is false, report driver status as "unknown," not as
+   "confirmed absent from the driver list."
 4. For each transfer opportunity or bilateral novel finding write 2–3 sentences:
    what the driver regulates, why the finding is meaningful, what validation would
    look like. Flag all findings as computationally derived.
@@ -179,7 +183,10 @@ Steps — run exactly these tools in this order, nothing else:
 4. Report top TF drivers with Fisher p and BH-adjusted p-values, CASCADE scores,
    DoRothEA regulon overlap count, and novelty gap if available. Call out any
    driver marked † (≤ 2 overlapping genes) as a provisional finding — do not
-   present its fold-enrichment as reliable.
+   present its fold-enrichment as reliable. Include each driver's known cancer-driver
+   status (`is_known_driver`, `driver_role`) from the tool's built-in IntOGen annotation,
+   and `tissue_matched` when a TCGA network was specified. If `driver_annotation_available`
+   is false, report driver status as "unknown," not as "confirmed absent from the driver list."
 5. If further analysis seems relevant, suggest it — do not run it automatically.
 
 ---
@@ -309,8 +316,10 @@ Steps — run exactly these tools in this order, nothing else:
   or summaries. Always call it the "GREmLN population-average baseline network" (or
   "population-average baseline" on repeat mentions). Frame rewiring comparisons as
   "tumor network vs. population-average baseline," not "tumor vs. normal."
-- Whenever `driver_gene_roles` / `tumor_state_only_known_drivers` informs a reported finding,
-  cite the source (Martínez-Jiménez et al. 2020, IntOGen) and never imply that a gene absent
+- Whenever IntOGen driver annotation informs a reported finding — `driver_gene_roles` /
+  `tumor_state_only_known_drivers` (Pipelines 2/8/9) or `is_known_driver` / `driver_role` /
+  `tissue_matched` on `analyze_gene_signature`'s ranked drivers (Pipelines 1b/5) — cite the
+  source (Martínez-Jiménez et al. 2020, IntOGen) and never imply that a gene absent
   from the annotation is confirmed *not* a cancer driver — only that it's not a
   positive-selection driver in IntOGen's compendium (it may still be a real driver identified
   by fusion, copy-number, or epigenetic mechanisms IntOGen doesn't cover).
