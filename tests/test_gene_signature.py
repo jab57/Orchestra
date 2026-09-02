@@ -7,6 +7,7 @@ Integration test is gated on ORCHESTRA_INTEGRATION_TESTS=1.
 
 import os
 import pytest
+from unittest.mock import AsyncMock, patch
 from orchestra_langgraph_workflow import OrchestraWorkflow, OrchestraState
 
 
@@ -24,6 +25,8 @@ def _make_workflow() -> OrchestraWorkflow:
     wf.ollama_max_tokens = 2000
     wf._cascade = None
     wf._regnetagents = None
+    wf._persistent_cascade = None
+    wf._persistent_regnetagents = None
     wf.graph = None
     return wf
 
@@ -275,6 +278,59 @@ class TestSynthesizeSignaturePath:
         ev_row = result["synthesis"]["evidence_table"][0]
         assert ev_row["dorothea_overlap"] == 2
 
+    # -----------------------------------------------------------------
+    # IntOGen driver annotation propagation
+    # -----------------------------------------------------------------
+
+    def test_driver_fields_propagated_to_ranked_drivers(self, wf):
+        entry = _tf_entry("CTNNB1", overlap=4)
+        entry["is_known_driver"] = True
+        entry["driver_role"] = "oncogene"
+        entry["tissue_matched"] = True
+        state = _sig_state(
+            master_regulators=_mr_result([entry]),
+            driver_annotation_available=True,
+        )
+        result = wf._synthesize_signature_path(state)
+        driver = result["synthesis"]["ranked_drivers"][0]
+        assert driver["is_known_driver"] is True
+        assert driver["driver_role"] == "oncogene"
+        assert driver["tissue_matched"] is True
+
+    def test_driver_fields_propagated_to_evidence_table(self, wf):
+        entry = _tf_entry("CTNNB1", overlap=4)
+        entry["is_known_driver"] = True
+        entry["driver_role"] = "oncogene"
+        entry["tissue_matched"] = False
+        state = _sig_state(master_regulators=_mr_result([entry]))
+        result = wf._synthesize_signature_path(state)
+        ev_row = result["synthesis"]["evidence_table"][0]
+        assert ev_row["is_known_driver"] is True
+        assert ev_row["driver_role"] == "oncogene"
+        assert ev_row["tissue_matched"] is False
+
+    def test_driver_fields_default_when_absent(self, wf):
+        """entries with no annotation (e.g. annotate_cancer_drivers unreachable) default safely."""
+        state = _sig_state(master_regulators=_mr_result([_tf_entry("CTNNB1", overlap=4)]))
+        result = wf._synthesize_signature_path(state)
+        driver = result["synthesis"]["ranked_drivers"][0]
+        assert driver["is_known_driver"] is False
+        assert driver["driver_role"] is None
+        assert driver["tissue_matched"] is None
+
+    def test_driver_annotation_available_propagated_to_synthesis(self, wf):
+        state = _sig_state(
+            master_regulators=_mr_result([_tf_entry("CTNNB1", overlap=4)]),
+            driver_annotation_available=True,
+        )
+        result = wf._synthesize_signature_path(state)
+        assert result["synthesis"]["driver_annotation_available"] is True
+
+    def test_driver_annotation_available_defaults_false(self, wf):
+        state = _sig_state(master_regulators=_mr_result([_tf_entry("CTNNB1", overlap=4)]))
+        result = wf._synthesize_signature_path(state)
+        assert result["synthesis"]["driver_annotation_available"] is False
+
 
 # ---------------------------------------------------------------------------
 # _format_signature_report
@@ -287,7 +343,8 @@ class TestFormatSignatureReport:
 
     def _make_synthesis(self, ranked_drivers=None, evidence_table=None,
                         errors=None, genes_not_found=None,
-                        regnetagents_available=True, cascade_available=True):
+                        regnetagents_available=True, cascade_available=True,
+                        driver_annotation_available=False):
         drivers = ranked_drivers or []
         evtab = evidence_table or []
         return {
@@ -304,6 +361,7 @@ class TestFormatSignatureReport:
             "regnetagents_available": regnetagents_available,
             "cascade_available": cascade_available,
             "discordance_flags": [],
+            "driver_annotation_available": driver_annotation_available,
             "errors": errors or {},
         }
 
@@ -353,6 +411,96 @@ class TestFormatSignatureReport:
         assert "CTNNB1" in report
         assert "40.0%" in report
         assert "3/7" in report
+
+    # -----------------------------------------------------------------
+    # IntOGen driver annotation column
+    # -----------------------------------------------------------------
+
+    def _driver_row(self, **overrides) -> dict:
+        row = {
+            "gene": "CTNNB1",
+            "overlap_count": 4,
+            "dorothea_overlap": 2,
+            "coverage_pct": 40.0,
+            "regulon_size": 200,
+            "enrichment_score": 3.0,
+            "p_value": 0.0001,
+            "corroboration_count": 3,
+            "corroboration_denominator": 7,
+            "overlapping_genes": ["AXIN2", "MYC"],
+            "cascade_key_findings": [],
+            "multi_source_genes": [],
+            "cascade_error": None,
+            "pagerank_rank": True,
+            "pathway_member": False,
+            "lincs_knockdown": True,
+            "depmap_essentiality": False,
+            "super_enhancer": True,
+            "dorothea_tier": False,
+            "cbio_expression": False,
+            "is_known_driver": False,
+            "driver_role": None,
+            "tissue_matched": None,
+        }
+        row.update(overrides)
+        return row
+
+    def test_known_driver_column_header_shown(self, wf):
+        syn = self._make_synthesis(ranked_drivers=[self._driver_row()],
+                                    evidence_table=[self._driver_row()])
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "Known Driver (IntOGen)" in report
+
+    def test_known_driver_shown_as_unknown_when_annotation_unavailable(self, wf):
+        row = self._driver_row(is_known_driver=True, driver_role="oncogene")
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=False)
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "unknown" in report
+        assert "✓ oncogene" not in report
+
+    def test_known_driver_shown_with_role_when_available(self, wf):
+        row = self._driver_row(is_known_driver=True, driver_role="oncogene")
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=True)
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "✓ oncogene" in report
+
+    def test_known_driver_shown_as_no_when_not_a_driver(self, wf):
+        row = self._driver_row(is_known_driver=False, driver_role=None)
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=True)
+        report = "\n".join(wf._format_signature_report(syn))
+        # the "No" cell — not asserting exact placement, just that it isn't
+        # misreported as a driver and doesn't say "unknown"
+        assert "✓ " not in report.split("### Driver Details")[0] or "✓ oncogene" not in report
+
+    def test_tissue_matched_flag_shown(self, wf):
+        row = self._driver_row(is_known_driver=True, driver_role="oncogene", tissue_matched=True)
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=True)
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "[tissue-matched]" in report
+
+    def test_not_tissue_matched_omits_flag(self, wf):
+        row = self._driver_row(is_known_driver=True, driver_role="oncogene", tissue_matched=False)
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=True)
+        report = "\n".join(wf._format_signature_report(syn))
+        # the footnote explains what [tissue-matched] means generically -- only the
+        # Driver Details line for this specific (non-tissue-matched) gene must omit it.
+        details_line = next(
+            line for line in report.splitlines() if line.strip().startswith("Known driver (IntOGen):")
+        )
+        assert "[tissue-matched]" not in details_line
+        assert "✓ oncogene" in details_line
+
+    def test_driver_details_section_shows_known_driver_line(self, wf):
+        row = self._driver_row(is_known_driver=True, driver_role="tumor_suppressor")
+        syn = self._make_synthesis(ranked_drivers=[row], evidence_table=[row],
+                                    driver_annotation_available=True)
+        report = "\n".join(wf._format_signature_report(syn))
+        assert "Known driver (IntOGen): ✓ tumor_suppressor" in report
 
     def test_dorothea_ovlp_column_shown_in_table(self, wf):
         driver = {
@@ -709,6 +857,118 @@ class TestEffectiveCancerContexts:
         result = self.wf._effective_cancer_contexts(state)
         assert result[0] == "breast cancer"
         assert "cervical cancer" in result
+
+
+class TestRunSignaturePathDriverAnnotation:
+    """_run_signature_path wires annotate_cancer_drivers onto the candidate TF list."""
+
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    @pytest.mark.asyncio
+    async def test_annotate_cancer_drivers_called_with_candidate_genes(self, wf):
+        calls = []
+
+        async def call_tool(name, args, timeout_seconds=None):
+            calls.append((name, args))
+            if name == "find_master_regulators":
+                return _mr_result([
+                    _tf_entry("CTNNB1", overlap=4),
+                    _tf_entry("TP53", overlap=2),
+                ])
+            if name == "annotate_cancer_drivers":
+                return {
+                    "driver_annotation_available": True,
+                    "results": {
+                        "CTNNB1": {"is_driver": True, "role": "oncogene"},
+                        "TP53": {"is_driver": True, "role": "tumor_suppressor"},
+                    },
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = None  # skip DoRothEA overlap + CASCADE validation blocks
+        state = _sig_state()
+
+        result = await wf._run_signature_path(state)
+
+        driver_calls = [args for name, args in calls if name == "annotate_cancer_drivers"]
+        assert len(driver_calls) == 1
+        assert set(driver_calls[0]["genes"]) == {"CTNNB1", "TP53"}
+        assert "cancer_type" not in driver_calls[0]  # no tcga_network set
+
+        mr_list = result["master_regulators"]["master_regulators"]
+        by_gene = {e["gene"]: e for e in mr_list}
+        assert by_gene["CTNNB1"]["is_known_driver"] is True
+        assert by_gene["CTNNB1"]["driver_role"] == "oncogene"
+        assert by_gene["TP53"]["driver_role"] == "tumor_suppressor"
+        assert result["driver_annotation_available"] is True
+
+    @pytest.mark.asyncio
+    async def test_cancer_type_passed_through_as_tcga_code(self, wf):
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "find_master_regulators":
+                return _mr_result([_tf_entry("SHOX2", overlap=3)])
+            if name == "annotate_cancer_drivers":
+                assert args.get("cancer_type") == "paad"
+                return {
+                    "driver_annotation_available": True,
+                    "results": {"SHOX2": {"is_driver": False, "role": None, "tissue_matched": False}},
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = None
+        state = _sig_state(cancer_type="paad")
+
+        # cancer_type="paad" also auto-triggers the cross-context novelty gap block
+        # (_effective_cancer_contexts prepends "pancreatic cancer") -- stub PubMed
+        # so this test stays offline and focused on the driver-annotation wiring.
+        with patch("pubmed_client.novelty_assessment", new=AsyncMock(return_value={})):
+            result = await wf._run_signature_path(state)
+        mr_list = result["master_regulators"]["master_regulators"]
+        assert mr_list[0]["tissue_matched"] is False
+
+    @pytest.mark.asyncio
+    async def test_annotate_cancer_drivers_failure_is_non_fatal(self, wf):
+        """A broken/unreachable driver-annotation call must not sink the whole signature run --
+        find_master_regulators results still come back, just without driver labels."""
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "find_master_regulators":
+                return _mr_result([_tf_entry("CTNNB1", overlap=4)])
+            if name == "annotate_cancer_drivers":
+                raise RuntimeError("RegNetAgents connection lost")
+            raise AssertionError(f"unexpected tool call: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = None
+        state = _sig_state()
+
+        result = await wf._run_signature_path(state)
+
+        assert "master_regulators" not in result["errors"]
+        assert result["driver_annotation_available"] is False
+        mr_list = result["master_regulators"]["master_regulators"]
+        assert mr_list[0].get("is_known_driver") is None  # never set, not defaulted to a wrong value
+
+    @pytest.mark.asyncio
+    async def test_no_tfs_found_skips_annotation_call(self, wf):
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "find_master_regulators":
+                return _mr_result([])
+            raise AssertionError(f"annotate_cancer_drivers must not be called with an empty TF list: {name}")
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = None
+        state = _sig_state()
+
+        result = await wf._run_signature_path(state)
+        assert result["master_regulators"]["master_regulators"] == []
 
 
 class TestTcgaNetworkMcpSchema:

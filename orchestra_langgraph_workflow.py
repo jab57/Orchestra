@@ -92,6 +92,7 @@ class OrchestraState(TypedDict):
     master_regulators: Optional[dict] # RegNetAgents find_master_regulators output
     cancer_contexts: Optional[list]   # cancer contexts for cross-context novelty gap (GitHub #13)
     cross_context_novelty: Optional[dict]  # {reg: {ctx: novelty_result}} from GitHub #13
+    driver_annotation_available: Optional[bool]  # IntOGen annotate_cancer_drivers reachable for this run
 
     # Cross-cell-type comparison (Issue #11)
     cell_types: Optional[list]        # input list of cell types for compare_cell_contexts
@@ -661,6 +662,36 @@ class OrchestraWorkflow:
             dorothea_overlap_map = dict(regulon_results)
             for entry in mr_list:
                 entry["dorothea_overlap"] = dorothea_overlap_map.get(entry["gene"], 0)
+
+        # IntOGen driver annotation (one batched call across all candidate TFs) —
+        # mirrors the annotation compare_network_contexts already returns for
+        # Pipelines 2/8/9; find_master_regulators has no driver info of its own.
+        if all_tfs and self._regnetagents is not None:
+            driver_params: dict = {"genes": all_tfs}
+            if tcga_network:
+                driver_params["cancer_type"] = tcga_network
+            try:
+                driver_result = await asyncio.wait_for(
+                    self._regnetagents.call_tool(
+                        "annotate_cancer_drivers",
+                        driver_params,
+                        timeout_seconds=30,
+                    ),
+                    timeout=30.0,
+                )
+                annotation_available = bool(
+                    driver_result.get("driver_annotation_available")
+                ) and "error" not in driver_result
+                state["driver_annotation_available"] = annotation_available
+                driver_map = driver_result.get("results") or {}
+                for entry in mr_list:
+                    d = driver_map.get(entry["gene"].upper()) or {}
+                    entry["is_known_driver"] = bool(d.get("is_driver", False))
+                    entry["driver_role"] = d.get("role")
+                    entry["tissue_matched"] = d.get("tissue_matched")
+            except Exception as e:
+                await self._emit(f"[Orchestra] annotate_cancer_drivers failed: {type(e).__name__}: {e}")
+                state["driver_annotation_available"] = False
 
         # Step 2: parallel CASCADE validation on top 3 enriched TFs
         top_tfs = [
@@ -1936,6 +1967,9 @@ class OrchestraWorkflow:
                 "enrichment_score": entry.get("enrichment_score", 0),
                 "p_value": entry.get("p_value", 1.0),
                 "overlapping_genes": entry.get("overlapping_genes", []),
+                "is_known_driver": entry.get("is_known_driver", False),
+                "driver_role": entry.get("driver_role"),
+                "tissue_matched": entry.get("tissue_matched"),
                 **scores,
             }
             evidence_table.append(row)
@@ -1954,6 +1988,9 @@ class OrchestraWorkflow:
                 "multi_source_genes": entry.get("multi_source_genes", []),
                 "cbioportal_summary": entry.get("cbioportal_summary"),
                 "cascade_error": entry.get("cascade_error"),
+                "is_known_driver": entry.get("is_known_driver", False),
+                "driver_role": entry.get("driver_role"),
+                "tissue_matched": entry.get("tissue_matched"),
             })
 
         # BH FDR correction across all regulators tested in this run
@@ -2010,6 +2047,7 @@ class OrchestraWorkflow:
             "discordance_flags": discordance_flags,
             "cancer_contexts": cancer_contexts,
             "cross_context_novelty": cross_context_novelty,
+            "driver_annotation_available": state.get("driver_annotation_available", False),
             "errors": errors,
         }
         state["completed_steps"].append("synthesize")
@@ -2807,6 +2845,16 @@ class OrchestraWorkflow:
         errors = synthesis.get("errors", {})
         regnetagents_available = synthesis.get("regnetagents_available", True)
         cascade_available = synthesis.get("cascade_available", True)
+        driver_annotation_available = synthesis.get("driver_annotation_available", False)
+
+        def driver_label(row: dict) -> str:
+            if not driver_annotation_available:
+                return "unknown"
+            if row.get("is_known_driver"):
+                role = row.get("driver_role") or "driver"
+                tm = " [tissue-matched]" if row.get("tissue_matched") else ""
+                return f"✓ {role}{tm}"
+            return "No"
 
         network_label = synthesis.get("network_label", f"GREmLN population-average baseline ({cell_type})")
 
@@ -2838,10 +2886,10 @@ class OrchestraWorkflow:
             lines.append("### Ranked TF Drivers")
             lines.append("")
             lines.append(
-                "| TF Driver | Coverage | ARACNe Ovlp | DoRothEA Ovlp | Enrichment | p-value | p-adj (BH)"
+                "| TF Driver | Known Driver (IntOGen) | Coverage | ARACNe Ovlp | DoRothEA Ovlp | Enrichment | p-value | p-adj (BH)"
                 " | PageRank | Pathway | LINCS | DepMap | SE | DoRothEA | cBio | Score |"
             )
-            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+            lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
             def flag(v: bool) -> str:
                 return "✓" if v else "-"
@@ -2855,6 +2903,7 @@ class OrchestraWorkflow:
                 p_adj_str = f"{row.get('p_value_adj', 1.0):.2e}"
                 lines.append(
                     f"| {gene_label} "
+                    f"| {driver_label(row)} "
                     f"| {row['coverage_pct']}% "
                     f"| {row['overlap_count']}/{row.get('regulon_size', '?')} "
                     f"| {row.get('dorothea_overlap', 0)} "
@@ -2884,6 +2933,22 @@ class OrchestraWorkflow:
             footnote += "_"
             lines.append(footnote)
             lines.append("")
+            if not driver_annotation_available:
+                lines.append(
+                    "_Driver annotation unavailable for this call — \"unknown\" above means "
+                    "**unknown**, not confirmed absent from the driver list._"
+                )
+            else:
+                lines.append(
+                    "_Driver source: Martínez-Jiménez et al. 2020 (IntOGen Compendium of "
+                    "Mutational Cancer Driver Genes). \"No\" means not a positive-selection "
+                    "driver in IntOGen's compendium — not a confirmation the gene isn't a "
+                    "cancer driver by other mechanisms (fusion, copy-number, epigenetic). "
+                    "[tissue-matched] means IntOGen independently calls this gene a driver "
+                    "specifically in the tumor type used for this network (only shown when "
+                    "a TCGA network was specified)._"
+                )
+            lines.append("")
 
         # Per-driver detail for top 3
         lines.append("### Driver Details")
@@ -2894,6 +2959,7 @@ class OrchestraWorkflow:
                          f"({d['overlap_count']} ARACNe{dro_part} signature genes), "
                          f"enrichment={d['enrichment_score']:.2f}, "
                          f"p={d['p_value']:.2e}, p-adj={d.get('p_value_adj', 1.0):.2e}")
+            lines.append(f"   Known driver (IntOGen): {driver_label(d)}")
             if d["overlap_count"] <= 2:
                 lines.append("   ⚠ Overlap ≤ 2 genes — fold-enrichment is indicative; verify with a larger gene panel.")
             if d.get("overlapping_genes"):
@@ -3951,6 +4017,7 @@ class OrchestraWorkflow:
             gene2=gene2,
             cancer_contexts=cancer_contexts,
             cross_context_novelty=None,
+            driver_annotation_available=None,
             novelty_result=None,
             edge_novelty_results=None,
             synthesis=None,
