@@ -8,8 +8,7 @@ Expected result: MYC is a hub_regulator in all three cell types (RegNetAgents)
 and essential in all three (DepMap/LINCS via CASCADE) — demonstrating conserved
 evidence for a canonical oncogene across immune and epithelial contexts.
 
-This case is the biological validation for Issue #11 (compare_cell_contexts)
-and the fifth entry in the paper.md Results table.
+This case is the biological validation for Issue #11 (compare_cell_contexts).
 
 Requirements: RegNetAgents and CASCADE must be installed and accessible.
 See docs/installation.md for setup instructions.

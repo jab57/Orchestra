@@ -454,8 +454,6 @@ Orchestra/
 ├── run_validation.py                # Standalone validation runner (3 biological cases)
 ├── generate_figure.py               # Architecture figure generator
 ├── figure_architecture.png/.pdf     # Architecture figure
-├── paper.md                         # Paper draft
-├── paper.bib                        # Bibliography
 ├── pyproject.toml                   # pytest configuration
 ├── requirements.txt                 # Python dependencies (exact versions)
 ├── .env.example                     # Environment variable template
