@@ -28,9 +28,6 @@ Thumbs.db
 # Temporary
 tmp/
 outputs/
-FUTURE_ROADMAP.md
-development_plan.md
-PROJECT_STATUS.md
 
-# Private manuscript drafts (not part of the public repo)
+# Private companion repo (jab57/orchestra-private) — manuscripts, figures, FUTURE_ROADMAP.md
 manuscript/
