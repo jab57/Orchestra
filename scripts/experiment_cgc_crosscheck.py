@@ -1,5 +1,5 @@
 """
-Robustness check for the corroboration-paper (manuscript/Orchestra_research_paper.tex):
+Robustness check for the corroboration-paper (private/Orchestra_research_paper.tex):
 does the >=2 corroboration-vs-OncoKB pattern (Sections 3.1/3.6 of the paper) replicate
 against a second, independently curated cancer-gene ground truth?
 

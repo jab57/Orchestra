@@ -2246,7 +2246,7 @@ class OrchestraWorkflow:
         # Score tumor-acquired regulators, if the caller opted into validate_tumor_acquired.
         # Already-scored by the lightweight-tool checks (LINCS/super-enhancer/DoRothEA/DepMap) —
         # no key_findings parsing needed here, unlike the conserved tier above. Tier threshold
-        # (>=2 of 4) matches the validated result in manuscript/corroboration_threshold_findings.md:
+        # (>=2 of 4) matches the validated result in private/corroboration_threshold_findings.md:
         # a single source is confounded by data-availability bias, >=2 is not.
         tumor_acquired_validation = nc.get("tumor_acquired_cascade_validation") or {}
         validated_tumor_acquired = []
@@ -3360,7 +3360,7 @@ class OrchestraWorkflow:
             lines.append(
                 "_A single source can reflect data-availability bias rather than real signal — "
                 "only the ≥2 tier is validated as distinguishing real cancer regulators from "
-                "background genes. See manuscript/corroboration_threshold_findings.md._"
+                "background genes. See private/corroboration_threshold_findings.md._"
             )
         lines.append("")
 
