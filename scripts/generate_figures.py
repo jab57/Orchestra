@@ -1,5 +1,6 @@
 """
-Generate the two figures for Orchestra_research_paper.tex:
+Generate the two figures for the corroboration paper
+(private/manuscript/arxiv/corroboration/v1/Orchestra_research_paper.tex):
   Figure 1 (figure_pipeline_schematic.pdf) -- the validation pipeline architecture.
   Figure 2 (figure_corroboration_summary.pdf) -- corroborated vs uncorroborated
     OncoKB rate by threshold, focal genes vs negative controls (Table 1 data).
