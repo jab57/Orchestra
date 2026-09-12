@@ -1,0 +1,127 @@
+{
+  "target_genes": [
+    "CADM1",
+    "ESR1",
+    "SLIT2",
+    "EDNRB"
+  ],
+  "burden_genes": [
+    "RARB",
+    "DAPK1",
+    "CDH1",
+    "MGMT",
+    "SOCS1",
+    "CDKN2A",
+    "MAL"
+  ],
+  "selection_rule": "average beta across all distinct probes annotated TSS200 for the gene; fall back to TSS1500 only if the gene has zero TSS200 probes",
+  "manifest_source": "GPL13534_HumanMethylation450_15017482_v.1.1.csv (GEO platform GPL13534 supplementary file)",
+  "selected_probes": {
+    "CADM1": {
+      "probes": [
+        "cg02025192",
+        "cg03418552",
+        "cg18281160",
+        "cg23034799"
+      ],
+      "region_used": "TSS200"
+    },
+    "ESR1": {
+      "probes": [
+        "cg00655307",
+        "cg01777019",
+        "cg07671949",
+        "cg07746998",
+        "cg13612689",
+        "cg20627916",
+        "cg20893956",
+        "cg21608605",
+        "cg21614759",
+        "cg23164938",
+        "cg23165623",
+        "cg24764793",
+        "cg27316393"
+      ],
+      "region_used": "TSS200"
+    },
+    "SLIT2": {
+      "probes": [
+        "cg13078140",
+        "cg13281139",
+        "cg15469350"
+      ],
+      "region_used": "TSS200"
+    },
+    "EDNRB": {
+      "probes": [
+        "cg04390523",
+        "cg06179060",
+        "cg06971129",
+        "cg13818654",
+        "cg15836660"
+      ],
+      "region_used": "TSS200"
+    },
+    "RARB": {
+      "probes": [
+        "cg02499249",
+        "cg03481274",
+        "cg06720425",
+        "cg10712623",
+        "cg12479047"
+      ],
+      "region_used": "TSS200"
+    },
+    "DAPK1": {
+      "probes": [
+        "cg20401521"
+      ],
+      "region_used": "TSS200"
+    },
+    "CDH1": {
+      "probes": [
+        "cg04398983",
+        "cg05785947",
+        "cg13920367",
+        "cg16739895"
+      ],
+      "region_used": "TSS200"
+    },
+    "MGMT": {
+      "probes": [
+        "cg05068430",
+        "cg16215402",
+        "cg18026026",
+        "cg19706602"
+      ],
+      "region_used": "TSS200"
+    },
+    "SOCS1": {
+      "probes": [
+        "cg03553358",
+        "cg12642006",
+        "cg27003951",
+        "cg27540841"
+      ],
+      "region_used": "TSS200"
+    },
+    "CDKN2A": {
+      "probes": [
+        "cg00718440",
+        "cg10848754",
+        "cg14430974"
+      ],
+      "region_used": "TSS1500_fallback"
+    },
+    "MAL": {
+      "probes": [
+        "cg04804539",
+        "cg05142617",
+        "cg05314420",
+        "cg09983051",
+        "cg21245652"
+      ],
+      "region_used": "TSS1500_fallback"
+    }
+  }
+}

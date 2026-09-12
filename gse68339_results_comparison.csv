@@ -1,0 +1,5 @@
+gene,tcga_rho,tcga_p,tcga_n,gse68339_rho,gse68339_p,gse68339_p_adj_bh,gse68339_n,replicates
+CADM1,-0.249,6.4e-05,253,-0.1861,4.093e-02,6.140e-02,121,no - trend only
+ESR1,-0.248,6.6e-05,253,-0.3579,5.563e-05,1.669e-04,121,yes
+SLIT2,-0.263,2.4e-05,253,-0.1703,6.183e-02,6.183e-02,121,no - trend only
+EDNRB,-0.157,0.012,253,-0.0453,6.214e-01,n/a,121,n/a - negative control

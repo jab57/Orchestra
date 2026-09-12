@@ -29,5 +29,10 @@ Thumbs.db
 tmp/
 outputs/
 
+# GSE68339 raw downloads (large, re-fetchable from GEO -- see gse68339_replication.py docstring)
+GSE68339-GPL10558_series_matrix.txt*
+GSE68339-GPL13534_series_matrix.txt*
+GPL13534_manifest.csv*
+
 # Private companion repo (jab57/orchestra-private) — manuscripts, figures, FUTURE_ROADMAP.md
 private/
