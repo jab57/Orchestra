@@ -9,6 +9,18 @@
 
 Orchestra spawns RegNetAgents and CASCADE as subprocesses via the MCP stdio transport. It uses each child server's own `env/Scripts/python.exe` (Windows) or `env/bin/python` (Unix), so the child servers' Python environments are independent of Orchestra's.
 
+## TCGA Tumor-State Networks (Optional)
+
+The `tcga_network` options use 14 TCGA ARACNe networks that live in the RegNetAgents and CASCADE installations. Orchestra does not ship or redistribute them. They are published by Giorgi & Alvarez on Zenodo ([doi:10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956)) under CC BY-NC-ND 4.0 (non-commercial; no sharing of modified versions). Each child server installs its own copy. For RegNetAgents, run this in its directory:
+
+```bash
+python scripts/setup_tcga_networks.py --accept-license
+```
+
+CASCADE has a separate setup step; follow the TCGA section of the [CASCADE README](https://github.com/jab57/CASCADE#readme).
+
+Do not share the locally built caches or use them for commercial work. Without them, the GREmLN population-average baseline analyses still work.
+
 ## Install Orchestra
 
 ```bash

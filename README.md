@@ -280,6 +280,10 @@ def make_cascade_client(cwd: str = r"c:\Dev\CASCADE") -> MCPClient:
 def make_regnetagents_client(cwd: str = r"c:\Dev\RegNetAgents") -> MCPClient:
 ```
 
+### TCGA Tumor-State Networks (Optional)
+
+The `tcga_network` options (e.g. `tcga_network="cesc"`) use the 14 TCGA tumor-state ARACNe networks, which are loaded by the RegNetAgents and CASCADE child servers. **Orchestra does not ship or redistribute these networks.** The authors (Giorgi & Alvarez) publish them on Zenodo ([doi:10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956)) under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/) (attribution; non-commercial use only; no sharing of modified versions). Each child server installs its own copy. For RegNetAgents, run `python scripts/setup_tcga_networks.py --accept-license` in its directory (see the [RegNetAgents installation guide](https://github.com/jab57/RegNetAgents/blob/main/INSTALL.md#optional-tcga-tumor-state-networks)). CASCADE has a separate setup step; follow the TCGA section of the [CASCADE README](https://github.com/jab57/CASCADE#readme). Do not share the locally built network caches, and do not use them for commercial work. Without them, everything except the TCGA-scoped analyses still works (GREmLN population-average baseline networks).
+
 ### Configure Environment
 
 ```bash
@@ -551,3 +555,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guideli
 ## License
 
 MIT License — see [LICENSE](LICENSE)
+
+This covers Orchestra's code. Third-party data keeps its upstream license: the TCGA ARACNe networks are CC BY-NC-ND 4.0 and are not redistributed (see [TCGA Tumor-State Networks](#tcga-tumor-state-networks-optional)). `dach1_partial_corr_cesc.csv` contains per-sample expression and methylation values from the TCGA Cervical Squamous Cell Carcinoma cohort (TCGA-CESC), retrieved from [cBioPortal](https://www.cbioportal.org) (open-access TCGA data; TCGA Research Network, cBioPortal: Cerami et al. 2012, Gao et al. 2013). The `gse68339_*` files derive from GEO series GSE68339.
