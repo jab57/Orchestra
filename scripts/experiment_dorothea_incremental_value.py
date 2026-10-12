@@ -31,19 +31,24 @@ and scripts/experiment_corroboration_ranked_stad.py):
 Output:
     outputs/dorothea_incremental_value_results.json
 """
+import argparse
 import json
 import random
+import sys
 from pathlib import Path
 
 import numpy as np
 import statsmodels.api as sm
 from scipy.stats import chi2, fisher_exact
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ground_truth import CHOICES, load_truth, output_suffix  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = ROOT / "outputs"
 
 
-def load_focal_dedup(path, oncokb):
+def load_focal_dedup(path, truth):
     rows = []
     for q in json.load(open(path, encoding="utf-8")):
         if q["category"] != "focal":
@@ -53,7 +58,7 @@ def load_focal_dedup(path, oncokb):
                 "gene": c["gene"],
                 "dorothea": int(c["dorothea_tf"]),
                 "other3": int(c["lincs_knockdown"]) + int(c["super_enhancer"]) + int(c["depmap_essential"]),
-                "oncokb": int(c["gene"] in oncokb),
+                "truth": int(c["gene"] in truth),
             })
     seen = {}
     for r in rows:
@@ -61,7 +66,7 @@ def load_focal_dedup(path, oncokb):
     return list(seen.values())
 
 
-def load_controls(path, oncokb):
+def load_controls(path, truth):
     """Negative-control candidates, NOT deduplicated -- matching the paper's
     negative-control convention (Section "Statistical framework"): keeping every
     row gives the control test more power, so a null result there is not an
@@ -74,7 +79,7 @@ def load_controls(path, oncokb):
             rows.append({
                 "gene": c["gene"],
                 "dorothea": int(c["dorothea_tf"]),
-                "oncokb": int(c["gene"] in oncokb),
+                "truth": int(c["gene"] in truth),
             })
     return rows
 
@@ -87,8 +92,8 @@ def dorothea_alone_test(rows):
     neg = [r for r in rows if r["dorothea"] == 0]
     if not pos or not neg:
         return None
-    a = sum(r["oncokb"] for r in pos)
-    b = sum(r["oncokb"] for r in neg)
+    a = sum(r["truth"] for r in pos)
+    b = sum(r["truth"] for r in neg)
     odds, p = fisher_exact([[a, len(pos) - a], [b, len(neg) - b]], alternative="greater")
     return {
         "n_dorothea_positive": len(pos), "n_dorothea_negative": len(neg),
@@ -97,18 +102,48 @@ def dorothea_alone_test(rows):
     }
 
 
+SOURCES = ("lincs_knockdown", "super_enhancer", "dorothea_tf", "depmap_essential")
+
+
+def per_source_test(path, truth):
+    """Each CASCADE evidence source as a lone predictor of ground-truth membership, on the
+    deduplicated focal set: Fisher's exact, one-tailed 'greater', source-positive vs
+    source-negative candidates. Descriptive: shows which source is strongest in a panel."""
+    seen = {}
+    for q in json.load(open(path, encoding="utf-8")):
+        if q["category"] != "focal":
+            continue
+        for c in q["scored_candidates"]:
+            seen.setdefault(c["gene"], c)
+    out = {}
+    for src in SOURCES:
+        pos = [c for c in seen.values() if c[src]]
+        neg = [c for c in seen.values() if not c[src]]
+        if not pos or not neg:
+            out[src] = None
+            continue
+        a = sum(c["gene"] in truth for c in pos)
+        b = sum(c["gene"] in truth for c in neg)
+        odds, p = fisher_exact([[a, len(pos) - a], [b, len(neg) - b]], alternative="greater")
+        out[src] = {"n_positive": len(pos), "n_negative": len(neg),
+                    "truth_pos_positive": a, "truth_pos_negative": b,
+                    "rate_positive": a / len(pos), "rate_negative": b / len(neg),
+                    "OR": odds, "fisher_p": p}
+    return out
+
+
 def stratified_test(rows, n_perm=1000, seed=42):
     strat = [r for r in rows if r["dorothea"] == 0]
     corrob = [r for r in strat if r["other3"] >= 2]
     uncorrob = [r for r in strat if r["other3"] < 2]
-    a = sum(r["oncokb"] for r in corrob)
-    b = sum(r["oncokb"] for r in uncorrob)
+    a = sum(r["truth"] for r in corrob)
+    b = sum(r["truth"] for r in uncorrob)
     if not corrob or not uncorrob:
         return None
     odds, p = fisher_exact([[a, len(corrob) - a], [b, len(uncorrob) - b]], alternative="greater")
 
     labels = [r["other3"] >= 2 for r in strat]
-    truth = [r["oncokb"] for r in strat]
+    truth = [r["truth"] for r in strat]
     n_hit = sum(labels)
     obs_gap = (sum(t for l, t in zip(labels, truth) if l) / n_hit) - \
               (sum(t for l, t in zip(labels, truth) if not l) / (len(strat) - n_hit))
@@ -131,7 +166,7 @@ def stratified_test(rows, n_perm=1000, seed=42):
 
 
 def logistic_lr_test(rows):
-    y = np.array([r["oncokb"] for r in rows])
+    y = np.array([r["truth"] for r in rows])
     dorothea = np.array([r["dorothea"] for r in rows])
     other3 = np.array([r["other3"] for r in rows])
 
@@ -150,15 +185,24 @@ def logistic_lr_test(rows):
 
 
 def main():
-    oncokb = set(x["hugoSymbol"] for x in json.load(open(OUTPUTS / "oncokb_cancer_gene_list.json", encoding="utf-8")))
+    ap = argparse.ArgumentParser(description="Incremental-value test against a chosen ground truth.")
+    ap.add_argument("--data-dir", type=Path, default=OUTPUTS,
+                    help="folder holding corroboration_ranked_*_raw.json; results are written there too")
+    ap.add_argument("--truth", choices=CHOICES, required=True,
+                    help="ground-truth gene set. 'oncokb'/'sanger_cgc' are LEGACY (reproduces v1-v3 only).")
+    args = ap.parse_args()
+    data_dir = args.data_dir
+    truth_set = load_truth(args.truth)
+    suffix = output_suffix(args.truth)
+    print(f"Ground truth: {args.truth} ({len(truth_set)} genes)")
 
     results = {}
     for name, path in [
-        ("brca_coad", OUTPUTS / "corroboration_ranked_brca_coad_raw.json"),
-        ("stad", OUTPUTS / "corroboration_ranked_stad_raw.json"),
+        ("brca_coad", data_dir / "corroboration_ranked_brca_coad_raw.json"),
+        ("stad", data_dir / "corroboration_ranked_stad_raw.json"),
     ]:
-        rows = load_focal_dedup(path, oncokb)
-        controls = load_controls(path, oncokb)
+        rows = load_focal_dedup(path, truth_set)
+        controls = load_controls(path, truth_set)
         stratified = stratified_test(rows)
         logistic = logistic_lr_test(rows)
         dorothea_alone_focal = dorothea_alone_test(rows)
@@ -169,6 +213,7 @@ def main():
             "logistic_lr": logistic,
             "dorothea_alone_focal_dedup": dorothea_alone_focal,
             "dorothea_alone_controls_raw": dorothea_alone_controls,
+            "per_source_focal_dedup": per_source_test(path, truth_set),
         }
 
         print(f"\n=== {name} (n={len(rows)} unique focal candidates) ===")
@@ -191,9 +236,10 @@ def main():
         print(f"  Logistic: DoRothEA p={logistic['dorothea_p']:.4f}, other3_count p={logistic['other3_p']:.4f}, "
               f"LR test p={logistic['lr_p']:.4f}")
 
-    with open(OUTPUTS / "dorothea_incremental_value_results.json", "w") as f:
+    out_path = data_dir / f"dorothea_incremental_value_results{suffix}.json"
+    with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\nSaved: {OUTPUTS / 'dorothea_incremental_value_results.json'}")
+    print(f"\nSaved: {out_path}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,2325 @@
+[
+  {
+    "gene": "MYC",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 21,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "TCEAL8",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RARB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PRDM16",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "OPRL1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SLC1A2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CABP4",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GSC",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GPRC5B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SHOX2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "IKZF1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "AURKA",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 20,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "ASF1B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FEN1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FOXM1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FOXN3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TRIP13",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ARHGAP11A",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ANK2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CCNE1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF362",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "C1QBP",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "TOP2A",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 19,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "DEPDC1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ATAD2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SPAG5",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HELLS",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "AURKA",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF695",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZSCAN18",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RBL1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ILF3",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TARDBP",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "CCND3",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 42,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "HCRTR1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "IKBKG",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "LRP6",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TBC1D10A",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAPGEF1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF286A",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MEF2B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ELL",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RFC1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF519",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "TP53",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 18,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "RORA",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TLX1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF232",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "KHDRBS1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MAFB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MYB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "EWSR1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAB3A",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SPA17",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ATN1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "PIK3CA",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 60,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "TAOK1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HIPK3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NMRAL1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SIRT6",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZKSCAN8",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "AKAP11",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNHIT1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "JMY",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "EDF1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "DENND4A",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "KRAS",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 33,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "EAF1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "KLF3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NAB1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "APPL1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF444",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CCNC",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZDHHC1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GOLT1B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZFP91",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PKN2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "SMAD4",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 25,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "BRWD1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RC3H1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF37A",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ARID2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAB1B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "LRP6",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SIGIRR",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FBXO11",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TNFRSF18",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HIPK3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "ERBB2",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 21,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "CDC42BPG",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "JUP",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "EPHA1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CANT1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GPR35",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ACVR1B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PLCB3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NFYB",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TCEAL1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GPRC5A",
+        "lincs_knockdown": true,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "APC",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 26,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "AFF4",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SOS1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "STRN",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HELZ",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NMRAL1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "DICER1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "THAP7",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ARHGEF12",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CREB1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "JMJD1C",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "CTNNB1",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 16,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "USP9X",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF688",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "OVOL1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ANXA5",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ARHGEF39",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ELOF1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PIR",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CDK8",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PTHLH",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ISX",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "CCNE1",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 14,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "TRIP13",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "BUB1B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NRIP2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PNRC1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF362",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PCSK9",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "EYA2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FOSL1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GPC3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ADH1A",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "ARID1A",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 39,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "PRDM15",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAD54L2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ARID1B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RBM15",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MDC1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF142",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PRKAR2A",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NFRKB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TNFAIP6",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CBX5",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "CDH1",
+    "cancer_type": "stad",
+    "category": "focal",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 22,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "CDS1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF781",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ELF3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ATP8B1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PTPRF",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAB25",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "EID2B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TFRC",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ITPKB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HNF1B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "ACTB",
+    "cancer_type": "stad",
+    "category": "housekeeping",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 42,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "ZYX",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAB12",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RALGAPA2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CCDC85B",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ADNP",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SH2D3A",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MAFK",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CCNT2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "DRAP1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "LRRFIP1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "GAPDH",
+    "cancer_type": "stad",
+    "category": "housekeeping",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 34,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "ATM",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PRDX2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MIF",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "BMPR2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PRMT1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RUVBL2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RFXANK",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "THOP1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PSMD9",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MLST8",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "HPRT1",
+    "cancer_type": "stad",
+    "category": "housekeeping",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 19,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "CENPK",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HAT1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PCNA",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF853",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ACTL6A",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "LZTS2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GNAL",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MCTS1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HSPD1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HTATSF1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "LDHA",
+    "cancer_type": "stad",
+    "category": "housekeeping",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 29,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "PTTG1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NRIP2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAN",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZBTB37",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CAP1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZNF785",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ADM",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ELOC",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PCGF1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SH3GL1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "TUBB",
+    "cancer_type": "stad",
+    "category": "housekeeping",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 18,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "FEN1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CDK4",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ENO1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "KHDRBS1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RUVBL2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "DNAJC27",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NLE1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ELK1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZSWIM6",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CSNK2B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "FASN",
+    "cancer_type": "stad",
+    "category": "non_driver",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 31,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "FOXK2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RANGAP1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SH3BGRL",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SMARCA4",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "HGS",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SCRIB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "NLE1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MTA2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "FANCE",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TRIM28",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "PCNA",
+    "cancer_type": "stad",
+    "category": "non_driver",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 34,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "PTTG1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TYMS",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "SRSF2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAD51",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "RAN",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "C1QBP",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "E2F7",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TCF7L1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ILF2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TRIAP1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "PKM",
+    "cancer_type": "stad",
+    "category": "non_driver",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 31,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "ENO1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "DUSP19",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PLCE1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "THRB",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "CRHBP",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PBX1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": true,
+        "depmap_essential": false,
+        "corroboration_count": 2,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "ZC3H12B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MTERF2",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PSMC3",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "POLR3K",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": true,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  },
+  {
+    "gene": "VIM",
+    "cancer_type": "stad",
+    "category": "non_driver",
+    "ranking_method": "mi_weight",
+    "n_tumor_acquired_total": 25,
+    "n_scored": 10,
+    "scored_candidates": [
+      {
+        "gene": "GNG11",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TSHZ3",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "TCF21",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GNAI2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "PDE1B",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "BASP1",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MRAS",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "LGALS1",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "MAP3K3",
+        "lincs_knockdown": false,
+        "super_enhancer": false,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 0,
+        "corroboration_denominator": 4
+      },
+      {
+        "gene": "GNG2",
+        "lincs_knockdown": false,
+        "super_enhancer": true,
+        "dorothea_tf": false,
+        "depmap_essential": false,
+        "corroboration_count": 1,
+        "corroboration_denominator": 4
+      }
+    ],
+    "rewiring": "high"
+  }
+]

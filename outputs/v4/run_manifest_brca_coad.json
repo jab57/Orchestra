@@ -1,0 +1,61 @@
+{
+  "script": "experiment_corroboration_ranked_brca_coad.py",
+  "panels": {
+    "brca_focal": [
+      "TP53",
+      "MYC",
+      "CTNNB1",
+      "CCND1",
+      "BRCA2",
+      "PIK3CA",
+      "PTEN",
+      "RB1",
+      "ERBB2",
+      "ESR1",
+      "GATA3",
+      "CDH1"
+    ],
+    "coad_focal": [
+      "TP53",
+      "MYC",
+      "CTNNB1",
+      "CCND1",
+      "KRAS",
+      "APC",
+      "SMAD4",
+      "BRAF",
+      "PIK3CA",
+      "PTEN",
+      "FBXW7",
+      "TCF7L2",
+      "RNF43"
+    ],
+    "housekeeping": [
+      "ACTB",
+      "GAPDH",
+      "HPRT1",
+      "LDHA",
+      "TUBB"
+    ],
+    "non_driver": [
+      "FASN",
+      "PCNA",
+      "PKM",
+      "VIM"
+    ]
+  },
+  "collected_utc": "2026-10-12T15:17:24+00:00",
+  "orchestra": {
+    "describe": "v1.3.10-10-ga0b1098-dirty",
+    "commit": "a0b1098080b436d0a64ab3fa4d7385db23388152"
+  },
+  "regnetagents": {
+    "describe": "v1.3.0",
+    "commit": "0941ed5ea1272c4ce63c5864789e6629302bae3f"
+  },
+  "cascade": {
+    "describe": "v1.5.0",
+    "commit": "e4c1973ee574e40e4573d603ff50f604cd285385"
+  },
+  "n_queries": 43
+}

@@ -29,7 +29,9 @@ Inputs: outputs/corroboration_ranked_brca_coad_raw.json, ..._stad_raw.json,
 outputs/oncokb_cancer_gene_list.json
 Output: outputs/mi_weight_incremental_value_results.json
 """
+import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -37,11 +39,14 @@ import statsmodels.api as sm
 from scipy.stats import chi2, fisher_exact
 import random
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ground_truth import CHOICES, load_truth, output_suffix  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = ROOT / "outputs"
 
 
-def load_focal_dedup(path, oncokb):
+def load_focal_dedup(path, truth):
     rows = []
     for q in json.load(open(path, encoding="utf-8")):
         if q["category"] != "focal":
@@ -51,7 +56,7 @@ def load_focal_dedup(path, oncokb):
                 "gene": c["gene"],
                 "mi_top3": int(i < 3),
                 "count": c["corroboration_count"],
-                "oncokb": int(c["gene"] in oncokb),
+                "truth": int(c["gene"] in truth),
             })
     seen = {}
     for r in rows:
@@ -63,14 +68,14 @@ def stratified_test(rows, n_perm=1000, seed=42):
     strat = [r for r in rows if r["mi_top3"] == 0]
     corrob = [r for r in strat if r["count"] >= 2]
     uncorrob = [r for r in strat if r["count"] < 2]
-    a = sum(r["oncokb"] for r in corrob)
-    b = sum(r["oncokb"] for r in uncorrob)
+    a = sum(r["truth"] for r in corrob)
+    b = sum(r["truth"] for r in uncorrob)
     if not corrob or not uncorrob:
         return None
     odds, p = fisher_exact([[a, len(corrob) - a], [b, len(uncorrob) - b]], alternative="greater")
 
     labels = [r["count"] >= 2 for r in strat]
-    truth = [r["oncokb"] for r in strat]
+    truth = [r["truth"] for r in strat]
     n_hit = sum(labels)
     obs_gap = (sum(t for l, t in zip(labels, truth) if l) / n_hit) - \
               (sum(t for l, t in zip(labels, truth) if not l) / (len(strat) - n_hit))
@@ -93,7 +98,7 @@ def stratified_test(rows, n_perm=1000, seed=42):
 
 
 def logistic_lr_test(rows):
-    y = np.array([r["oncokb"] for r in rows])
+    y = np.array([r["truth"] for r in rows])
     mi_top3 = np.array([r["mi_top3"] for r in rows])
     count = np.array([r["count"] for r in rows])
 
@@ -112,14 +117,23 @@ def logistic_lr_test(rows):
 
 
 def main():
-    oncokb = set(x["hugoSymbol"] for x in json.load(open(OUTPUTS / "oncokb_cancer_gene_list.json", encoding="utf-8")))
+    ap = argparse.ArgumentParser(description="Incremental-value test against a chosen ground truth.")
+    ap.add_argument("--data-dir", type=Path, default=OUTPUTS,
+                    help="folder holding corroboration_ranked_*_raw.json; results are written there too")
+    ap.add_argument("--truth", choices=CHOICES, required=True,
+                    help="ground-truth gene set. 'oncokb'/'sanger_cgc' are LEGACY (reproduces v1-v3 only).")
+    args = ap.parse_args()
+    data_dir = args.data_dir
+    truth_set = load_truth(args.truth)
+    suffix = output_suffix(args.truth)
+    print(f"Ground truth: {args.truth} ({len(truth_set)} genes)")
 
     results = {}
     for name, path in [
-        ("brca_coad", OUTPUTS / "corroboration_ranked_brca_coad_raw.json"),
-        ("stad", OUTPUTS / "corroboration_ranked_stad_raw.json"),
+        ("brca_coad", data_dir / "corroboration_ranked_brca_coad_raw.json"),
+        ("stad", data_dir / "corroboration_ranked_stad_raw.json"),
     ]:
-        rows = load_focal_dedup(path, oncokb)
+        rows = load_focal_dedup(path, truth_set)
         stratified = stratified_test(rows)
         logistic = logistic_lr_test(rows)
         results[name] = {"n_unique_focal": len(rows), "stratified": stratified, "logistic_lr": logistic}
@@ -134,9 +148,10 @@ def main():
         print(f"  Logistic: mi_top3 p={logistic['mi_top3_p']:.4f}, corroboration_count p={logistic['count_p']:.4f}, "
               f"LR test p={logistic['lr_p']:.4f}")
 
-    with open(OUTPUTS / "mi_weight_incremental_value_results.json", "w") as f:
+    out_path = data_dir / f"mi_weight_incremental_value_results{suffix}.json"
+    with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\nSaved: {OUTPUTS / 'mi_weight_incremental_value_results.json'}")
+    print(f"\nSaved: {out_path}")
 
 
 if __name__ == "__main__":

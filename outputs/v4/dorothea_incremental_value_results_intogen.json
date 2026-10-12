@@ -1,0 +1,164 @@
+{
+  "brca_coad": {
+    "n_unique_focal": 229,
+    "stratified": {
+      "n_dorothea_negative": 195,
+      "n_corroborated": 14,
+      "n_uncorroborated": 181,
+      "rate_corroborated": 0.2857142857142857,
+      "rate_uncorroborated": 0.1270718232044199,
+      "OR": 2.747826086956522,
+      "fisher_p": 0.10956028114499256,
+      "observed_gap_pp": 15.86424625098658,
+      "permutation_p": 0.122
+    },
+    "logistic_lr": {
+      "n": 229,
+      "dorothea_coef": 0.9267334987457306,
+      "dorothea_p": 0.03158959351329955,
+      "other3_coef": 0.3523718231975894,
+      "other3_p": 0.3191646749665171,
+      "lr_stat": 1.0051081549057699,
+      "lr_p": 0.31607763278126566
+    },
+    "dorothea_alone_focal_dedup": {
+      "n_dorothea_positive": 34,
+      "n_dorothea_negative": 195,
+      "rate_dorothea_positive": 0.29411764705882354,
+      "rate_dorothea_negative": 0.13846153846153847,
+      "OR": 2.5925925925925926,
+      "fisher_p": 0.02653164601556602
+    },
+    "dorothea_alone_controls_raw": {
+      "n_dorothea_positive": 14,
+      "n_dorothea_negative": 164,
+      "rate_dorothea_positive": 0.0,
+      "rate_dorothea_negative": 0.03048780487804878,
+      "OR": 0.0,
+      "fisher_p": 1.0
+    },
+    "per_source_focal_dedup": {
+      "lincs_knockdown": {
+        "n_positive": 1,
+        "n_negative": 228,
+        "truth_pos_positive": 0,
+        "truth_pos_negative": 37,
+        "rate_positive": 0.0,
+        "rate_negative": 0.16228070175438597,
+        "OR": 0.0,
+        "fisher_p": 1.0
+      },
+      "super_enhancer": {
+        "n_positive": 157,
+        "n_negative": 72,
+        "truth_pos_positive": 28,
+        "truth_pos_negative": 9,
+        "rate_positive": 0.17834394904458598,
+        "rate_negative": 0.125,
+        "OR": 1.5193798449612403,
+        "fisher_p": 0.2063777790161702
+      },
+      "dorothea_tf": {
+        "n_positive": 34,
+        "n_negative": 195,
+        "truth_pos_positive": 10,
+        "truth_pos_negative": 27,
+        "rate_positive": 0.29411764705882354,
+        "rate_negative": 0.13846153846153847,
+        "OR": 2.5925925925925926,
+        "fisher_p": 0.02653164601556602
+      },
+      "depmap_essential": {
+        "n_positive": 32,
+        "n_negative": 197,
+        "truth_pos_positive": 6,
+        "truth_pos_negative": 31,
+        "rate_positive": 0.1875,
+        "rate_negative": 0.15736040609137056,
+        "OR": 1.2357320099255582,
+        "fisher_p": 0.4160949483279235
+      }
+    }
+  },
+  "stad": {
+    "n_unique_focal": 135,
+    "stratified": {
+      "n_dorothea_negative": 120,
+      "n_corroborated": 8,
+      "n_uncorroborated": 112,
+      "rate_corroborated": 0.5,
+      "rate_uncorroborated": 0.08928571428571429,
+      "OR": 10.2,
+      "fisher_p": 0.006397959909469216,
+      "observed_gap_pp": 41.07142857142857,
+      "permutation_p": 0.007
+    },
+    "logistic_lr": {
+      "n": 135,
+      "dorothea_coef": 1.0208844938558987,
+      "dorothea_p": 0.12919125966055572,
+      "other3_coef": 1.9253417363615262,
+      "other3_p": 0.000910753774148644,
+      "lr_stat": 14.00340504433413,
+      "lr_p": 0.00018247987418545475
+    },
+    "dorothea_alone_focal_dedup": {
+      "n_dorothea_positive": 15,
+      "n_dorothea_negative": 120,
+      "rate_dorothea_positive": 0.26666666666666666,
+      "rate_dorothea_negative": 0.11666666666666667,
+      "OR": 2.7532467532467533,
+      "fisher_p": 0.11693655837703987
+    },
+    "dorothea_alone_controls_raw": {
+      "n_dorothea_positive": 8,
+      "n_dorothea_negative": 82,
+      "rate_dorothea_positive": 0.0,
+      "rate_dorothea_negative": 0.06097560975609756,
+      "OR": 0.0,
+      "fisher_p": 1.0
+    },
+    "per_source_focal_dedup": {
+      "lincs_knockdown": {
+        "n_positive": 1,
+        "n_negative": 134,
+        "truth_pos_positive": 0,
+        "truth_pos_negative": 18,
+        "rate_positive": 0.0,
+        "rate_negative": 0.13432835820895522,
+        "OR": 0.0,
+        "fisher_p": 1.0
+      },
+      "super_enhancer": {
+        "n_positive": 83,
+        "n_negative": 52,
+        "truth_pos_positive": 16,
+        "truth_pos_negative": 2,
+        "rate_positive": 0.1927710843373494,
+        "rate_negative": 0.038461538461538464,
+        "OR": 5.970149253731344,
+        "fisher_p": 0.007548677400918402
+      },
+      "dorothea_tf": {
+        "n_positive": 15,
+        "n_negative": 120,
+        "truth_pos_positive": 4,
+        "truth_pos_negative": 14,
+        "rate_positive": 0.26666666666666666,
+        "rate_negative": 0.11666666666666667,
+        "OR": 2.7532467532467533,
+        "fisher_p": 0.11693655837703987
+      },
+      "depmap_essential": {
+        "n_positive": 12,
+        "n_negative": 123,
+        "truth_pos_positive": 5,
+        "truth_pos_negative": 13,
+        "rate_positive": 0.4166666666666667,
+        "rate_negative": 0.10569105691056911,
+        "OR": 6.043956043956044,
+        "fisher_p": 0.010567135639315736
+      }
+    }
+  }
+}

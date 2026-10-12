@@ -27,7 +27,8 @@ Thumbs.db
 
 # Temporary
 tmp/
-outputs/
+outputs/*
+!outputs/v4/
 
 # GSE68339 raw downloads (large, re-fetchable from GEO -- see gse68339_replication.py docstring)
 GSE68339-GPL10558_series_matrix.txt*

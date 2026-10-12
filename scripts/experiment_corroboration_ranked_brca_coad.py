@@ -15,6 +15,7 @@ ranking is applied to Orchestra's internal selection, not to the raw
 regulators list returned in the response. Reusing the alphabetical field here
 would silently score the wrong candidate set under rank_tumor_acquired=True.
 """
+import argparse
 import asyncio
 import sys
 import io
@@ -30,17 +31,23 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 from gene_match_guard import assert_gene_match, GeneMismatchError
+from run_manifest import write_manifest
 
 from orchestra_langgraph_workflow import OrchestraWorkflow
 from mcp_client import make_cascade_client, make_regnetagents_client
 
 CELL_TYPE = "epithelial_cell"
 
-# Identical panel to experiment_corroboration_tumor_acquired.py, for direct comparability.
-BRCA_FOCAL = ["TP53", "MYC", "CTNNB1", "CCND1", "BRCA2", "PIK3CA", "PTEN", "RB1", "ERBB2", "ESR1", "GATA3"]
-COAD_FOCAL = ["TP53", "MYC", "CTNNB1", "CCND1", "KRAS", "APC", "SMAD4", "BRAF", "PIK3CA", "PTEN", "FBXW7", "TCF7L2"]
+# Panels follow RegNetAgents v3 (design amendment 2026-10-07 in
+# private/manuscript/arxiv/corroboration/ground_truth_switch_design.md): CDH1 added to
+# BRCA and RNF43 to COAD (both newly answerable after the gene-ID mapper fix); BRCA1
+# is not testable in the TCGA-only tier and is omitted; PABPC1 dropped from the neutral
+# controls (it is an IntOGen driver). v1-v3 used the earlier 11/12-gene panels and
+# included PABPC1.
+BRCA_FOCAL = ["TP53", "MYC", "CTNNB1", "CCND1", "BRCA2", "PIK3CA", "PTEN", "RB1", "ERBB2", "ESR1", "GATA3", "CDH1"]
+COAD_FOCAL = ["TP53", "MYC", "CTNNB1", "CCND1", "KRAS", "APC", "SMAD4", "BRAF", "PIK3CA", "PTEN", "FBXW7", "TCF7L2", "RNF43"]
 HOUSEKEEPING = ["ACTB", "GAPDH", "HPRT1", "LDHA", "TUBB"]
-NON_DRIVER = ["FASN", "PCNA", "PKM", "PABPC1", "VIM"]
+NON_DRIVER = ["FASN", "PCNA", "PKM", "VIM"]
 
 QUERIES = (
     [{"gene": g, "cancer_type": "brca", "category": "focal"} for g in BRCA_FOCAL]
@@ -57,7 +64,8 @@ QUERIES = (
     ]
 )
 
-OUT_PATH = Path(__file__).parent.parent / "outputs" / "corroboration_ranked_brca_coad_raw.json"
+# v4 data set (RegNetAgents v1.3.0, CASCADE v1.5.0) -- kept apart from the v1-v3 files in outputs/.
+OUT_PATH = Path(__file__).parent.parent / "outputs" / "v4" / "corroboration_ranked_brca_coad_raw.json"
 
 
 async def run_one(workflow: OrchestraWorkflow, gene: str, cancer_type: str, category: str) -> dict:
@@ -116,8 +124,15 @@ async def run_one(workflow: OrchestraWorkflow, gene: str, cancer_type: str, cate
 
 
 async def main():
+    ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite an existing output file (the design scores each data set once)")
+    args = ap.parse_args()
+    if OUT_PATH.exists() and not args.force:
+        sys.exit(f"Refusing to overwrite {OUT_PATH} (use --force if this is intentional).")
+
     workflow = OrchestraWorkflow()
-    OUT_PATH.parent.mkdir(exist_ok=True)
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
         workflow._persistent_cascade = cascade
@@ -131,6 +146,8 @@ async def main():
                 json.dump(all_results, f, indent=2)
 
     print(f"\n\nDONE. {len(all_results)} queries. Results written to {OUT_PATH}")
+    write_manifest(OUT_PATH.with_name("run_manifest_brca_coad.json"), Path(__file__).name,
+                   {"brca_focal": BRCA_FOCAL, "coad_focal": COAD_FOCAL, "housekeeping": HOUSEKEEPING, "non_driver": NON_DRIVER}, extra={"n_queries": len(all_results)})
 
 
 if __name__ == "__main__":

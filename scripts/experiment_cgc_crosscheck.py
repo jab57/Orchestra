@@ -22,12 +22,17 @@ Output:
     outputs/cgc_crosscheck_results.json
 """
 
+import argparse
 import json
 import random
+import sys
 import urllib.request
 from pathlib import Path
 
 from scipy.stats import fisher_exact
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ground_truth import load_truth, output_suffix  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = ROOT / "outputs"
@@ -67,8 +72,8 @@ def fisher_ge2(rows, category, truth_set):
     d = len(uncorrob) - c
     odds, p = fisher_exact([[a, b], [c, d]], alternative="greater")
     return {
-        "n_corrob": a + b, "oncokb_pos_corrob": a, "rate_corrob": a / (a + b) if (a + b) else float("nan"),
-        "n_uncorrob": c + d, "oncokb_pos_uncorrob": c, "rate_uncorrob": c / (c + d) if (c + d) else float("nan"),
+        "n_corrob": a + b, "truth_pos_corrob": a, "rate_corrob": a / (a + b) if (a + b) else float("nan"),
+        "n_uncorrob": c + d, "truth_pos_uncorrob": c, "rate_uncorrob": c / (c + d) if (c + d) else float("nan"),
         "OR": odds, "p": p,
     }
 
@@ -95,36 +100,48 @@ def permutation_test(rows_dedup, category, truth_set, n=1000, seed=42):
 
 
 def main():
-    oncokb_full = fetch_oncokb_gene_list()
-    with open(OUTPUTS / "oncokb_cancer_gene_list.json", "w") as f:
-        json.dump(oncokb_full, f, indent=2)
+    ap = argparse.ArgumentParser(description="Corroboration >=2 pattern against a second ground truth.")
+    ap.add_argument("--data-dir", type=Path, default=OUTPUTS,
+                    help="folder holding corroboration_ranked_*_raw.json; results are written there too")
+    ap.add_argument("--truth", choices=("sanger_cgc", "vogelstein", "intogen"), required=True,
+                    help="ground-truth gene set. 'oncokb'/'sanger_cgc' are LEGACY: it fetches from the "
+                         "OncoKB API and reproduces v1-v3 only; never use it for new results.")
+    args = ap.parse_args()
+    data_dir = args.data_dir
 
-    sanger_cgc = sorted(set(x["hugoSymbol"] for x in oncokb_full if x.get("sangerCGC")))
-    with open(OUTPUTS / "sanger_cgc_genes.json", "w") as f:
-        json.dump(sanger_cgc, f, indent=2)
-    sanger_cgc_set = set(sanger_cgc)
-    print(f"Sanger CGC gene set: {len(sanger_cgc_set)} genes (via OncoKB cancerGeneList API)")
+    if args.truth == "sanger_cgc":
+        # LEGACY path (v1-v3): refresh the cached lists from OncoKB's public API.
+        oncokb_full = fetch_oncokb_gene_list()
+        with open(OUTPUTS / "oncokb_cancer_gene_list.json", "w") as f:
+            json.dump(oncokb_full, f, indent=2)
+        sanger_cgc = sorted(set(x["hugoSymbol"] for x in oncokb_full if x.get("sangerCGC")))
+        with open(OUTPUTS / "sanger_cgc_genes.json", "w") as f:
+            json.dump(sanger_cgc, f, indent=2)
+    truth_set = load_truth(args.truth)
+    suffix = output_suffix(args.truth, default="sanger_cgc")
+    print(f"Ground truth: {args.truth} ({len(truth_set)} genes)")
 
-    brca_coad = load_panel(OUTPUTS / "corroboration_ranked_brca_coad_raw.json")
-    stad = load_panel(OUTPUTS / "corroboration_ranked_stad_raw.json")
+    brca_coad = load_panel(data_dir / "corroboration_ranked_brca_coad_raw.json")
+    stad = load_panel(data_dir / "corroboration_ranked_stad_raw.json")
 
     results = {}
     for name, rows in [("brca_coad", brca_coad), ("stad", stad)]:
         panel_result = {}
         for category in ["focal", "negative"]:
-            raw = fisher_ge2(rows, category, sanger_cgc_set)
+            raw = fisher_ge2(rows, category, truth_set)
             rows_d = dedup(rows) if category == "focal" else rows
-            deduped = fisher_ge2(rows_d, category, sanger_cgc_set)
+            deduped = fisher_ge2(rows_d, category, truth_set)
             panel_result[category] = {"raw": raw, "dedup": deduped}
             print(f"{name} {category}: raw OR={raw['OR']:.2f} p={raw['p']:.4f} | "
                   f"dedup OR={deduped['OR']:.2f} p={deduped['p']:.4f}")
-        panel_result["permutation_focal_dedup"] = permutation_test(dedup(rows), "focal", sanger_cgc_set)
+        panel_result["permutation_focal_dedup"] = permutation_test(dedup(rows), "focal", truth_set)
         print(f"{name} permutation (focal, dedup): {panel_result['permutation_focal_dedup']}")
         results[name] = panel_result
 
-    with open(OUTPUTS / "cgc_crosscheck_results.json", "w") as f:
+    out_path = data_dir / f"cgc_crosscheck_results{suffix}.json"
+    with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\nSaved: {OUTPUTS / 'cgc_crosscheck_results.json'}")
+    print(f"\nSaved: {out_path}")
 
 
 if __name__ == "__main__":

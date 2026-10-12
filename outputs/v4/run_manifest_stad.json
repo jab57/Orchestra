@@ -1,0 +1,48 @@
+{
+  "script": "experiment_corroboration_ranked_stad.py",
+  "panels": {
+    "stad_focal": [
+      "MYC",
+      "AURKA",
+      "TOP2A",
+      "CCND3",
+      "TP53",
+      "PIK3CA",
+      "KRAS",
+      "SMAD4",
+      "ERBB2",
+      "APC",
+      "CTNNB1",
+      "CCNE1",
+      "ARID1A",
+      "CDH1"
+    ],
+    "housekeeping": [
+      "ACTB",
+      "GAPDH",
+      "HPRT1",
+      "LDHA",
+      "TUBB"
+    ],
+    "non_driver": [
+      "FASN",
+      "PCNA",
+      "PKM",
+      "VIM"
+    ]
+  },
+  "collected_utc": "2026-10-12T15:21:20+00:00",
+  "orchestra": {
+    "describe": "v1.3.10-10-ga0b1098-dirty",
+    "commit": "a0b1098080b436d0a64ab3fa4d7385db23388152"
+  },
+  "regnetagents": {
+    "describe": "v1.3.0",
+    "commit": "0941ed5ea1272c4ce63c5864789e6629302bae3f"
+  },
+  "cascade": {
+    "describe": "v1.5.0-dirty",
+    "commit": "e4c1973ee574e40e4573d603ff50f604cd285385"
+  },
+  "n_queries": 23
+}

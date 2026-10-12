@@ -1,13 +1,14 @@
 """
-MI-weight ranking follow-up (STAD panel) -- companion to
-experiment_corroboration_ranked_brca_coad.py. Same 11-gene STAD panel and
-negative controls as experiment_corroboration_replication_stad.py, with
-rank_tumor_acquired=True on each run_analysis() call.
+MI-weight ranking (STAD panel) -- companion to
+experiment_corroboration_ranked_brca_coad.py. 14-gene STAD focal panel and
+FASN/PCNA/PKM/VIM + housekeeping negative controls (see the panel comment below),
+with rank_tumor_acquired=True on each run_analysis() call. Writes to outputs/v4/.
 
 See experiment_corroboration_ranked_brca_coad.py's docstring for why
 candidates are read from tumor_acquired_cascade_validation's keys rather than
 re-deriving tumor_state_only[:10] locally.
 """
+import argparse
 import asyncio
 import sys
 import io
@@ -23,16 +24,21 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 from gene_match_guard import assert_gene_match, GeneMismatchError
+from run_manifest import write_manifest
 
 from orchestra_langgraph_workflow import OrchestraWorkflow
 from mcp_client import make_cascade_client, make_regnetagents_client
 
 CELL_TYPE = "epithelial_cell"
 
-# Identical panel to experiment_corroboration_replication_stad.py, for direct comparability.
-STAD_FOCAL = ["MYC", "AURKA", "TOP2A", "CCND3", "TP53", "PIK3CA", "KRAS", "SMAD4", "ERBB2", "APC", "CTNNB1"]
+# v4 panel (design amendment 2026-10-12): the v1-v3 11 genes plus CCNE1, ARID1A and CDH1,
+# which were on the originally intended panel and were dropped in v1-v3 only because of
+# the RegNetAgents gene-ID mapper bug. RHOA is genuinely absent from GREmLN and stays out.
+# PABPC1 is dropped from the neutral controls (it is an IntOGen driver), as for BRCA/COAD.
+STAD_FOCAL = ["MYC", "AURKA", "TOP2A", "CCND3", "TP53", "PIK3CA", "KRAS", "SMAD4", "ERBB2", "APC", "CTNNB1",
+              "CCNE1", "ARID1A", "CDH1"]
 HOUSEKEEPING = ["ACTB", "GAPDH", "HPRT1", "LDHA", "TUBB"]
-NON_DRIVER = ["FASN", "PCNA", "PKM", "PABPC1", "VIM"]
+NON_DRIVER = ["FASN", "PCNA", "PKM", "VIM"]
 
 QUERIES = (
     [{"gene": g, "cancer_type": "stad", "category": "focal"} for g in STAD_FOCAL]
@@ -40,7 +46,8 @@ QUERIES = (
     + [{"gene": g, "cancer_type": "stad", "category": "non_driver"} for g in NON_DRIVER]
 )
 
-OUT_PATH = Path(__file__).parent.parent / "outputs" / "corroboration_ranked_stad_raw.json"
+# v4 data set (RegNetAgents v1.3.0, CASCADE v1.5.0) -- kept apart from the v1-v3 files in outputs/.
+OUT_PATH = Path(__file__).parent.parent / "outputs" / "v4" / "corroboration_ranked_stad_raw.json"
 
 
 async def run_one(workflow: OrchestraWorkflow, gene: str, cancer_type: str, category: str) -> dict:
@@ -95,8 +102,15 @@ async def run_one(workflow: OrchestraWorkflow, gene: str, cancer_type: str, cate
 
 
 async def main():
+    ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite an existing output file (the design scores each data set once)")
+    args = ap.parse_args()
+    if OUT_PATH.exists() and not args.force:
+        sys.exit(f"Refusing to overwrite {OUT_PATH} (use --force if this is intentional).")
+
     workflow = OrchestraWorkflow()
-    OUT_PATH.parent.mkdir(exist_ok=True)
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     async with make_cascade_client() as cascade, make_regnetagents_client() as regnetagents:
         workflow._persistent_cascade = cascade
@@ -110,6 +124,8 @@ async def main():
                 json.dump(all_results, f, indent=2)
 
     print(f"\n\nDONE. {len(all_results)} queries. Results written to {OUT_PATH}")
+    write_manifest(OUT_PATH.with_name("run_manifest_stad.json"), Path(__file__).name,
+                   {"stad_focal": STAD_FOCAL, "housekeeping": HOUSEKEEPING, "non_driver": NON_DRIVER}, extra={"n_queries": len(all_results)})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1984 @@
+INFO:__main__:Starting CASCADE LangGraph MCP Server...
+INFO:__main__:Pre-initializing workflow...
+INFO:__main__:Initializing CASCADE LangGraph workflow...
+INFO:tools.gene_id_mapper:Gene mapping initialized: 8027 genes cached
+INFO:cascade_langgraph_workflow:Using Ollama Cloud (API key detected)
+WARNING:cascade_langgraph_workflow:Ollama not available: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+WARNING:cascade_langgraph_workflow:To use Ollama: 1) Install from https://ollama.com  2) Run: ollama pull llama3.1:8b
+INFO:cascade_langgraph_workflow:CASCADE LangGraph workflow initialized
+INFO:__main__:Workflow ready
+INFO:__main__:Workflow ready
+INFO:__main__:Starting MCP server...
+INFO:__main__:Pre-warming DoRothEA regulons in background...
+INFO:__main__:Pre-warming GREmLN model in background...
+INFO:tools.dorothea:[DoRothEA] Loading TF regulons from disk cache...
+INFO:__main__:Pre-warming embedding similarity cache in background...
+INFO:__main__:Pre-warming DepMap CRISPR data in background...
+INFO:tools.model_inference:[CASCADE] Loading model checkpoint from c:\Dev\CASCADE\models\model.ckpt
+INFO:tools.model_inference:[CASCADE] Using device: cuda
+INFO:tools.dorothea:[DoRothEA] Loaded 32,286 TF-target interactions from cache
+INFO:tools.model_inference:[CASCADE] Found gene embeddings at 'gene_embedding.weight'
+INFO:tools.model_inference:[CASCADE] Loaded embeddings for 19247 genes
+INFO:tools.model_inference:[CASCADE] Embedding dimension: 256
+INFO:__main__:Pre-warming LINCS data in background...
+INFO:tools.depmap:[DepMap] Loading gene effect scores from c:\Dev\CASCADE\data\depmap\CRISPRGeneEffect.csv
+INFO:__main__:Pre-warming super-enhancer data in background...
+INFO:tools.lincs:[LINCS] Loading expression perturbation data from c:\Dev\CASCADE\data\lincs\gene_attribute_edges.txt.gz
+INFO:__main__:Pre-warming cell type networks in background...
+INFO:tools.super_enhancers:[SuperEnhancer] Loading data from c:\Dev\CASCADE\data\super_enhancers\dbSUPER_hg19.tsv
+INFO:__main__:DoRothEA regulons ready
+INFO:__main__:GREmLN model ready
+INFO:__main__:Embedding cache ready
+INFO:tools.super_enhancers:[SuperEnhancer] Loaded 69,205 super-enhancer associations
+INFO:tools.super_enhancers:[SuperEnhancer] Unique genes: 10,548
+INFO:tools.super_enhancers:[SuperEnhancer] Cell types: 102
+INFO:__main__:Super-enhancer data ready
+INFO:__main__:All cell type networks ready
+INFO:tools.lincs:[LINCS] Loaded 2,524,500 gene-perturbation associations
+INFO:tools.lincs:[LINCS] Unique genes measured: 9,551
+INFO:tools.lincs:[LINCS] Unique knockdowns: 5,049
+INFO:__main__:LINCS data ready
+INFO:__main__:Starting RegNetAgents LangGraph MCP Server...
+INFO:__main__:Initializing LangGraph workflow...
+INFO:regnetagents_langgraph_workflow:Loaded threshold config for 24 cell types
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: blca
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: brca
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: cesc
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: coad
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: hnsc
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: kirc
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: lihc
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: luad
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: lusc
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: ov
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: paad
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: prad
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: stad
+INFO:regnetagents_langgraph_workflow:Loaded TCGA cache: ucec
+INFO:regnetagents_langgraph_workflow:TCGA networks loaded: ['blca', 'brca', 'cesc', 'coad', 'hnsc', 'kirc', 'lihc', 'luad', 'lusc', 'ov', 'paad', 'prad', 'stad', 'ucec'] (14/14 types)
+Loaded HIGH-QUALITY UniProt gene database: 15347 genes
+  - Source: NCBI+UniProt annotations
+  - Quality: Professional curation
+  - Coverage: Comprehensive
+Loaded HIGH-QUALITY UniProt gene database: 15347 genes
+  - Source: NCBI+UniProt annotations
+  - Quality: Professional curation
+  - Coverage: Comprehensive
+All genes already cached
+Fast gene mapping initialized: 15491 genes cached
+INFO:regnetagents_langgraph_workflow:PathwayEnricherAgent initialized with Reactome API
+INFO:regnetagents_langgraph_workflow:Using local Ollama at http://localhost:11434
+INFO:tools.depmap:[DepMap] Loaded 1186 cell lines x 18435 genes
+INFO:tools.depmap:[DepMap] Loaded lineage map for 2132 cell lines
+INFO:__main__:DepMap data ready
+INFO:httpx:HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+INFO:regnetagents_langgraph_workflow:Ollama available, using model: llama3.1:8b
+INFO:regnetagents_langgraph_workflow:RegNetAgents LangGraph workflow initialized
+INFO:__main__:LangGraph workflow ready
+
+=== TP53 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type ListToolsRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for TP53: epithelial_cell vs tcga/brca
+INFO:regnetagents.driver_gene_client:Loaded IntOGen driver annotation: 633 genes from c:\Dev\RegNetAgents\regnetagents\reference_data\intogen_drivers.tsv
+INFO:mcp.server.lowlevel.server:Processing request of type ListToolsRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  SUV39H2: corroboration_count=0/4
+  CHEK1: corroboration_count=1/4
+  MYBL2: corroboration_count=3/4
+  TBC1D9: corroboration_count=1/4
+  SSRP1: corroboration_count=1/4
+  ABLIM3: corroboration_count=1/4
+  HDAC2: corroboration_count=1/4
+  HDGF: corroboration_count=1/4
+  RGS22: corroboration_count=0/4
+  TBPL1: corroboration_count=1/4
+
+=== MYC / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for MYC: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  TAF4B: corroboration_count=0/4
+  SIK1: corroboration_count=1/4
+  ADCY3: corroboration_count=1/4
+  SRF: corroboration_count=3/4
+  RPS27A: corroboration_count=2/4
+  ARFGEF3: corroboration_count=0/4
+  MYBBP1A: corroboration_count=2/4
+  SPRY2: corroboration_count=1/4
+  PRKAR1B: corroboration_count=0/4
+  SF1: corroboration_count=2/4
+
+=== CTNNB1 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for CTNNB1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  DDR2: corroboration_count=1/4
+  YAP1: corroboration_count=2/4
+  IL6ST: corroboration_count=1/4
+  VGLL4: corroboration_count=1/4
+  CAPS: corroboration_count=1/4
+  IRF7: corroboration_count=2/4
+  ZFYVE28: corroboration_count=1/4
+  ARID3A: corroboration_count=2/4
+  NPAS2: corroboration_count=2/4
+  OR4K5: corroboration_count=0/4
+
+=== CCND1 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for CCND1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for MYCN (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: MYCN
+INFO:cascade_langgraph_workflow:Resolved gene: MYCN (ENSG00000134323)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=137, regulators=11)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 36.94s
+INFO:mcp.server.lowlevel.server:Warning: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\cuda\CublasHandlePool.cpp:180.)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  ESR1: corroboration_count=2/4
+  BCL2: corroboration_count=1/4
+  FLNB: corroboration_count=1/4
+  VGLL1: corroboration_count=0/4
+  MED13L: corroboration_count=1/4
+  STMN1: corroboration_count=1/4
+  RASSF4: corroboration_count=1/4
+  ZBTB7A: corroboration_count=2/4
+  YEATS2: corroboration_count=1/4
+  ISL2: corroboration_count=1/4
+
+=== BRCA2 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for BRCA2: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  RBL1: corroboration_count=0/4
+  CENPI: corroboration_count=1/4
+  ARHGAP11B: corroboration_count=1/4
+  TMPO: corroboration_count=1/4
+  CENPF: corroboration_count=0/4
+  MCM8: corroboration_count=0/4
+  BARD1: corroboration_count=2/4
+  TTF2: corroboration_count=2/4
+  ATF7IP: corroboration_count=1/4
+  TOP2A: corroboration_count=2/4
+
+=== PIK3CA / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PIK3CA: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  ASXL2: corroboration_count=0/4
+  REST: corroboration_count=1/4
+  EDF1: corroboration_count=1/4
+  MAP3K2: corroboration_count=0/4
+  RRAGC: corroboration_count=1/4
+  ZNF292: corroboration_count=1/4
+  RAB4B: corroboration_count=0/4
+  TARBP2: corroboration_count=1/4
+  SLC2A4RG: corroboration_count=1/4
+  NAA15: corroboration_count=1/4
+
+=== PTEN / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PTEN: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  TCF12: corroboration_count=2/4
+  ITGA1: corroboration_count=1/4
+  TAF6L: corroboration_count=0/4
+  ZNF76: corroboration_count=1/4
+  USP9X: corroboration_count=2/4
+  FOXP1: corroboration_count=2/4
+  MITF: corroboration_count=2/4
+  ADAP1: corroboration_count=1/4
+  FOXD4L5: corroboration_count=0/4
+
+=== RB1 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for RB1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  CDKN2A: corroboration_count=1/4
+  ARID2: corroboration_count=2/4
+  MUTYH: corroboration_count=0/4
+  USP8: corroboration_count=1/4
+  GNB1L: corroboration_count=2/4
+  TAF6L: corroboration_count=0/4
+  MCM5: corroboration_count=2/4
+  ZNF428: corroboration_count=1/4
+  RBM38: corroboration_count=1/4
+  ARL1: corroboration_count=0/4
+
+=== ERBB2 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for ERBB2: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  PRSS8: corroboration_count=1/4
+  ERBB3: corroboration_count=1/4
+  ZBTB7B: corroboration_count=1/4
+  CREB3L4: corroboration_count=1/4
+  ARHGEF16: corroboration_count=1/4
+  AKIRIN2: corroboration_count=2/4
+  P2RY2: corroboration_count=1/4
+  EHMT1: corroboration_count=1/4
+  ZNF646: corroboration_count=0/4
+  HEXIM1: corroboration_count=1/4
+
+=== ESR1 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for ESR1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  GATA3: corroboration_count=2/4
+  FOXA1: corroboration_count=2/4
+  TBC1D9: corroboration_count=1/4
+  MYB: corroboration_count=2/4
+  AFF3: corroboration_count=1/4
+  KDM4B: corroboration_count=1/4
+  PGR: corroboration_count=1/4
+  RERG: corroboration_count=1/4
+  BCL11A: corroboration_count=2/4
+  DACH1: corroboration_count=1/4
+
+=== GATA3 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for GATA3: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  ESR1: corroboration_count=2/4
+  FOXA1: corroboration_count=2/4
+  TBC1D9: corroboration_count=1/4
+  LMX1B: corroboration_count=0/4
+  KDM4B: corroboration_count=1/4
+  ANXA9: corroboration_count=0/4
+  TLE3: corroboration_count=1/4
+  DACH1: corroboration_count=1/4
+  ZMYND10: corroboration_count=0/4
+  MSL3: corroboration_count=0/4
+
+=== CDH1 / brca (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for CDH1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  TBC1D9: corroboration_count=1/4
+  ZNF217: corroboration_count=2/4
+  CXCL3: corroboration_count=1/4
+  EAF1: corroboration_count=1/4
+  PLAGL1: corroboration_count=1/4
+  GRHL2: corroboration_count=2/4
+  VGLL1: corroboration_count=0/4
+  CAPN3: corroboration_count=1/4
+  GPRC5A: corroboration_count=1/4
+  F10: corroboration_count=0/4
+
+=== TP53 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for TP53: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  TFAP4: corroboration_count=2/4
+  ATIC: corroboration_count=0/4
+  MYBL2: corroboration_count=3/4
+  UBE2C: corroboration_count=1/4
+  UBE2I: corroboration_count=2/4
+  ELL2: corroboration_count=1/4
+  HCFC2: corroboration_count=0/4
+  RAP1A: corroboration_count=1/4
+  PPP4R1: corroboration_count=1/4
+  CRIPTO3: corroboration_count=0/4
+
+=== MYC / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for MYC: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  NLE1: corroboration_count=1/4
+  RNF43: corroboration_count=1/4
+  RUVBL1: corroboration_count=1/4
+  PINK1: corroboration_count=1/4
+  TEF: corroboration_count=1/4
+  TACSTD2: corroboration_count=1/4
+  CARM1: corroboration_count=1/4
+  CIAO1: corroboration_count=1/4
+  SEC14L2: corroboration_count=1/4
+  ZDHHC2: corroboration_count=0/4
+
+=== CTNNB1 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for CTNNB1: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  LIFR: corroboration_count=1/4
+  CD27: corroboration_count=1/4
+  PLAGL2: corroboration_count=1/4
+  PRKAR2A: corroboration_count=0/4
+  ATOH1: corroboration_count=2/4
+  NELFCD: corroboration_count=1/4
+  ZNF710: corroboration_count=1/4
+  BARX2: corroboration_count=1/4
+  MYT1: corroboration_count=1/4
+  CCL24: corroboration_count=0/4
+
+=== CCND1 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for CCND1: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  SEC14L2: corroboration_count=1/4
+  MAP4K4: corroboration_count=1/4
+  MDFI: corroboration_count=1/4
+  RIPK2: corroboration_count=1/4
+  TGIF2: corroboration_count=2/4
+  CBX8: corroboration_count=1/4
+  RREB1: corroboration_count=2/4
+  GNG7: corroboration_count=1/4
+  PTPRH: corroboration_count=1/4
+  SPIB: corroboration_count=2/4
+
+=== KRAS / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for KRAS: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  MIER1: corroboration_count=1/4
+  SHOC2: corroboration_count=0/4
+  MIER3: corroboration_count=0/4
+  ZFP91: corroboration_count=1/4
+  CERT1: corroboration_count=0/4
+  AFF4: corroboration_count=0/4
+  RYBP: corroboration_count=1/4
+  KAT2B: corroboration_count=1/4
+  CDC50A: corroboration_count=0/4
+  CHD1: corroboration_count=1/4
+
+=== APC / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for APC: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  POLR2I: corroboration_count=1/4
+  ZFP91: corroboration_count=1/4
+  TARBP2: corroboration_count=1/4
+  ARHGEF12: corroboration_count=1/4
+  AFF4: corroboration_count=0/4
+  ATXN7: corroboration_count=1/4
+  MIF: corroboration_count=1/4
+  SLK: corroboration_count=0/4
+  MIER3: corroboration_count=0/4
+  IKZF2: corroboration_count=1/4
+
+=== SMAD4 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for SMAD4: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  CGGBP1: corroboration_count=1/4
+  MBD3: corroboration_count=1/4
+  PPP1CB: corroboration_count=2/4
+  EPC1: corroboration_count=1/4
+  RASEF: corroboration_count=0/4
+  LRP1B: corroboration_count=0/4
+  ZNF596: corroboration_count=1/4
+  FOSB: corroboration_count=2/4
+  RGMB: corroboration_count=1/4
+  FOXN4: corroboration_count=0/4
+
+=== BRAF / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for BRAF: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  TAOK1: corroboration_count=1/4
+  REST: corroboration_count=1/4
+  ZKSCAN1: corroboration_count=2/4
+  CIAO3: corroboration_count=1/4
+  ATF6: corroboration_count=2/4
+  CCNT1: corroboration_count=1/4
+  TRIP11: corroboration_count=0/4
+  ZNF721: corroboration_count=0/4
+  ATF7IP: corroboration_count=1/4
+  OR4K2: corroboration_count=0/4
+
+=== PIK3CA / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PIK3CA: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  ARID4B: corroboration_count=1/4
+  CREBRF: corroboration_count=0/4
+  SOS1: corroboration_count=1/4
+  MAP3K2: corroboration_count=0/4
+  BBX: corroboration_count=1/4
+  PRMT7: corroboration_count=1/4
+  ZNF281: corroboration_count=1/4
+  RUVBL2: corroboration_count=1/4
+  NDUFA13: corroboration_count=0/4
+  ASH1L: corroboration_count=1/4
+
+=== PTEN / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PTEN: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  ZFP91: corroboration_count=1/4
+  SOS2: corroboration_count=0/4
+  TRIM28: corroboration_count=1/4
+  NELFA: corroboration_count=1/4
+  NRBF2: corroboration_count=1/4
+  E2F1: corroboration_count=1/4
+  STK17B: corroboration_count=1/4
+  ARHGAP12: corroboration_count=1/4
+  AZI2: corroboration_count=1/4
+  USP16: corroboration_count=0/4
+
+=== FBXW7 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for FBXW7: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  RC3H1: corroboration_count=0/4
+  DICER1: corroboration_count=1/4
+  TOP1: corroboration_count=2/4
+  SETD2: corroboration_count=0/4
+  ZNF23: corroboration_count=1/4
+  TAS2R14: corroboration_count=0/4
+  FRYL: corroboration_count=1/4
+  JARID2: corroboration_count=1/4
+  CREB3: corroboration_count=2/4
+  PRDM4: corroboration_count=1/4
+
+=== TCF7L2 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for TCF7L2: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  FGD4: corroboration_count=1/4
+  ZBTB7C: corroboration_count=1/4
+  TRAK1: corroboration_count=1/4
+  SP1: corroboration_count=2/4
+  SPRED2: corroboration_count=1/4
+  KLF5: corroboration_count=2/4
+  NELFCD: corroboration_count=1/4
+  TNFRSF21: corroboration_count=1/4
+  ARRB2: corroboration_count=0/4
+  RNF10: corroboration_count=0/4
+
+=== RNF43 / coad (focal) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+WARNING:tools.gene_id_mapper:Error querying Ensembl API for RNF43: HTTPSConnectionPool(host='rest.ensembl.org', port=443): Read timed out. (read timeout=3.0)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for RNF43: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for CASK (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: CASK
+WARNING:tools.gene_id_mapper:Error querying Ensembl API for CASK: HTTPSConnectionPool(host='rest.ensembl.org', port=443): Read timed out. (read timeout=3.0)
+INFO:cascade_langgraph_workflow:Gene role: isolated (targets=0, regulators=0)
+ERROR:cascade_langgraph_workflow:Workflow error: Could not resolve gene 'CASK' to Ensembl ID
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  GTF2IRD1: corroboration_count=1/4
+  AXIN2: corroboration_count=1/4
+  CRIPTO: corroboration_count=1/4
+  POU5F1B: corroboration_count=1/4
+  ETS2: corroboration_count=2/4
+  HUNK: corroboration_count=1/4
+  NKD1: corroboration_count=1/4
+  PLCL2: corroboration_count=1/4
+  ZDHHC9: corroboration_count=1/4
+  VAPA: corroboration_count=1/4
+
+=== ACTB / brca (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for ACTB: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for KHDRBS3 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: KHDRBS3
+INFO:cascade_langgraph_workflow:Resolved gene: KHDRBS3 (ENSG00000131773)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=170, regulators=10)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 59.33s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  S100A11: corroboration_count=1/4
+  PFN1: corroboration_count=2/4
+  NXN: corroboration_count=1/4
+  RSU1: corroboration_count=1/4
+  ZFP14: corroboration_count=0/4
+  TMSB4XP8: corroboration_count=0/4
+  RAP2B: corroboration_count=1/4
+  MADD: corroboration_count=1/4
+  FOSL1: corroboration_count=2/4
+  PRRX2: corroboration_count=1/4
+
+=== ACTB / coad (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for ACTB: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  PFN1: corroboration_count=2/4
+  ZYX: corroboration_count=1/4
+  SCAI: corroboration_count=1/4
+  GNB2: corroboration_count=1/4
+  ZNF572: corroboration_count=1/4
+  CERS6: corroboration_count=1/4
+  CCM2: corroboration_count=1/4
+  ZNF782: corroboration_count=0/4
+  TLE5: corroboration_count=0/4
+  ZNF267: corroboration_count=2/4
+
+=== GAPDH / brca (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for GAPDH: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ENO1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ENO1
+INFO:cascade_langgraph_workflow:Resolved gene: ENO1 (ENSG00000074800)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=66, regulators=0)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 59.14s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  PTTG1: corroboration_count=0/4
+  CREBRF: corroboration_count=0/4
+  UBE2C: corroboration_count=1/4
+  PTPRB: corroboration_count=1/4
+  MRPL12: corroboration_count=1/4
+  SLIRP: corroboration_count=0/4
+  PRMT1: corroboration_count=2/4
+  ASF1B: corroboration_count=1/4
+  NRIP2: corroboration_count=0/4
+  AGAP5: corroboration_count=1/4
+
+=== GAPDH / coad (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for GAPDH: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ENO1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ENO1
+INFO:cascade_langgraph_workflow:Resolved gene: ENO1 (ENSG00000074800)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=66, regulators=0)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 58.49s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  RUVBL2: corroboration_count=1/4
+  POLR2L: corroboration_count=2/4
+  ZNF511: corroboration_count=1/4
+  PRMT1: corroboration_count=2/4
+  CREBRF: corroboration_count=0/4
+  TRIM28: corroboration_count=1/4
+  CDC42EP1: corroboration_count=1/4
+  ZMAT1: corroboration_count=0/4
+  ZSCAN12: corroboration_count=0/4
+  PLEKHM3: corroboration_count=1/4
+
+=== HPRT1 / brca (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for HPRT1: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  RHEB: corroboration_count=1/4
+  NKRF: corroboration_count=1/4
+  PTTG1: corroboration_count=0/4
+  ELOC: corroboration_count=1/4
+  NDST1: corroboration_count=1/4
+  FZD4: corroboration_count=1/4
+  DLL1: corroboration_count=1/4
+  RAPGEF3: corroboration_count=1/4
+  CRY2: corroboration_count=1/4
+  ENY2: corroboration_count=0/4
+
+=== HPRT1 / coad (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for HPRT1: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  MORF4L2: corroboration_count=1/4
+  STK26: corroboration_count=0/4
+  YEATS4: corroboration_count=1/4
+  SRSF3: corroboration_count=2/4
+  RFC4: corroboration_count=2/4
+  ZNF280C: corroboration_count=0/4
+  TAF9B: corroboration_count=0/4
+  PTTG1: corroboration_count=0/4
+  M6PR: corroboration_count=1/4
+  P2RY4: corroboration_count=0/4
+
+=== LDHA / brca (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for LDHA: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ATOH8 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ATOH8
+INFO:cascade_langgraph_workflow:Resolved gene: ATOH8 (ENSG00000168874)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ENO1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ENO1
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=66, regulators=6)
+INFO:cascade_langgraph_workflow:Resolved gene: ENO1 (ENSG00000074800)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=66, regulators=0)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 0.94s
+INFO:cascade_langgraph_workflow:Report generated in 1.22s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  NRIP2: corroboration_count=0/4
+  ERO1A: corroboration_count=0/4
+  EZH1: corroboration_count=0/4
+  RAPGEF3: corroboration_count=1/4
+  SGSM2: corroboration_count=0/4
+  CLCN6: corroboration_count=0/4
+  YWHAH: corroboration_count=1/4
+  SLC11A1: corroboration_count=1/4
+  MECP2: corroboration_count=1/4
+  ZBTB46: corroboration_count=0/4
+
+=== LDHA / coad (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for LDHA: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ENO1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ENO1
+INFO:cascade_langgraph_workflow:Resolved gene: ENO1 (ENSG00000074800)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=66, regulators=0)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 0.86s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  ERO1A: corroboration_count=0/4
+  NRIP2: corroboration_count=0/4
+  PTTG1: corroboration_count=0/4
+  RAN: corroboration_count=2/4
+  RAPGEF1: corroboration_count=1/4
+  MCF2L: corroboration_count=1/4
+  CRY2: corroboration_count=1/4
+  PDK1: corroboration_count=1/4
+  TSHZ1: corroboration_count=1/4
+  FEN1: corroboration_count=2/4
+
+=== TUBB / brca (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for TUBB: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for MCM6 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: MCM6
+INFO:cascade_langgraph_workflow:Resolved gene: MCM6 (ENSG00000076003)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for MYBL2 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: MYBL2
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=90, regulators=11)
+INFO:cascade_langgraph_workflow:Resolved gene: MYBL2 (ENSG00000101057)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for PFN1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: PFN1
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=120, regulators=12)
+INFO:cascade_langgraph_workflow:Resolved gene: PFN1 (ENSG00000108518)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=168, regulators=3)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 1.32s
+INFO:cascade_langgraph_workflow:Report generated in 1.46s
+INFO:cascade_langgraph_workflow:Report generated in 1.57s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  CCNE1: corroboration_count=1/4
+  YBX1: corroboration_count=2/4
+  YWHAQ: corroboration_count=1/4
+  C5AR2: corroboration_count=0/4
+  ACTB: corroboration_count=2/4
+  MTA2: corroboration_count=0/4
+  TRAK1: corroboration_count=1/4
+  TAF11: corroboration_count=1/4
+  ASB16: corroboration_count=0/4
+  EFCAB6: corroboration_count=1/4
+
+=== TUBB / coad (housekeeping) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for TUBB: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ZNF394 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ZNF394
+INFO:cascade_langgraph_workflow:Resolved gene: ZNF394 (ENSG00000160908)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=246, regulators=18)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 0.91s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  ENO1: corroboration_count=2/4
+  FEN1: corroboration_count=2/4
+  CALR: corroboration_count=1/4
+  TRIM28: corroboration_count=1/4
+  RAN: corroboration_count=2/4
+  DNMT1: corroboration_count=2/4
+  RANGAP1: corroboration_count=2/4
+  HNRNPD: corroboration_count=1/4
+  POLR3K: corroboration_count=1/4
+  RALGPS1: corroboration_count=1/4
+
+=== FASN / brca (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for FASN: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for PSIP1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: PSIP1
+INFO:cascade_langgraph_workflow:Resolved gene: PSIP1 (ENSG00000164985)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=267, regulators=18)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 0.85s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  SREBF1: corroboration_count=2/4
+  LEO1: corroboration_count=0/4
+  PNRC1: corroboration_count=1/4
+  GRIN1: corroboration_count=0/4
+  ITGB1BP1: corroboration_count=1/4
+  ASB3: corroboration_count=1/4
+  ZNF512: corroboration_count=0/4
+  ZCCHC7: corroboration_count=1/4
+
+=== FASN / coad (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for FASN: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  CAD: corroboration_count=0/4
+  YPEL5: corroboration_count=2/4
+  PLXNA1: corroboration_count=1/4
+  HBP1: corroboration_count=2/4
+  TBC1D24: corroboration_count=1/4
+  PPP1CB: corroboration_count=2/4
+  ZNF142: corroboration_count=0/4
+  CHAF1A: corroboration_count=1/4
+  PNRC1: corroboration_count=1/4
+  CARM1: corroboration_count=1/4
+
+=== PCNA / brca (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PCNA: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ASF1B (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ASF1B
+INFO:cascade_langgraph_workflow:Resolved gene: ASF1B (ENSG00000105011)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for HMGB2 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: HMGB2
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=157, regulators=8)
+INFO:cascade_langgraph_workflow:Resolved gene: HMGB2 (ENSG00000164104)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for MCM3 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: MCM3
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=981, regulators=46)
+INFO:cascade_langgraph_workflow:Resolved gene: MCM3 (ENSG00000112118)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=377, regulators=26)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 1.48s
+WARNING:tools.gene_id_mapper:Error querying Ensembl API for ENSG00000148362: HTTPSConnectionPool(host='rest.ensembl.org', port=443): Read timed out. (read timeout=3.0)
+INFO:cascade_langgraph_workflow:Report generated in 4.49s
+WARNING:tools.gene_id_mapper:Error querying Ensembl API for ENSG00000169807: HTTPSConnectionPool(host='rest.ensembl.org', port=443): Read timed out. (read timeout=3.0)
+INFO:cascade_langgraph_workflow:Report generated in 4.55s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  PTTG1: corroboration_count=0/4
+  FOXM1: corroboration_count=1/4
+  TYMS: corroboration_count=2/4
+  FEN1: corroboration_count=2/4
+  RFC4: corroboration_count=2/4
+  CDK2: corroboration_count=1/4
+  CRY2: corroboration_count=1/4
+  POLR2K: corroboration_count=1/4
+  SFPQ: corroboration_count=1/4
+  TARDBP: corroboration_count=2/4
+
+=== PCNA / coad (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PCNA: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for ASF1B (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: ASF1B
+INFO:cascade_langgraph_workflow:Resolved gene: ASF1B (ENSG00000105011)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for CENPU (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: CENPU
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=157, regulators=8)
+INFO:cascade_langgraph_workflow:Resolved gene: CENPU (ENSG00000151725)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for E2F1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: E2F1
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=241, regulators=15)
+INFO:cascade_langgraph_workflow:Resolved gene: E2F1 (ENSG00000101412)
+INFO:cascade_langgraph_workflow:Gene role: transcription_factor (targets=28, regulators=5)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 1.21s
+INFO:cascade_langgraph_workflow:Report generated in 1.28s
+INFO:cascade_langgraph_workflow:Report generated in 1.46s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  CHAF1B: corroboration_count=1/4
+  RANBP1: corroboration_count=1/4
+  CCNA2: corroboration_count=1/4
+  PHF5A: corroboration_count=1/4
+  AURKB: corroboration_count=3/4
+  TYMS: corroboration_count=2/4
+  XRCC6: corroboration_count=1/4
+  OTUD7B: corroboration_count=1/4
+  FOXO4: corroboration_count=1/4
+  ZFYVE1: corroboration_count=1/4
+
+=== PKM / brca (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PKM: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+  ENO1: corroboration_count=2/4
+  EZH1: corroboration_count=0/4
+  CFL1: corroboration_count=3/4
+  BCL2: corroboration_count=2/4
+  DMTF1: corroboration_count=0/4
+  DDIT4: corroboration_count=1/4
+  PDE5A: corroboration_count=1/4
+  XRCC6: corroboration_count=1/4
+  SMARCAD1: corroboration_count=1/4
+  PLEK2: corroboration_count=0/4
+
+=== PKM / coad (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for PKM: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for AJUBA (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: AJUBA
+INFO:cascade_langgraph_workflow:Resolved gene: AJUBA (ENSG00000129474)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=193, regulators=9)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 0.94s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  ENO1: corroboration_count=2/4
+  FRYL: corroboration_count=1/4
+  SATB2: corroboration_count=1/4
+  FOXN3: corroboration_count=1/4
+  DUSP4: corroboration_count=1/4
+  AKAP9: corroboration_count=0/4
+  EDNRB: corroboration_count=2/4
+  SEC14L2: corroboration_count=1/4
+  CALR: corroboration_count=1/4
+  GPR3: corroboration_count=1/4
+
+=== VIM / brca (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for VIM: epithelial_cell vs tcga/brca
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for CAVIN1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: CAVIN1
+INFO:cascade_langgraph_workflow:Resolved gene: CAVIN1 (ENSG00000177469)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=386, regulators=12)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 13.57s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  ANXA1: corroboration_count=1/4
+  MSC: corroboration_count=2/4
+  NDN: corroboration_count=0/4
+  HAND2: corroboration_count=1/4
+  SNAI2: corroboration_count=2/4
+  FYN: corroboration_count=1/4
+  DOK5: corroboration_count=0/4
+  MSN: corroboration_count=1/4
+  DPYSL2: corroboration_count=1/4
+  IL16: corroboration_count=1/4
+
+=== VIM / coad (non_driver) ===
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:__main__:Comparing network contexts for VIM: epithelial_cell vs tcga/coad
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for CAVIN1 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: CAVIN1
+INFO:cascade_langgraph_workflow:Resolved gene: CAVIN1 (ENSG00000177469)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for MAFB (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: MAFB
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=386, regulators=12)
+INFO:cascade_langgraph_workflow:Resolved gene: MAFB (ENSG00000204103)
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:cascade_langgraph_workflow:Starting workflow for SOX17 (knockdown, comprehensive)
+INFO:cascade_langgraph_workflow:Initializing analysis for gene: SOX17
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=288, regulators=23)
+INFO:cascade_langgraph_workflow:Resolved gene: SOX17 (ENSG00000164736)
+INFO:cascade_langgraph_workflow:Gene role: master_regulator (targets=138, regulators=10)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Running all batch groups concurrently
+INFO:cascade_langgraph_workflow:Running batch core analysis (parallel)
+INFO:cascade_langgraph_workflow:Running batch external data (parallel)
+INFO:cascade_langgraph_workflow:Running batch insights (parallel)
+INFO:cascade_langgraph_workflow:Report generated in 34.37s
+INFO:cascade_langgraph_workflow:Report generated in 34.90s
+INFO:cascade_langgraph_workflow:Report generated in 35.38s
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+INFO:mcp.server.lowlevel.server:Processing request of type CallToolRequest
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+C:\Users\josea\AppData\Local\Programs\Python\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'eutils.ncbi.nlm.nih.gov'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+  BASP1: corroboration_count=1/4
+  MRAS: corroboration_count=1/4
+  RAB34: corroboration_count=1/4
+  GLI3: corroboration_count=2/4
+  ZEB2: corroboration_count=2/4
+  HLX: corroboration_count=1/4
+  ZNF521: corroboration_count=1/4
+  SNAI2: corroboration_count=2/4
+  VGLL3: corroboration_count=1/4
+  COLEC12: corroboration_count=0/4
+
+
+DONE. 43 queries. Results written to C:\Dev\Orchestra\outputs\v4\corroboration_ranked_brca_coad_raw.json
+BRCA_COAD_EXIT=0

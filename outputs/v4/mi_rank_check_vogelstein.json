@@ -1,0 +1,84 @@
+{
+  "truth": "vogelstein",
+  "truth_association": {
+    "n_rows": 389,
+    "n_top": 117,
+    "n_bottom": 116,
+    "truth_top": 6,
+    "truth_bottom": 0,
+    "rate_top": 0.05128205128205128,
+    "rate_bottom": 0.0,
+    "OR": Infinity,
+    "fisher_p": 0.015017199753972808,
+    "spearman_rho": -0.1455429847300718,
+    "spearman_p": 0.004019199867707121
+  },
+  "corroboration_association": {
+    "n_rows": 389,
+    "n_top": 117,
+    "n_bottom": 116,
+    "spearman_rho": -0.040187389588218304,
+    "spearman_p": 0.4293013195627273,
+    "mean_count_top": 0.9487179487179487,
+    "mean_count_bottom": 0.896551724137931,
+    "ge2_top": 21,
+    "ge2_bottom": 20,
+    "fisher_p_ge2_greater": 0.5121224340253991
+  },
+  "per_panel": {
+    "brca_coad": {
+      "truth_association": {
+        "n_rows": 249,
+        "n_top": 75,
+        "n_bottom": 74,
+        "truth_top": 5,
+        "truth_bottom": 0,
+        "rate_top": 0.06666666666666667,
+        "rate_bottom": 0.0,
+        "OR": Infinity,
+        "fisher_p": 0.03018008869828885,
+        "spearman_rho": -0.19114650631123717,
+        "spearman_p": 0.002453303048379515
+      },
+      "corroboration_association": {
+        "n_rows": 249,
+        "n_top": 75,
+        "n_bottom": 74,
+        "spearman_rho": -0.13073579794867338,
+        "spearman_p": 0.03925997758646141,
+        "mean_count_top": 1.0666666666666667,
+        "mean_count_bottom": 0.8378378378378378,
+        "ge2_top": 15,
+        "ge2_bottom": 10,
+        "fisher_p_ge2_greater": 0.20063478190626768
+      }
+    },
+    "stad": {
+      "truth_association": {
+        "n_rows": 140,
+        "n_top": 42,
+        "n_bottom": 42,
+        "truth_top": 1,
+        "truth_bottom": 0,
+        "rate_top": 0.023809523809523808,
+        "rate_bottom": 0.0,
+        "OR": Infinity,
+        "fisher_p": 0.5000000000000001,
+        "spearman_rho": -0.06010632276331417,
+        "spearman_p": 0.4805304521955115
+      },
+      "corroboration_association": {
+        "n_rows": 140,
+        "n_top": 42,
+        "n_bottom": 42,
+        "spearman_rho": 0.11322072431560638,
+        "spearman_p": 0.18288576082897307,
+        "mean_count_top": 0.7380952380952381,
+        "mean_count_bottom": 1.0,
+        "ge2_top": 6,
+        "ge2_bottom": 10,
+        "fisher_p_ge2_greater": 0.9182443222465042
+      }
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "truth": "intogen",
+  "truth_association": {
+    "n_rows": 389,
+    "n_top": 117,
+    "n_bottom": 116,
+    "truth_top": 28,
+    "truth_bottom": 11,
+    "rate_top": 0.23931623931623933,
+    "rate_bottom": 0.09482758620689655,
+    "OR": 3.003064351378958,
+    "fisher_p": 0.0024829812085867655,
+    "spearman_rho": -0.1670892576424149,
+    "spearman_p": 0.0009389906045977824
+  },
+  "corroboration_association": {
+    "n_rows": 389,
+    "n_top": 117,
+    "n_bottom": 116,
+    "spearman_rho": -0.040187389588218304,
+    "spearman_p": 0.4293013195627273,
+    "mean_count_top": 0.9487179487179487,
+    "mean_count_bottom": 0.896551724137931,
+    "ge2_top": 21,
+    "ge2_bottom": 20,
+    "fisher_p_ge2_greater": 0.5121224340253991
+  },
+  "per_panel": {
+    "brca_coad": {
+      "truth_association": {
+        "n_rows": 249,
+        "n_top": 75,
+        "n_bottom": 74,
+        "truth_top": 22,
+        "truth_bottom": 6,
+        "rate_top": 0.29333333333333333,
+        "rate_bottom": 0.08108108108108109,
+        "OR": 4.70440251572327,
+        "fisher_p": 0.000765516903507611,
+        "spearman_rho": -0.22935820811093438,
+        "spearman_p": 0.00026247084194502943
+      },
+      "corroboration_association": {
+        "n_rows": 249,
+        "n_top": 75,
+        "n_bottom": 74,
+        "spearman_rho": -0.13073579794867338,
+        "spearman_p": 0.03925997758646141,
+        "mean_count_top": 1.0666666666666667,
+        "mean_count_bottom": 0.8378378378378378,
+        "ge2_top": 15,
+        "ge2_bottom": 10,
+        "fisher_p_ge2_greater": 0.20063478190626768
+      }
+    },
+    "stad": {
+      "truth_association": {
+        "n_rows": 140,
+        "n_top": 42,
+        "n_bottom": 42,
+        "truth_top": 6,
+        "truth_bottom": 5,
+        "rate_top": 0.14285714285714285,
+        "rate_bottom": 0.11904761904761904,
+        "OR": 1.2333333333333334,
+        "fisher_p": 0.5,
+        "spearman_rho": -0.04457671986919931,
+        "spearman_p": 0.6009949868632151
+      },
+      "corroboration_association": {
+        "n_rows": 140,
+        "n_top": 42,
+        "n_bottom": 42,
+        "spearman_rho": 0.11322072431560638,
+        "spearman_p": 0.18288576082897307,
+        "mean_count_top": 0.7380952380952381,
+        "mean_count_bottom": 1.0,
+        "ge2_top": 6,
+        "ge2_bottom": 10,
+        "fisher_p_ge2_greater": 0.9182443222465042
+      }
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "brca_coad": {
+    "focal": {
+      "raw": {
+        "n_corrob": 46,
+        "truth_pos_corrob": 2,
+        "rate_corrob": 0.043478260869565216,
+        "n_uncorrob": 203,
+        "truth_pos_uncorrob": 4,
+        "rate_uncorrob": 0.019704433497536946,
+        "OR": 2.2613636363636362,
+        "p": 0.3067883072932661
+      },
+      "dedup": {
+        "n_corrob": 43,
+        "truth_pos_corrob": 2,
+        "rate_corrob": 0.046511627906976744,
+        "n_uncorrob": 186,
+        "truth_pos_uncorrob": 4,
+        "rate_uncorrob": 0.021505376344086023,
+        "OR": 2.2195121951219514,
+        "p": 0.3142681342567945
+      }
+    },
+    "negative": {
+      "raw": {
+        "n_corrob": 38,
+        "truth_pos_corrob": 2,
+        "rate_corrob": 0.05263157894736842,
+        "n_uncorrob": 140,
+        "truth_pos_uncorrob": 0,
+        "rate_uncorrob": 0.0,
+        "OR": Infinity,
+        "p": 0.04462642036437503
+      },
+      "dedup": {
+        "n_corrob": 38,
+        "truth_pos_corrob": 2,
+        "rate_corrob": 0.05263157894736842,
+        "n_uncorrob": 140,
+        "truth_pos_uncorrob": 0,
+        "rate_uncorrob": 0.0,
+        "OR": Infinity,
+        "p": 0.04462642036437503
+      }
+    },
+    "permutation_focal_dedup": {
+      "observed_gap_pp": 2.5006251562890722,
+      "n_draws": 1000,
+      "empirical_p": 0.328
+    }
+  },
+  "stad": {
+    "focal": {
+      "raw": {
+        "n_corrob": 21,
+        "truth_pos_corrob": 1,
+        "rate_corrob": 0.047619047619047616,
+        "n_uncorrob": 119,
+        "truth_pos_uncorrob": 2,
+        "rate_uncorrob": 0.01680672268907563,
+        "OR": 2.925,
+        "p": 0.3882233343759774
+      },
+      "dedup": {
+        "n_corrob": 21,
+        "truth_pos_corrob": 1,
+        "rate_corrob": 0.047619047619047616,
+        "n_uncorrob": 114,
+        "truth_pos_uncorrob": 2,
+        "rate_uncorrob": 0.017543859649122806,
+        "OR": 2.8,
+        "p": 0.4003316749585406
+      }
+    },
+    "negative": {
+      "raw": {
+        "n_corrob": 17,
+        "truth_pos_corrob": 1,
+        "rate_corrob": 0.058823529411764705,
+        "n_uncorrob": 73,
+        "truth_pos_uncorrob": 2,
+        "rate_uncorrob": 0.0273972602739726,
+        "OR": 2.21875,
+        "p": 0.4705822267620022
+      },
+      "dedup": {
+        "n_corrob": 17,
+        "truth_pos_corrob": 1,
+        "rate_corrob": 0.058823529411764705,
+        "n_uncorrob": 73,
+        "truth_pos_uncorrob": 2,
+        "rate_uncorrob": 0.0273972602739726,
+        "OR": 2.21875,
+        "p": 0.4705822267620022
+      }
+    },
+    "permutation_focal_dedup": {
+      "observed_gap_pp": 3.007518796992481,
+      "n_draws": 1000,
+      "empirical_p": 0.414
+    }
+  }
+}
