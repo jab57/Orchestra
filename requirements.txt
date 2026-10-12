@@ -4,6 +4,7 @@ scipy==1.16.3
 statsmodels==0.14.6
 langgraph==0.2.34
 mcp==1.9.1
+pydantic==2.12.5  # mcp 1.9.1 imports pydantic internals removed in later 2.x releases
 ollama==0.6.1
 python-dotenv==1.0.1
 pytest==8.3.4
