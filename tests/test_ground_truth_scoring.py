@@ -160,6 +160,11 @@ def test_tampered_snapshot_is_rejected(tmp_path, monkeypatch):
         ground_truth.load_truth("intogen")
 
 
+@pytest.mark.skipif(
+    not (ground_truth.INTOGEN_PATH.exists() and ground_truth.VOGELSTEIN_PATH.exists()),
+    reason="pinned snapshots live in the local RegNetAgents checkout and the private repo, "
+           "so they are absent on CI",
+)
 def test_pinned_snapshots_load_with_recorded_counts():
     """Integrity only: confirms the pinned files are intact. Scores nothing."""
     intogen = ground_truth.load_truth("intogen")
