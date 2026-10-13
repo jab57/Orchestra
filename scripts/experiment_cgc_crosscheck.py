@@ -1,32 +1,29 @@
 """
-Robustness check for the corroboration-paper
-(private/manuscript/arxiv/corroboration/v1/Orchestra_research_paper.tex):
-does the >=2 corroboration-vs-OncoKB pattern (Sections 3.1/3.6 of the paper) replicate
-against a second, independently curated cancer-gene ground truth?
+Robustness check for the corroboration paper
+(private/manuscript/arxiv/corroboration/Orchestra_research_paper.tex):
+does the >=2 corroboration pattern replicate under deduplication (one row per unique
+gene) and a 1,000-draw permutation test, against a chosen ground-truth driver list?
 
-Ground truth used: the Sanger Institute's COSMIC Cancer Gene Census (Sondka et al. 2018,
-Nature Reviews Cancer). COSMIC's own portal requires an account to download the census
-directly; this script instead retrieves Sanger CGC membership via OncoKB's public
-`cancerGeneList` API, which republishes the Sanger-curated `sangerCGC` flag for
-convenience alongside its own annotations. The underlying gene-list curation is the
-Sanger Institute's, independent of OncoKB's own MSK-based curation and of DoRothEA's
-TF-focused curation (one of the four CASCADE evidence sources) -- but the API dependency
-on OncoKB itself is a residual limitation, noted in the paper's Limitations section.
+Ground truth is selected with --truth (see ground_truth.py):
+    intogen     IntOGen driver compendium -- primary (v4).
+    vogelstein  Vogelstein et al. 2013 mutation-driver genes -- secondary (v4).
+    sanger_cgc  LEGACY. Sanger Cancer Gene Census membership, read from the cached
+                list in outputs/ (offline; no API call). Reproduces the v1-v3
+                analyses only; never used for new results.
 
 Inputs (already produced by scripts/experiment_corroboration_ranked_brca_coad.py and
 scripts/experiment_corroboration_ranked_stad.py):
-    outputs/corroboration_ranked_brca_coad_raw.json
-    outputs/corroboration_ranked_stad_raw.json
+    <data-dir>/corroboration_ranked_brca_coad_raw.json
+    <data-dir>/corroboration_ranked_stad_raw.json
 
 Output:
-    outputs/cgc_crosscheck_results.json
+    <data-dir>/cgc_crosscheck_results<suffix>.json
 """
 
 import argparse
 import json
 import random
 import sys
-import urllib.request
 from pathlib import Path
 
 from scipy.stats import fisher_exact
@@ -36,15 +33,6 @@ from ground_truth import load_truth, output_suffix  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = ROOT / "outputs"
-
-ONCOKB_LIST_URL = "https://www.oncokb.org/api/v1/utils/cancerGeneList"
-
-
-def fetch_oncokb_gene_list():
-    """Fetch OncoKB's public cancer gene list (includes the Sanger CGC cross-reference flag)."""
-    with urllib.request.urlopen(ONCOKB_LIST_URL, timeout=30) as resp:
-        return json.load(resp)
-
 
 def load_panel(path):
     rows = []
@@ -104,19 +92,11 @@ def main():
     ap.add_argument("--data-dir", type=Path, default=OUTPUTS,
                     help="folder holding corroboration_ranked_*_raw.json; results are written there too")
     ap.add_argument("--truth", choices=("sanger_cgc", "vogelstein", "intogen"), required=True,
-                    help="ground-truth gene set. 'oncokb'/'sanger_cgc' are LEGACY: it fetches from the "
-                         "OncoKB API and reproduces v1-v3 only; never use it for new results.")
+                    help="ground-truth gene set. 'sanger_cgc' is LEGACY: it reads the cached list "
+                         "and reproduces v1-v3 only; never use it for new results.")
     args = ap.parse_args()
     data_dir = args.data_dir
 
-    if args.truth == "sanger_cgc":
-        # LEGACY path (v1-v3): refresh the cached lists from OncoKB's public API.
-        oncokb_full = fetch_oncokb_gene_list()
-        with open(OUTPUTS / "oncokb_cancer_gene_list.json", "w") as f:
-            json.dump(oncokb_full, f, indent=2)
-        sanger_cgc = sorted(set(x["hugoSymbol"] for x in oncokb_full if x.get("sangerCGC")))
-        with open(OUTPUTS / "sanger_cgc_genes.json", "w") as f:
-            json.dump(sanger_cgc, f, indent=2)
     truth_set = load_truth(args.truth)
     suffix = output_suffix(args.truth, default="sanger_cgc")
     print(f"Ground truth: {args.truth} ({len(truth_set)} genes)")

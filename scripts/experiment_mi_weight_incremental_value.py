@@ -1,18 +1,18 @@
 """
 Does >=2-source corroboration add predictive power beyond MI edge weight alone --
 the network-topology signal shown in Section "MI edge weight itself predicts
-candidate quality" to predict OncoKB membership on its own (top-3-by-weight vs
-bottom-3-by-weight within each query's capped 10, p=0.0003)?
+candidate quality" to predict known-driver membership on its own (top-3-by-weight vs
+bottom-3-by-weight within each query's capped 10)?
 
 Companion to scripts/experiment_dorothea_incremental_value.py, same two-check
 design, with MI-top-3 (binary) standing in for DoRothEA as the "strongest single
 source" being controlled for:
 
 1. Stratified test: among candidates NOT in their query's top 3 by MI weight, does
-   corroboration_count>=2 still lift OncoKB rate above baseline? Fisher's exact
+   corroboration_count>=2 still lift the known-driver rate above baseline? Fisher's exact
    plus a 1,000-draw permutation test.
 
-2. Logistic regression of OncoKB membership on mi_top3 (binary) and
+2. Logistic regression of known-driver membership on mi_top3 (binary) and
    corroboration_count (0-4), with a likelihood-ratio test against an
    mi_top3-only reduced model.
 
@@ -25,9 +25,9 @@ scored_candidates) that this order is exactly descending MI edge weight, the
 same convention Section "MI edge weight itself predicts candidate quality" uses
 (top-3/bottom-3 by position within the capped 10, not raw weight magnitude).
 
-Inputs: outputs/corroboration_ranked_brca_coad_raw.json, ..._stad_raw.json,
-outputs/oncokb_cancer_gene_list.json
-Output: outputs/mi_weight_incremental_value_results.json
+Inputs: <data-dir>/corroboration_ranked_brca_coad_raw.json, ..._stad_raw.json;
+ground truth chosen with --truth (see ground_truth.py)
+Output: <data-dir>/mi_weight_incremental_value_results<suffix>.json
 """
 import argparse
 import json

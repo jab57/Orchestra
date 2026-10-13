@@ -1,7 +1,7 @@
 """
 MI-weight ranking follow-up: does ordering the tumor-acquired candidate set by
 ARACNe MI edge weight (rank_tumor_acquired=True), instead of RegNetAgents'
-default alphabetical order, change the OncoKB hit rate -- alone, and combined
+default alphabetical order, change the known-driver hit rate -- alone, and combined
 with the existing >=2 corroboration filter?
 
 Same BRCA/COAD panel, same queries, same statistical pipeline as

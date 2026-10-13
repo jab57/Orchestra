@@ -8,28 +8,28 @@ gene, matching the paper's existing methodology throughout):
 
 1. Stratified test: among candidates where DoRothEA is negative, does corroboration
    from the remaining three sources (>=2 of LINCS, super-enhancer, DepMap) still
-   lift OncoKB rate above the DoRothEA-negative baseline? Fisher's exact test plus
+   lift the known-driver rate above the DoRothEA-negative baseline? Fisher's exact test plus
    a 1,000-draw permutation test, matching the paper's other permutation checks.
 
-2. Logistic regression of OncoKB membership on DoRothEA (binary) and the count of
+2. Logistic regression of known-driver membership on DoRothEA (binary) and the count of
    the other three sources (0-3), with a likelihood-ratio test comparing this model
    against a DoRothEA-only reduced model -- the more powerful of the two tests,
    since it uses the full candidate set (not just the DoRothEA-negative subset) and
    treats the other-source count continuously rather than at a single threshold.
 
-Also emits the DoRothEA-alone-vs-OncoKB Fisher test quoted in the opening
-paragraph of that section (DoRothEA as a lone predictor: p=0.0071 on the
-deduplicated BRCA/COAD focal set, p=0.2860 on the non-deduplicated negative
-controls), so every number in the section is script-reproducible.
+Also emits the DoRothEA-alone-vs-known-driver Fisher test quoted in the opening
+paragraph of that section (DoRothEA as a lone predictor, on the deduplicated
+focal set and on the non-deduplicated negative controls), so every number in
+the section is script-reproducible.
 
 Inputs (already produced by scripts/experiment_corroboration_ranked_brca_coad.py
 and scripts/experiment_corroboration_ranked_stad.py):
-    outputs/corroboration_ranked_brca_coad_raw.json
-    outputs/corroboration_ranked_stad_raw.json
-    outputs/oncokb_cancer_gene_list.json
+    <data-dir>/corroboration_ranked_brca_coad_raw.json
+    <data-dir>/corroboration_ranked_stad_raw.json
+(ground truth chosen with --truth; see ground_truth.py)
 
 Output:
-    outputs/dorothea_incremental_value_results.json
+    <data-dir>/dorothea_incremental_value_results<suffix>.json
 """
 import argparse
 import json
@@ -85,7 +85,7 @@ def load_controls(path, truth):
 
 
 def dorothea_alone_test(rows):
-    """DoRothEA as a lone predictor of OncoKB membership: Fisher's exact,
+    """DoRothEA as a lone predictor of known-driver membership: Fisher's exact,
     one-tailed 'greater', DoRothEA-positive vs DoRothEA-negative candidates.
     Quoted in the opening paragraph of the incremental-value section."""
     pos = [r for r in rows if r["dorothea"] == 1]
