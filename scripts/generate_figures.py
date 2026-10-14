@@ -83,7 +83,7 @@ arrow(1.4, 7.55, 1.8, 6.95)
 arrow(2.1, 7.55, 4.0, 6.95)
 
 # Rank by MI edge weight, cap at 10 (this paper's selection mechanism)
-box(4.0, 5.0, 4.0, 0.9, "Rank by ARACNe MI edge weight\n(query_network), cap at 10", "#ffe9cc")
+box(4.0, 5.0, 4.0, 0.9, "Rank by ARACNe MI edge weight\n(returned with the pool), cap at 10", "#ffe9cc")
 arrow(4.0, 6.05, 4.0, 5.45)
 
 # CASCADE 4 lightweight sources
@@ -127,20 +127,21 @@ def _panel_series(group):
     uncorrob = [100 * r["rate_uncorrob"] for r in rows]
     pvals = [f"p={r['p']:.4f}" for r in rows]
     sigs = [r["p_adj_bh"] is not None and r["p_adj_bh"] < 0.05 for r in rows]
-    return corrob, uncorrob, pvals, sigs
+    counts = [f"{r['truth_pos_corrob']}/{r['n_corrob']}" for r in rows]
+    return corrob, uncorrob, pvals, sigs, counts
 
 
-focal_corrob, focal_uncorrob, focal_p, focal_sig = _panel_series("focal")
-control_corrob, control_uncorrob, control_p, control_sig = _panel_series("negative")
+focal_corrob, focal_uncorrob, focal_p, focal_sig, focal_n = _panel_series("focal")
+control_corrob, control_uncorrob, control_p, control_sig, control_n = _panel_series("negative")
 
 fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.4), sharey=True)
 
 x = np.arange(3)
 width = 0.32
 
-for ax, corrob, uncorrob, pvals, sigs, title in (
-    (axes[0], focal_corrob, focal_uncorrob, focal_p, focal_sig, "Focal genes (BRCA/COAD)"),
-    (axes[1], control_corrob, control_uncorrob, control_p, control_sig, "Negative controls"),
+for ax, corrob, uncorrob, pvals, sigs, counts, title in (
+    (axes[0], focal_corrob, focal_uncorrob, focal_p, focal_sig, focal_n, "Focal genes (BRCA/COAD)"),
+    (axes[1], control_corrob, control_uncorrob, control_p, control_sig, control_n, "Negative controls (BRCA/COAD)"),
 ):
     corrob_plot = [v if v is not None else 0 for v in corrob]
     uncorrob_plot = [v if v is not None else 0 for v in uncorrob]
@@ -154,6 +155,10 @@ for ax, corrob, uncorrob, pvals, sigs, title in (
             ax.text(i, 3, "insufficient\ndata", ha="center", va="bottom",
                      fontsize=7, style="italic", color="#666666")
             continue
+        if c == 0:
+            # zero-height bar: label the empty corroborated bar so it is not read as missing
+            ax.text(i - width / 2, 0.8, counts[i], ha="center", va="bottom",
+                     fontsize=6.5, color="#444444")
         top = max(c, u) + 2.5
         color = "#1f5c3d" if sig else "#666666"
         weight = "bold" if sig else "normal"
