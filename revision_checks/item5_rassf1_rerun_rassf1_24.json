@@ -1,0 +1,319 @@
+{
+  "label": "rassf1_24",
+  "genes": [
+    "CDKN2A",
+    "CADM1",
+    "MAL",
+    "DAPK1",
+    "RASSF1",
+    "CDH1",
+    "TIMP3",
+    "SOCS1",
+    "FHIT",
+    "PAX1",
+    "WIF1",
+    "SFRP1",
+    "TFPI2",
+    "DLEC1",
+    "SCGB3A1",
+    "RARB",
+    "APC",
+    "MGMT",
+    "ESR1",
+    "GSTP1",
+    "EDNRB",
+    "SLIT2",
+    "HOXA9",
+    "DCC"
+  ],
+  "cancer_contexts": [
+    "cervical cancer",
+    "head and neck squamous"
+  ],
+  "tcga_network": "cesc",
+  "versions": {
+    "C:\\Dev\\Orchestra": "v1.3.11-3-gd090671",
+    "C:\\Dev\\RegNetAgents": "v1.3.0-1-g54b1cf8",
+    "C:\\Dev\\CASCADE": "v1.5.0-2-g281bb03"
+  },
+  "query_summary": {
+    "gene_set_size": 24,
+    "genes_found_in_network": 24,
+    "genes_not_found": [],
+    "genes_resolved_via_alias": [],
+    "network_size": 19807,
+    "network_source": "tcga",
+    "tcga_network": "cesc",
+    "total_regulators_tested": 649
+  },
+  "ranked_drivers": [
+    {
+      "gene": "DACH1",
+      "overlap_count": 4,
+      "dorothea_overlap": 0,
+      "coverage_pct": 16.7,
+      "enrichment_score": 8.0713,
+      "p_value": 0.001372,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CADM1",
+        "EDNRB",
+        "ESR1",
+        "SLIT2"
+      ],
+      "cascade_key_findings": [
+        "25 gene(s) supported by multiple independent evidence sources."
+      ],
+      "multi_source_genes": [
+        "RAB7B",
+        "ITM2C",
+        "MFAP2",
+        "TM9SF2",
+        "ZNRF3",
+        "PFDN4",
+        "NDUFA3",
+        "MYEF2",
+        "CDH2",
+        "FAT1"
+      ],
+      "cbioportal_summary": {
+        "pan_cancer_mean_z": 0.01,
+        "tumor_overexpressed": false
+      },
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003068
+    },
+    {
+      "gene": "AR",
+      "overlap_count": 3,
+      "dorothea_overlap": 0,
+      "coverage_pct": 12.5,
+      "enrichment_score": 26.0618,
+      "p_value": 0.000201,
+      "corroboration_count": 2,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CADM1",
+        "SFRP1",
+        "SLIT2"
+      ],
+      "cascade_key_findings": [
+        "22 gene(s) supported by multiple independent evidence sources.",
+        "TF classification validated by DoRothEA curated regulons (multi-evidence: literature, ChIP-seq, motifs)."
+      ],
+      "multi_source_genes": [
+        "JMJD1C",
+        "ROR2",
+        "PRPF8",
+        "BLVRB",
+        "ALDH1A1",
+        "ATXN7L3B",
+        "FNBP1L",
+        "MT-CYB",
+        "MT-CO3",
+        "ENAH"
+      ],
+      "cbioportal_summary": {
+        "pan_cancer_mean_z": 0.011,
+        "tumor_overexpressed": false
+      },
+      "cascade_error": null,
+      "is_known_driver": true,
+      "driver_role": "oncogene",
+      "tissue_matched": false,
+      "p_value_adj": 0.00201
+    },
+    {
+      "gene": "SOX8",
+      "overlap_count": 3,
+      "dorothea_overlap": 0,
+      "coverage_pct": 12.5,
+      "enrichment_score": 16.2887,
+      "p_value": 0.000797,
+      "corroboration_count": 2,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "DCC",
+        "FHIT",
+        "TFPI2"
+      ],
+      "cascade_key_findings": [
+        "2 gene(s) supported by multiple independent evidence sources.",
+        "TF classification validated by DoRothEA curated regulons (multi-evidence: literature, ChIP-seq, motifs)."
+      ],
+      "multi_source_genes": [
+        "RHBDD2",
+        "ZNF134"
+      ],
+      "cbioportal_summary": {
+        "pan_cancer_mean_z": 0.029,
+        "tumor_overexpressed": false
+      },
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003068
+    },
+    {
+      "gene": "SALL2",
+      "overlap_count": 3,
+      "dorothea_overlap": 0,
+      "coverage_pct": 12.5,
+      "enrichment_score": 11.1026,
+      "p_value": 0.002393,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CADM1",
+        "SCGB3A1",
+        "WIF1"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003231
+    },
+    {
+      "gene": "ZNF737",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 35.8822,
+      "p_value": 0.00141,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CDKN2A",
+        "ESR1"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003068
+    },
+    {
+      "gene": "SSTR2",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 34.3872,
+      "p_value": 0.001534,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CADM1",
+        "DAPK1"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003068
+    },
+    {
+      "gene": "TGFBR3",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 27.976,
+      "p_value": 0.002308,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CDKN2A",
+        "SLIT2"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003231
+    },
+    {
+      "gene": "GCGR",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 25.3936,
+      "p_value": 0.002794,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "TFPI2",
+        "TIMP3"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003231
+    },
+    {
+      "gene": "PSD2",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 24.6356,
+      "p_value": 0.002965,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "SCGB3A1",
+        "SFRP1"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003231
+    },
+    {
+      "gene": "DIRAS3",
+      "overlap_count": 2,
+      "dorothea_overlap": 0,
+      "coverage_pct": 8.3,
+      "enrichment_score": 23.5798,
+      "p_value": 0.003231,
+      "corroboration_count": 1,
+      "corroboration_denominator": 7,
+      "overlapping_genes": [
+        "CADM1",
+        "WIF1"
+      ],
+      "cascade_key_findings": [],
+      "multi_source_genes": [],
+      "cbioportal_summary": null,
+      "cascade_error": null,
+      "is_known_driver": false,
+      "driver_role": null,
+      "tissue_matched": false,
+      "p_value_adj": 0.003231
+    }
+  ],
+  "errors": {}
+}
