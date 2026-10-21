@@ -306,6 +306,11 @@ Steps — run exactly these tools in this order, nothing else:
 - Use BH-adjusted p (p-adj) as the primary significance criterion whenever
   `analyze_gene_signature` results are discussed. Raw Fisher p may be shown
   alongside but should not be the basis for ranking or conclusions.
+  p-adj is BH over **every regulator tested** (`total_regulators_tested`, several hundred), not
+  just the 10 shown. That is a strict family, so a panel can legitimately return no driver with
+  p-adj < 0.05: say so plainly and present the top drivers as ranked candidates for follow-up,
+  never as "BH-significant". Outputs from Orchestra versions before the fix (BH over the top 10
+  only) overstate significance and must not be reused as BH results.
 - Drivers marked † have ≤ 2 overlapping genes — always flag these explicitly as
   provisional and do not cite their fold-enrichment as evidence of regulatory control.
 - Flag all computational findings as requiring wet-lab confirmation.

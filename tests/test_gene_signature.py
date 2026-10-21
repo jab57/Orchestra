@@ -1084,3 +1084,61 @@ class TestSignatureIntegration:
             "Report header missing from final_report"
         )
         assert result.get("errors") == {}, f"Unexpected errors: {result.get('errors')}"
+
+
+class TestBHCorrectionFamilySize:
+    """BH must cover every regulator tested, not just the top-N regulators shown."""
+
+    def test_bh_correct_n_total_scales_to_family_size(self):
+        from orchestra_langgraph_workflow import OrchestraWorkflow
+        p = [0.001, 0.002]
+        assert OrchestraWorkflow._bh_correct(p) == pytest.approx([0.002, 0.002])
+        # same two p-values inside a family of 100 tests
+        assert OrchestraWorkflow._bh_correct(p, n_total=100) == pytest.approx([0.1, 0.1])
+
+    def test_bh_correct_n_total_never_smaller_than_list(self):
+        from orchestra_langgraph_workflow import OrchestraWorkflow
+        p = [0.01, 0.02, 0.03]
+        assert OrchestraWorkflow._bh_correct(p, n_total=1) == OrchestraWorkflow._bh_correct(p)
+
+    @pytest.mark.asyncio
+    async def test_signature_path_corrects_over_full_family_then_trims_to_top_n(self):
+        from orchestra_langgraph_workflow import SIGNATURE_TOP_N
+        wf = _make_workflow()
+        # 40 regulators, ascending p; the family tested is 40
+        regs = [_tf_entry(f"TF{i}", overlap=3, p=0.001 * (i + 1)) for i in range(40)]
+        seen = {}
+
+        async def call_tool(name, args, timeout_seconds=None):
+            if name == "find_master_regulators":
+                seen["top_n"] = args["top_n"]
+                res = _mr_result([dict(r) for r in regs])
+                res["query_summary"]["total_regulators_tested"] = 40
+                return res
+            return {"driver_annotation_available": False, "results": {}}
+
+        wf._regnetagents = AsyncMock()
+        wf._regnetagents.call_tool = AsyncMock(side_effect=call_tool)
+        wf._cascade = None
+        result = await wf._run_signature_path(_sig_state())
+
+        kept = result["master_regulators"]["master_regulators"]
+        assert seen["top_n"] >= 40  # fetched the whole family, not just 10
+        assert len(kept) == SIGNATURE_TOP_N
+        # TF0: p=0.001, BH over 40 tests = 0.001*40/1 capped by later cummin -> 0.04
+        assert kept[0]["p_value_adj"] == pytest.approx(0.04)
+
+    def test_synthesis_uses_precomputed_adjusted_p(self):
+        wf = _make_workflow()
+        entry = _tf_entry("CTNNB1", overlap=4, p=0.001)
+        entry["p_value_adj"] = 0.5
+        state = _sig_state(master_regulators=_mr_result([entry]))
+        syn = wf._synthesize_signature_path(state)["synthesis"]
+        assert syn["ranked_drivers"][0]["p_value_adj"] == 0.5
+
+    def test_synthesis_fallback_uses_total_regulators_tested(self):
+        wf = _make_workflow()
+        # no precomputed p_value_adj; query_summary says 250 regulators were tested
+        state = _sig_state(master_regulators=_mr_result([_tf_entry("CTNNB1", overlap=4, p=0.001)]))
+        syn = wf._synthesize_signature_path(state)["synthesis"]
+        assert syn["ranked_drivers"][0]["p_value_adj"] == pytest.approx(0.25)

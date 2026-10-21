@@ -36,6 +36,11 @@ from mcp_client import (
 
 logger = logging.getLogger(__name__)
 
+# Gene-signature path: regulators shown / sent on for validation, and how many to fetch so BH covers the
+# whole family tested (a network has well under 5000 regulators).
+SIGNATURE_TOP_N = 10
+SIGNATURE_BH_FETCH_N = 5000
+
 # Task-local progress callback — inherited by asyncio sub-tasks (gather), safe for concurrent calls.
 _progress_cb: ContextVar[Callable[[str], Coroutine] | None] = ContextVar(
     "_progress_cb", default=None
@@ -616,7 +621,9 @@ class OrchestraWorkflow:
             # read_timeout_seconds, which does not reliably cancel hung stdio calls on Windows.
             # 200s gives RegNetAgents room to complete (TIMEOUT_MASTER_REGULATORS=300s)
             # while staying under Claude Desktop's ~240s hard timeout.
-            mr_params = {"gene_set": gene_signature, "cell_type": cell_type, "top_n": 10}
+            # Fetch every regulator's Fisher p so BH runs over the full family tested, not just
+            # the 10 shown; the list is trimmed back to the top 10 below.
+            mr_params = {"gene_set": gene_signature, "cell_type": cell_type, "top_n": SIGNATURE_BH_FETCH_N}
             tcga_network = state.get("cancer_type")
             if tcga_network:
                 mr_params["network_source"] = "tcga"
@@ -629,6 +636,12 @@ class OrchestraWorkflow:
                 ),
                 timeout=200.0,
             )
+            all_regs = mr_result.get("master_regulators") or []
+            n_tested = (mr_result.get("query_summary") or {}).get("total_regulators_tested") or len(all_regs)
+            adj = self._bh_correct([r.get("p_value", 1.0) for r in all_regs], n_total=n_tested)
+            for reg, a in zip(all_regs, adj):
+                reg["p_value_adj"] = a
+            mr_result["master_regulators"] = all_regs[:SIGNATURE_TOP_N]
             state["master_regulators"] = mr_result
         except Exception as e:
             await self._emit(f"[Orchestra] find_master_regulators failed: {type(e).__name__}: {e}")
@@ -1910,15 +1923,21 @@ class OrchestraWorkflow:
         return "bilateral_established"
 
     @staticmethod
-    def _bh_correct(p_values: list[float]) -> list[float]:
-        """Benjamini-Hochberg FDR correction. Returns adjusted p-values, capped at 1.0."""
+    def _bh_correct(p_values: list[float], n_total: Optional[int] = None) -> list[float]:
+        """Benjamini-Hochberg FDR correction. Returns adjusted p-values, capped at 1.0.
+
+        n_total is the size of the whole family of tests. Pass it when p_values holds only the
+        smallest p-values of a larger family; the result is then conservative (never smaller
+        than the exact value). When p_values is the full family, leave it as None.
+        """
         n = len(p_values)
         if n == 0:
             return []
+        m = max(n_total or n, n)
         order = sorted(range(n), key=lambda i: p_values[i])
         p_adj = list(p_values)
         for rank, idx in enumerate(order):
-            p_adj[idx] = p_values[idx] * n / (rank + 1)
+            p_adj[idx] = p_values[idx] * m / (rank + 1)
         for k in range(n - 2, -1, -1):
             p_adj[order[k]] = min(p_adj[order[k]], p_adj[order[k + 1]])
         return [min(v, 1.0) for v in p_adj]
@@ -2002,10 +2021,14 @@ class OrchestraWorkflow:
                 "tissue_matched": entry.get("tissue_matched"),
             })
 
-        # BH FDR correction across all regulators tested in this run
+        # BH FDR correction across all regulators tested in this run. The signature path computes it
+        # over the full family before trimming to the top N; if an entry has none (older input),
+        # fall back to a conservative correction using the tool's reported total tested.
         raw_p = [row["p_value"] for row in evidence_table]
-        p_adj_vals = self._bh_correct(raw_p)
-        for row, drv, adj in zip(evidence_table, ranked_drivers, p_adj_vals):
+        n_tested = query_summary.get("total_regulators_tested") or len(raw_p)
+        fallback_adj = self._bh_correct(raw_p, n_total=n_tested)
+        for row, drv, entry, fb in zip(evidence_table, ranked_drivers, mr_list, fallback_adj):
+            adj = entry.get("p_value_adj", fb)
             row["p_value_adj"] = adj
             drv["p_value_adj"] = adj
 
