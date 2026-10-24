@@ -1,0 +1,1249 @@
+{
+ "gene": "",
+ "cell_type": "epithelial_cell",
+ "analysis_type": "gene_signature",
+ "analysis_depth": "comprehensive",
+ "gene_role": null,
+ "ensembl_id": null,
+ "tf_partner": null,
+ "network_analysis": null,
+ "network_stats": null,
+ "network_targets": null,
+ "pathway_enrichment": null,
+ "domain_insights": null,
+ "perturbation_result": null,
+ "ppi_interactions": null,
+ "lincs_effects": null,
+ "depmap_essentiality": null,
+ "gene_signature": [
+  "CDKN2A",
+  "CADM1",
+  "MAL",
+  "DAPK1",
+  "RASSF1A",
+  "CDH1",
+  "TIMP3",
+  "SOCS1",
+  "FHIT",
+  "PAX1",
+  "WIF1",
+  "SFRP1",
+  "TFPI2",
+  "DLEC1",
+  "SCGB3A1",
+  "RARB",
+  "APC",
+  "MGMT",
+  "ESR1",
+  "GSTP1",
+  "EDNRB",
+  "SLIT2",
+  "HOXA9",
+  "DCC",
+  "CCNA1",
+  "CDH13",
+  "CDKN2B",
+  "DKK3",
+  "EPB41L3",
+  "HIC1",
+  "JAM3",
+  "MLH1",
+  "PAX5",
+  "RUNX3",
+  "SFRP2",
+  "SOX1",
+  "TWIST1",
+  "HS3ST2",
+  "ZNF582",
+  "SOX17",
+  "LMX1A",
+  "NKX6-1",
+  "GATA4",
+  "GATA5",
+  "RARRES1",
+  "TMEFF2",
+  "CCND2",
+  "RASSF2",
+  "CXCL12",
+  "SFRP4",
+  "SFRP5",
+  "THBS1",
+  "KIF1A",
+  "IRX1",
+  "NID2",
+  "TCF21",
+  "SYNE1",
+  "SHISA3",
+  "GRIA4",
+  "PCDH10",
+  "ID4",
+  "CHFR",
+  "SYK",
+  "TP73",
+  "PTEN",
+  "BRCA1",
+  "STK11"
+ ],
+ "master_regulators": {
+  "master_regulators": [
+   {
+    "gene": "AEBP1",
+    "regulon_size": 210,
+    "overlap_count": 8,
+    "enrichment_score": 11.4326,
+    "p_value": 0.0,
+    "overlapping_genes": [
+     "DKK3",
+     "HIC1",
+     "JAM3",
+     "NID2",
+     "PCDH10",
+     "SFRP2",
+     "SFRP4",
+     "TIMP3"
+    ],
+    "rank": 1,
+    "p_value_adj": 0.0,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "PRKAG2"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": 0.043,
+     "tumor_overexpressed": false
+    }
+   },
+   {
+    "gene": "S1PR1",
+    "regulon_size": 38,
+    "overlap_count": 4,
+    "enrichment_score": 31.5901,
+    "p_value": 8e-06,
+    "overlapping_genes": [
+     "CXCL12",
+     "EDNRB",
+     "RASSF2",
+     "SYNE1"
+    ],
+    "rank": 2,
+    "p_value_adj": 0.006084,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "DDI1"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": -0.089,
+     "tumor_overexpressed": false
+    }
+   },
+   {
+    "gene": "PSD2",
+    "regulon_size": 67,
+    "overlap_count": 4,
+    "enrichment_score": 17.9168,
+    "p_value": 7.4e-05,
+    "overlapping_genes": [
+     "GRIA4",
+     "SCGB3A1",
+     "SFRP1",
+     "STK11"
+    ],
+    "rank": 3,
+    "p_value_adj": 0.037517999999999996,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "CDKAL1"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": 0.038,
+     "tumor_overexpressed": false
+    }
+   },
+   {
+    "gene": "LDB2",
+    "regulon_size": 619,
+    "overlap_count": 9,
+    "enrichment_score": 4.3634,
+    "p_value": 0.000203,
+    "overlapping_genes": [
+     "CXCL12",
+     "DKK3",
+     "EDNRB",
+     "HIC1",
+     "NID2",
+     "SFRP1",
+     "SFRP4",
+     "SOX17",
+     "SYNE1"
+    ],
+    "rank": 4,
+    "p_value_adj": 0.061347000000000006,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   },
+   {
+    "gene": "TCEAL7",
+    "regulon_size": 364,
+    "overlap_count": 7,
+    "enrichment_score": 5.7713,
+    "p_value": 0.000205,
+    "overlapping_genes": [
+     "CCND2",
+     "ID4",
+     "JAM3",
+     "SFRP4",
+     "TCF21",
+     "TWIST1",
+     "ZNF582"
+    ],
+    "rank": 5,
+    "p_value_adj": 0.061347000000000006,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   },
+   {
+    "gene": "THBS1",
+    "regulon_size": 91,
+    "overlap_count": 4,
+    "enrichment_score": 13.1915,
+    "p_value": 0.000242,
+    "overlapping_genes": [
+     "CDH13",
+     "DKK3",
+     "NID2",
+     "TIMP3"
+    ],
+    "rank": 6,
+    "p_value_adj": 0.061347000000000006,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   },
+   {
+    "gene": "RTL3",
+    "regulon_size": 96,
+    "overlap_count": 4,
+    "enrichment_score": 12.5044,
+    "p_value": 0.000297,
+    "overlapping_genes": [
+     "CXCL12",
+     "HOXA9",
+     "IRX1",
+     "JAM3"
+    ],
+    "rank": 7,
+    "p_value_adj": 0.06453385714285714,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   },
+   {
+    "gene": "RUNX1T1",
+    "regulon_size": 101,
+    "overlap_count": 4,
+    "enrichment_score": 11.8854,
+    "p_value": 0.00036,
+    "overlapping_genes": [
+     "CDKN2A",
+     "CXCL12",
+     "GATA4",
+     "SLIT2"
+    ],
+    "rank": 8,
+    "p_value_adj": 0.068445,
+    "dorothea_overlap": 0,
+    "is_known_driver": true,
+    "driver_role": "oncogene",
+    "tissue_matched": false
+   },
+   {
+    "gene": "CSDC2",
+    "regulon_size": 290,
+    "overlap_count": 6,
+    "enrichment_score": 6.2091,
+    "p_value": 0.000407,
+    "overlapping_genes": [
+     "ESR1",
+     "GATA5",
+     "GSTP1",
+     "HIC1",
+     "SFRP2",
+     "SFRP4"
+    ],
+    "rank": 9,
+    "p_value_adj": 0.068783,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   },
+   {
+    "gene": "ZNF737",
+    "regulon_size": 46,
+    "overlap_count": 3,
+    "enrichment_score": 19.5721,
+    "p_value": 0.000484,
+    "overlapping_genes": [
+     "CDKN2A",
+     "ESR1",
+     "SYNE1"
+    ],
+    "rank": 10,
+    "p_value_adj": 0.0736164,
+    "dorothea_overlap": 0,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false
+   }
+  ],
+  "query_summary": {
+   "gene_set_size": 67,
+   "genes_found_in_network": 66,
+   "genes_not_found": [
+    "RASSF1A"
+   ],
+   "genes_resolved_via_alias": [],
+   "network_size": 19807,
+   "network_source": "tcga",
+   "tcga_network": "cesc",
+   "total_regulators_tested": 1521
+  }
+ },
+ "cancer_contexts": null,
+ "cross_context_novelty": {
+  "AEBP1": {
+   "cervical cancer": {
+    "gene": "AEBP1",
+    "gene2": null,
+    "cancer_context": "cervical cancer",
+    "pubmed_hits": 1,
+    "experimental_hits": 0,
+    "computational_hits": 1,
+    "most_recent_year": 2024,
+    "novelty_verdict": "novel",
+    "verdict_rationale": "1 prior paper; no experimental, 1 computational \u2014 limited prior characterization in this context",
+    "top_pmids": []
+   }
+  },
+  "S1PR1": {
+   "cervical cancer": {
+    "gene": "S1PR1",
+    "gene2": null,
+    "cancer_context": "cervical cancer",
+    "pubmed_hits": 3,
+    "experimental_hits": 0,
+    "computational_hits": 3,
+    "most_recent_year": 2026,
+    "novelty_verdict": "novel",
+    "verdict_rationale": "3 prior papers; no experimental, 3 computational \u2014 limited prior characterization in this context",
+    "top_pmids": []
+   }
+  },
+  "PSD2": {
+   "cervical cancer": {
+    "gene": "PSD2",
+    "gene2": null,
+    "cancer_context": "cervical cancer",
+    "pubmed_hits": 0,
+    "experimental_hits": 0,
+    "computational_hits": 0,
+    "most_recent_year": null,
+    "novelty_verdict": "novel",
+    "verdict_rationale": "No prior papers found in this gene-cancer context",
+    "top_pmids": []
+   }
+  },
+  "LDB2": {
+   "cervical cancer": {
+    "gene": "LDB2",
+    "gene2": null,
+    "cancer_context": "cervical cancer",
+    "pubmed_hits": 0,
+    "experimental_hits": 0,
+    "computational_hits": 0,
+    "most_recent_year": null,
+    "novelty_verdict": "novel",
+    "verdict_rationale": "No prior papers found in this gene-cancer context",
+    "top_pmids": []
+   }
+  },
+  "TCEAL7": {
+   "cervical cancer": {
+    "gene": "TCEAL7",
+    "gene2": null,
+    "cancer_context": "cervical cancer",
+    "pubmed_hits": 0,
+    "experimental_hits": 0,
+    "computational_hits": 0,
+    "most_recent_year": null,
+    "novelty_verdict": "novel",
+    "verdict_rationale": "No prior papers found in this gene-cancer context",
+    "top_pmids": []
+   }
+  }
+ },
+ "driver_annotation_available": true,
+ "cell_types": null,
+ "comparison_results": null,
+ "cancer_type": "cesc",
+ "network_comparison": null,
+ "network_comparison_tcga_fallback": null,
+ "validate_tumor_acquired": null,
+ "rank_tumor_acquired": null,
+ "cancer_types": null,
+ "include_gremln_baseline": null,
+ "tumor_network_results": null,
+ "cancer_context": null,
+ "gene2": null,
+ "novelty_result": null,
+ "edge_novelty_results": null,
+ "validated_targets": null,
+ "causal_chain": null,
+ "synthesis": {
+  "gene": "",
+  "cell_type": "epithelial_cell",
+  "routing": "signature",
+  "network_label": "TCGA CESC ARACNe",
+  "gene_signature": [
+   "CDKN2A",
+   "CADM1",
+   "MAL",
+   "DAPK1",
+   "RASSF1A",
+   "CDH1",
+   "TIMP3",
+   "SOCS1",
+   "FHIT",
+   "PAX1",
+   "WIF1",
+   "SFRP1",
+   "TFPI2",
+   "DLEC1",
+   "SCGB3A1",
+   "RARB",
+   "APC",
+   "MGMT",
+   "ESR1",
+   "GSTP1",
+   "EDNRB",
+   "SLIT2",
+   "HOXA9",
+   "DCC",
+   "CCNA1",
+   "CDH13",
+   "CDKN2B",
+   "DKK3",
+   "EPB41L3",
+   "HIC1",
+   "JAM3",
+   "MLH1",
+   "PAX5",
+   "RUNX3",
+   "SFRP2",
+   "SOX1",
+   "TWIST1",
+   "HS3ST2",
+   "ZNF582",
+   "SOX17",
+   "LMX1A",
+   "NKX6-1",
+   "GATA4",
+   "GATA5",
+   "RARRES1",
+   "TMEFF2",
+   "CCND2",
+   "RASSF2",
+   "CXCL12",
+   "SFRP4",
+   "SFRP5",
+   "THBS1",
+   "KIF1A",
+   "IRX1",
+   "NID2",
+   "TCF21",
+   "SYNE1",
+   "SHISA3",
+   "GRIA4",
+   "PCDH10",
+   "ID4",
+   "CHFR",
+   "SYK",
+   "TP73",
+   "PTEN",
+   "BRCA1",
+   "STK11"
+  ],
+  "signature_size": 67,
+  "genes_found_in_network": 66,
+  "genes_not_found": [
+   "RASSF1A"
+  ],
+  "network_size": 19807,
+  "total_regulators_tested": 1521,
+  "ranked_drivers": [
+   {
+    "gene": "LDB2",
+    "overlap_count": 9,
+    "dorothea_overlap": 0,
+    "coverage_pct": 13.6,
+    "enrichment_score": 4.3634,
+    "p_value": 0.000203,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CXCL12",
+     "DKK3",
+     "EDNRB",
+     "HIC1",
+     "NID2",
+     "SFRP1",
+     "SFRP4",
+     "SOX17",
+     "SYNE1"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "AEBP1",
+    "overlap_count": 8,
+    "dorothea_overlap": 0,
+    "coverage_pct": 12.1,
+    "enrichment_score": 11.4326,
+    "p_value": 0.0,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "DKK3",
+     "HIC1",
+     "JAM3",
+     "NID2",
+     "PCDH10",
+     "SFRP2",
+     "SFRP4",
+     "TIMP3"
+    ],
+    "cascade_key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "PRKAG2"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": 0.043,
+     "tumor_overexpressed": false
+    },
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.0
+   },
+   {
+    "gene": "TCEAL7",
+    "overlap_count": 7,
+    "dorothea_overlap": 0,
+    "coverage_pct": 10.6,
+    "enrichment_score": 5.7713,
+    "p_value": 0.000205,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CCND2",
+     "ID4",
+     "JAM3",
+     "SFRP4",
+     "TCF21",
+     "TWIST1",
+     "ZNF582"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "CSDC2",
+    "overlap_count": 6,
+    "dorothea_overlap": 0,
+    "coverage_pct": 9.1,
+    "enrichment_score": 6.2091,
+    "p_value": 0.000407,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "ESR1",
+     "GATA5",
+     "GSTP1",
+     "HIC1",
+     "SFRP2",
+     "SFRP4"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.068783
+   },
+   {
+    "gene": "S1PR1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "enrichment_score": 31.5901,
+    "p_value": 8e-06,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CXCL12",
+     "EDNRB",
+     "RASSF2",
+     "SYNE1"
+    ],
+    "cascade_key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "DDI1"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": -0.089,
+     "tumor_overexpressed": false
+    },
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.006084
+   },
+   {
+    "gene": "PSD2",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "enrichment_score": 17.9168,
+    "p_value": 7.4e-05,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "GRIA4",
+     "SCGB3A1",
+     "SFRP1",
+     "STK11"
+    ],
+    "cascade_key_findings": [
+     "1 gene(s) supported by multiple independent evidence sources."
+    ],
+    "multi_source_genes": [
+     "CDKAL1"
+    ],
+    "cbioportal_summary": {
+     "pan_cancer_mean_z": 0.038,
+     "tumor_overexpressed": false
+    },
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.037517999999999996
+   },
+   {
+    "gene": "THBS1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "enrichment_score": 13.1915,
+    "p_value": 0.000242,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CDH13",
+     "DKK3",
+     "NID2",
+     "TIMP3"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "RTL3",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "enrichment_score": 12.5044,
+    "p_value": 0.000297,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CXCL12",
+     "HOXA9",
+     "IRX1",
+     "JAM3"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.06453385714285714
+   },
+   {
+    "gene": "RUNX1T1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "enrichment_score": 11.8854,
+    "p_value": 0.00036,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CDKN2A",
+     "CXCL12",
+     "GATA4",
+     "SLIT2"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": true,
+    "driver_role": "oncogene",
+    "tissue_matched": false,
+    "p_value_adj": 0.068445
+   },
+   {
+    "gene": "ZNF737",
+    "overlap_count": 3,
+    "dorothea_overlap": 0,
+    "coverage_pct": 4.5,
+    "enrichment_score": 19.5721,
+    "p_value": 0.000484,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "overlapping_genes": [
+     "CDKN2A",
+     "ESR1",
+     "SYNE1"
+    ],
+    "cascade_key_findings": [],
+    "multi_source_genes": [],
+    "cbioportal_summary": null,
+    "cascade_error": null,
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "p_value_adj": 0.0736164
+   }
+  ],
+  "evidence_table": [
+   {
+    "gene": "LDB2",
+    "overlap_count": 9,
+    "dorothea_overlap": 0,
+    "coverage_pct": 13.6,
+    "regulon_size": 619,
+    "enrichment_score": 4.3634,
+    "p_value": 0.000203,
+    "overlapping_genes": [
+     "CXCL12",
+     "DKK3",
+     "EDNRB",
+     "HIC1",
+     "NID2",
+     "SFRP1",
+     "SFRP4",
+     "SOX17",
+     "SYNE1"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "AEBP1",
+    "overlap_count": 8,
+    "dorothea_overlap": 0,
+    "coverage_pct": 12.1,
+    "regulon_size": 210,
+    "enrichment_score": 11.4326,
+    "p_value": 0.0,
+    "overlapping_genes": [
+     "DKK3",
+     "HIC1",
+     "JAM3",
+     "NID2",
+     "PCDH10",
+     "SFRP2",
+     "SFRP4",
+     "TIMP3"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.0
+   },
+   {
+    "gene": "TCEAL7",
+    "overlap_count": 7,
+    "dorothea_overlap": 0,
+    "coverage_pct": 10.6,
+    "regulon_size": 364,
+    "enrichment_score": 5.7713,
+    "p_value": 0.000205,
+    "overlapping_genes": [
+     "CCND2",
+     "ID4",
+     "JAM3",
+     "SFRP4",
+     "TCF21",
+     "TWIST1",
+     "ZNF582"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "CSDC2",
+    "overlap_count": 6,
+    "dorothea_overlap": 0,
+    "coverage_pct": 9.1,
+    "regulon_size": 290,
+    "enrichment_score": 6.2091,
+    "p_value": 0.000407,
+    "overlapping_genes": [
+     "ESR1",
+     "GATA5",
+     "GSTP1",
+     "HIC1",
+     "SFRP2",
+     "SFRP4"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.068783
+   },
+   {
+    "gene": "S1PR1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "regulon_size": 38,
+    "enrichment_score": 31.5901,
+    "p_value": 8e-06,
+    "overlapping_genes": [
+     "CXCL12",
+     "EDNRB",
+     "RASSF2",
+     "SYNE1"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.006084
+   },
+   {
+    "gene": "PSD2",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "regulon_size": 67,
+    "enrichment_score": 17.9168,
+    "p_value": 7.4e-05,
+    "overlapping_genes": [
+     "GRIA4",
+     "SCGB3A1",
+     "SFRP1",
+     "STK11"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.037517999999999996
+   },
+   {
+    "gene": "THBS1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "regulon_size": 91,
+    "enrichment_score": 13.1915,
+    "p_value": 0.000242,
+    "overlapping_genes": [
+     "CDH13",
+     "DKK3",
+     "NID2",
+     "TIMP3"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.061347000000000006
+   },
+   {
+    "gene": "RTL3",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "regulon_size": 96,
+    "enrichment_score": 12.5044,
+    "p_value": 0.000297,
+    "overlapping_genes": [
+     "CXCL12",
+     "HOXA9",
+     "IRX1",
+     "JAM3"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.06453385714285714
+   },
+   {
+    "gene": "RUNX1T1",
+    "overlap_count": 4,
+    "dorothea_overlap": 0,
+    "coverage_pct": 6.1,
+    "regulon_size": 101,
+    "enrichment_score": 11.8854,
+    "p_value": 0.00036,
+    "overlapping_genes": [
+     "CDKN2A",
+     "CXCL12",
+     "GATA4",
+     "SLIT2"
+    ],
+    "is_known_driver": true,
+    "driver_role": "oncogene",
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.068445
+   },
+   {
+    "gene": "ZNF737",
+    "overlap_count": 3,
+    "dorothea_overlap": 0,
+    "coverage_pct": 4.5,
+    "regulon_size": 46,
+    "enrichment_score": 19.5721,
+    "p_value": 0.000484,
+    "overlapping_genes": [
+     "CDKN2A",
+     "ESR1",
+     "SYNE1"
+    ],
+    "is_known_driver": false,
+    "driver_role": null,
+    "tissue_matched": false,
+    "pagerank_rank": true,
+    "pathway_member": false,
+    "lincs_knockdown": false,
+    "depmap_essentiality": false,
+    "super_enhancer": false,
+    "dorothea_tier": false,
+    "cbio_expression": false,
+    "corroboration_count": 1,
+    "corroboration_denominator": 7,
+    "p_value_adj": 0.0736164
+   }
+  ],
+  "regnetagents_available": true,
+  "cascade_available": true,
+  "discordance_flags": [
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "LDB2",
+    "description": "LDB2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "AEBP1",
+    "description": "AEBP1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "TCEAL7",
+    "description": "TCEAL7 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "CSDC2",
+    "description": "CSDC2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "S1PR1",
+    "description": "S1PR1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "PSD2",
+    "description": "PSD2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "THBS1",
+    "description": "THBS1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "RTL3",
+    "description": "RTL3 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "RUNX1T1",
+    "description": "RUNX1T1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   },
+   {
+    "type": "topological_hub_not_validated",
+    "gene": "ZNF737",
+    "description": "ZNF737 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type",
+    "genes": []
+   }
+  ],
+  "cancer_contexts": [],
+  "cross_context_novelty": [
+   {
+    "gene": "AEBP1",
+    "gap_classification": "bilateral_novel",
+    "by_context": {
+     "cervical cancer": {
+      "gene": "AEBP1",
+      "gene2": null,
+      "cancer_context": "cervical cancer",
+      "pubmed_hits": 1,
+      "experimental_hits": 0,
+      "computational_hits": 1,
+      "most_recent_year": 2024,
+      "novelty_verdict": "novel",
+      "verdict_rationale": "1 prior paper; no experimental, 1 computational \u2014 limited prior characterization in this context",
+      "top_pmids": []
+     }
+    }
+   },
+   {
+    "gene": "S1PR1",
+    "gap_classification": "bilateral_novel",
+    "by_context": {
+     "cervical cancer": {
+      "gene": "S1PR1",
+      "gene2": null,
+      "cancer_context": "cervical cancer",
+      "pubmed_hits": 3,
+      "experimental_hits": 0,
+      "computational_hits": 3,
+      "most_recent_year": 2026,
+      "novelty_verdict": "novel",
+      "verdict_rationale": "3 prior papers; no experimental, 3 computational \u2014 limited prior characterization in this context",
+      "top_pmids": []
+     }
+    }
+   },
+   {
+    "gene": "PSD2",
+    "gap_classification": "bilateral_novel",
+    "by_context": {
+     "cervical cancer": {
+      "gene": "PSD2",
+      "gene2": null,
+      "cancer_context": "cervical cancer",
+      "pubmed_hits": 0,
+      "experimental_hits": 0,
+      "computational_hits": 0,
+      "most_recent_year": null,
+      "novelty_verdict": "novel",
+      "verdict_rationale": "No prior papers found in this gene-cancer context",
+      "top_pmids": []
+     }
+    }
+   },
+   {
+    "gene": "LDB2",
+    "gap_classification": "bilateral_novel",
+    "by_context": {
+     "cervical cancer": {
+      "gene": "LDB2",
+      "gene2": null,
+      "cancer_context": "cervical cancer",
+      "pubmed_hits": 0,
+      "experimental_hits": 0,
+      "computational_hits": 0,
+      "most_recent_year": null,
+      "novelty_verdict": "novel",
+      "verdict_rationale": "No prior papers found in this gene-cancer context",
+      "top_pmids": []
+     }
+    }
+   },
+   {
+    "gene": "TCEAL7",
+    "gap_classification": "bilateral_novel",
+    "by_context": {
+     "cervical cancer": {
+      "gene": "TCEAL7",
+      "gene2": null,
+      "cancer_context": "cervical cancer",
+      "pubmed_hits": 0,
+      "experimental_hits": 0,
+      "computational_hits": 0,
+      "most_recent_year": null,
+      "novelty_verdict": "novel",
+      "verdict_rationale": "No prior papers found in this gene-cancer context",
+      "top_pmids": []
+     }
+    }
+   }
+  ],
+  "driver_annotation_available": true,
+  "errors": {},
+  "edge_novelty_results": []
+ },
+ "completed_steps": [
+  "classify_gene",
+  "route_analysis",
+  "run_signature_path",
+  "synthesize",
+  "run_edge_novelty",
+  "generate_report"
+ ],
+ "errors": {},
+ "final_report": "## Orchestra Gene Signature Driver Analysis \u2014 epithelial_cell\n**Network (ARACNe regulons):** TCGA CESC ARACNe\n**Signature size:** 67 genes  |  **Found in network:** 66  |  **Regulators tested:** 1521\n\n### Ranked TF Drivers\n\n| TF Driver | Known Driver (IntOGen) | Coverage | ARACNe Ovlp | DoRothEA Ovlp | Enrichment | p-value | p-adj (BH) | PageRank | Pathway | LINCS | DepMap | SE | DoRothEA | cBio | Score |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| LDB2 | No | 13.6% | 9/619 | 0 | 4.36 | 2.03e-04 | 6.13e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| AEBP1 | No | 12.1% | 8/210 | 0 | 11.43 | 0.00e+00 | 0.00e+00 | \u2713 | - | - | - | - | - | - | **1/7** |\n| TCEAL7 | No | 10.6% | 7/364 | 0 | 5.77 | 2.05e-04 | 6.13e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| CSDC2 | No | 9.1% | 6/290 | 0 | 6.21 | 4.07e-04 | 6.88e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| S1PR1 | No | 6.1% | 4/38 | 0 | 31.59 | 8.00e-06 | 6.08e-03 | \u2713 | - | - | - | - | - | - | **1/7** |\n| PSD2 | No | 6.1% | 4/67 | 0 | 17.92 | 7.40e-05 | 3.75e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| THBS1 | No | 6.1% | 4/91 | 0 | 13.19 | 2.42e-04 | 6.13e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| RTL3 | No | 6.1% | 4/96 | 0 | 12.50 | 2.97e-04 | 6.45e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| RUNX1T1 | \u2713 oncogene | 6.1% | 4/101 | 0 | 11.89 | 3.60e-04 | 6.84e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n| ZNF737 | No | 4.5% | 3/46 | 0 | 19.57 | 4.84e-04 | 7.36e-02 | \u2713 | - | - | - | - | - | - | **1/7** |\n\n_Coverage = signature genes in ARACNe regulon. ARACNe Ovlp = signature/ARACNe-regulon overlap count/regulon-size. DoRothEA Ovlp = signature genes also in DoRothEA regulon (independent validation). PageRank/Pathway = RegNetAgents enrichment. LINCS, DepMap, SE, DoRothEA, cBio = CASCADE sources. p-adj = Benjamini-Hochberg FDR correction across all 1521 regulators tested._\n\n_Driver source: Mart\u00ednez-Jim\u00e9nez et al. 2020 (IntOGen Compendium of Mutational Cancer Driver Genes). \"No\" means not a positive-selection driver in IntOGen's compendium \u2014 not a confirmation the gene isn't a cancer driver by other mechanisms (fusion, copy-number, epigenetic). [tissue-matched] means IntOGen independently calls this gene a driver specifically in the tumor type used for this network (only shown when a TCGA network was specified)._\n\n### Driver Details\n**1. LDB2** \u2014 13.6% coverage (9 ARACNe signature genes), enrichment=4.36, p=2.03e-04, p-adj=6.13e-02\n   Known driver (IntOGen): No\n   Overlapping: CXCL12, DKK3, EDNRB, HIC1, NID2, SFRP1, SFRP4, SOX17, SYNE1\n   cBioPortal (TCGA): data not returned (possible connectivity issue)\n\n**2. AEBP1** \u2014 12.1% coverage (8 ARACNe signature genes), enrichment=11.43, p=0.00e+00, p-adj=0.00e+00\n   Known driver (IntOGen): No\n   Overlapping: DKK3, HIC1, JAM3, NID2, PCDH10, SFRP2, SFRP4, TIMP3\n   CASCADE evidence:\n   - 1 gene(s) supported by multiple independent evidence sources.\n   cBioPortal (TCGA): pan-cancer z=0.04 \u2014 not overexpressed in primary tumors (data present, expression near baseline)\n\n**3. TCEAL7** \u2014 10.6% coverage (7 ARACNe signature genes), enrichment=5.77, p=2.05e-04, p-adj=6.13e-02\n   Known driver (IntOGen): No\n   Overlapping: CCND2, ID4, JAM3, SFRP4, TCF21, TWIST1, ZNF582\n   cBioPortal (TCGA): data not returned (possible connectivity issue)\n\n_Genes not found in network (1): RASSF1A_\n\n### Notable Discordances\n- **LDB2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **AEBP1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **TCEAL7 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **CSDC2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **S1PR1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **PSD2 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **THBS1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **RTL3 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **RUNX1T1 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n- **ZNF737 ranks in the regulatory network (PageRank) but has no experimental support from CASCADE \u2014 may be topologically central but not functionally essential in this cell type**\n"
+}

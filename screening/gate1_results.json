@@ -1,0 +1,47 @@
+{
+  "DACH1/cesc": {
+    "network_genes": 19807,
+    "regulators_with_regulon": 6054,
+    "panel_resolved": 23,
+    "regulators_with_overlap": 616,
+    "reproduces_tool": {
+      "AR": {
+        "tool_p": 0.000177,
+        "replica_p": 0.00017656430175815038,
+        "replica_rank": 1,
+        "match": true
+      },
+      "SOX8": {
+        "tool_p": 0.000701,
+        "replica_p": 0.0007010488925572906,
+        "replica_rank": 2,
+        "match": true
+      },
+      "DACH1": {
+        "tool_p": 0.00116,
+        "replica_p": 0.0011621164073183222,
+        "replica_rank": 3,
+        "match": true
+      }
+    },
+    "candidate_p": 0.0011621164073183222,
+    "candidate_rank": 3,
+    "leave_one_out": {
+      "n_reruns": 23,
+      "candidate_in_top3": 19,
+      "fraction_in_top3": 0.8260869565217391,
+      "worst_rank": 24,
+      "reruns_where_candidate_has_no_overlap": 0,
+      "passes_80pct_top3": true
+    },
+    "null": {
+      "n_perm": 2000,
+      "median_best_p_random": 0.000415083040770458,
+      "p05_best_p_random": 4.0375360458627355e-05,
+      "familywise_p_for_candidate_p": 0.768615692153923,
+      "familywise_p_for_best_other_p": 0.29035482258870565,
+      "best_other": "AR",
+      "best_other_p": 0.00017656430175815038
+    }
+  }
+}

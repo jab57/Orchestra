@@ -1,0 +1,163 @@
+{
+  "original_24": {
+    "panel_size": 24,
+    "resolved": 23,
+    "unresolved": [
+      "RASSF1A"
+    ],
+    "regulators_tested": 616,
+    "DACH1": {
+      "overlap": 4,
+      "regulon_size": 409,
+      "raw_p": 0.0011621164073183222,
+      "rank": 3,
+      "bh_p": 0.1699759567449046
+    },
+    "familywise_p_DACH1": 0.768615692153923,
+    "top10": [
+      {
+        "regulator": "AR",
+        "overlap": 3,
+        "raw_p": 0.00017656430175815038,
+        "bh_p": 0.10876360988302064
+      },
+      {
+        "regulator": "SOX8",
+        "overlap": 3,
+        "raw_p": 0.0007010488925572906,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "DACH1",
+        "overlap": 4,
+        "raw_p": 0.0011621164073183222,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "ZNF737",
+        "overlap": 2,
+        "raw_p": 0.0012941286169106136,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "SSTR2",
+        "overlap": 2,
+        "raw_p": 0.0014084238560174787,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "SALL2",
+        "overlap": 3,
+        "raw_p": 0.002111409945480273,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "TGFBR3",
+        "overlap": 2,
+        "raw_p": 0.0021198489712532255,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "GCGR",
+        "overlap": 2,
+        "raw_p": 0.002566145200512946,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "PSD2",
+        "overlap": 2,
+        "raw_p": 0.002723920463230583,
+        "bh_p": 0.1699759567449046
+      },
+      {
+        "regulator": "DIRAS3",
+        "overlap": 2,
+        "raw_p": 0.0029689618521227448,
+        "bh_p": 0.1699759567449046
+      }
+    ]
+  },
+  "larger_67": {
+    "panel_size": 67,
+    "resolved": 66,
+    "unresolved": [
+      "RASSF1A"
+    ],
+    "regulators_tested": 1521,
+    "DACH1": {
+      "overlap": 4,
+      "regulon_size": 409,
+      "raw_p": 0.04748588315413804,
+      "rank": 158,
+      "bh_p": 0.43306484115749894
+    },
+    "familywise_p_DACH1": 1.0,
+    "top10": [
+      {
+        "regulator": "AEBP1",
+        "overlap": 8,
+        "raw_p": 4.735767642818167e-07,
+        "bh_p": 0.0007203102584726432
+      },
+      {
+        "regulator": "S1PR1",
+        "overlap": 4,
+        "raw_p": 7.6205720148865266e-06,
+        "bh_p": 0.005795445017321203
+      },
+      {
+        "regulator": "PSD2",
+        "overlap": 4,
+        "raw_p": 7.359643752770565e-05,
+        "bh_p": 0.03731339382654677
+      },
+      {
+        "regulator": "LDB2",
+        "overlap": 9,
+        "raw_p": 0.0002026602802752168,
+        "bh_p": 0.061272792607378425
+      },
+      {
+        "regulator": "TCEAL7",
+        "overlap": 7,
+        "raw_p": 0.000205049400458579,
+        "bh_p": 0.061272792607378425
+      },
+      {
+        "regulator": "THBS1",
+        "overlap": 4,
+        "raw_p": 0.00024170726866815947,
+        "bh_p": 0.061272792607378425
+      },
+      {
+        "regulator": "RTL3",
+        "overlap": 4,
+        "raw_p": 0.0002967051743381653,
+        "bh_p": 0.06446979573833563
+      },
+      {
+        "regulator": "RUNX1T1",
+        "overlap": 4,
+        "raw_p": 0.0003601557646818984,
+        "bh_p": 0.06847461476014594
+      },
+      {
+        "regulator": "CSDC2",
+        "overlap": 6,
+        "raw_p": 0.0004068336573556652,
+        "bh_p": 0.06875488809310742
+      },
+      {
+        "regulator": "ZNF737",
+        "overlap": 3,
+        "raw_p": 0.00048419810025806436,
+        "bh_p": 0.07364653104925159
+      }
+    ]
+  },
+  "rule": {
+    "top10": false,
+    "bh_not_worse_than_0.17": false,
+    "holds_up": false
+  }
+}

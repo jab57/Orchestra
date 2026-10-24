@@ -1,0 +1,52 @@
+{
+  "samples": 253,
+  "candidate": "DACH1",
+  "K": 409,
+  "mean_expr": 1.016,
+  "matched_pool_n": 77,
+  "all_regulators_n": 5999,
+  "match_rule": "K in [0.5x,2.0x] of candidate's; mean expr within +-1.0",
+  "targets": {
+    "SLIT2": {
+      "rho_candidate": -0.243,
+      "matched_median": -0.081,
+      "matched_sd": 0.104,
+      "matched_pct_more_negative": 9.09,
+      "matched_emp_p_one_sided": 0.1026,
+      "all_reg_emp_p_one_sided": 0.0277
+    },
+    "ESR1": {
+      "rho_candidate": -0.215,
+      "matched_median": -0.076,
+      "matched_sd": 0.109,
+      "matched_pct_more_negative": 9.09,
+      "matched_emp_p_one_sided": 0.1026,
+      "all_reg_emp_p_one_sided": 0.0907
+    },
+    "CADM1": {
+      "rho_candidate": -0.114,
+      "matched_median": -0.021,
+      "matched_sd": 0.076,
+      "matched_pct_more_negative": 11.69,
+      "matched_emp_p_one_sided": 0.1282,
+      "all_reg_emp_p_one_sided": 0.0803
+    },
+    "EDNRB": {
+      "rho_candidate": -0.073,
+      "matched_median": -0.004,
+      "matched_sd": 0.152,
+      "matched_pct_more_negative": 36.36,
+      "matched_emp_p_one_sided": 0.3718,
+      "all_reg_emp_p_one_sided": 0.2468
+    },
+    "mean_rho_3": {
+      "rho_candidate": -0.191,
+      "matched_median": -0.055,
+      "matched_sd": 0.075,
+      "matched_pct_more_negative": 3.9,
+      "matched_emp_p_one_sided": 0.0513,
+      "all_reg_emp_p_one_sided": 0.0193
+    }
+  },
+  "targets_with_matched_p_le_alpha": []
+}
