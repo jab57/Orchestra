@@ -38,3 +38,5 @@ Versions: Orchestra v1.3.11-3-gd090671, RegNetAgents v1.3.0-1-g54b1cf8, CASCADE 
 First probe-level build had an off-by-one in sample columns (recomputed values agreed with cBioPortal at ρ≈0.04).
 Fixed in `build_gene_promoter_matrix.py`; all reported probe-level numbers are from the fixed run
 (agreement with cBioPortal values 0.67–0.86).
+
+Note: some outputs here (item1_probe_level_results.csv, item3_null_summary.csv, item4_ci_table.csv, item4_sox8_difference_tests.csv, item6_dach1_low_vs_high.csv, gene_promoter_meth_cesc_B*.csv.gz) also contain a second probe definition ("B": TSS1500 + TSS200 + first-exon probes) that is not used in the paper. The paper reports only the TSS200-based definition (TSS1500 as fallback).
