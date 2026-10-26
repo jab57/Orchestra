@@ -21,3 +21,5 @@ Scripts and outputs behind the enrichment re-checks and the matched-regulator co
 - In `gate3_null_rhos.csv` and `gate3_hnsc_null_rhos.csv` the first column is labelled `Ensembl_ID` but holds gene symbols (one row per regulator; correlations with promoter methylation of each target, regulon size, mean expression). They hold aggregate values only, no per-sample data.
 - Software versions are given in the paper's Methods (Orchestra, RegNetAgents, CASCADE `git describe` values).
 - All five scripts, as they appear here, were re-run on 2026-10-24 and reproduced the original output files exactly. `gate3_matched_tf_null_dach1.py` needs the CESC promoter matrix built by `revision_checks/build_gene_promoter_matrix.py` (the matrix itself is not included).
+
+Also run but not reported in the paper: gate1_stability_and_null.py and its outputs (enrichment permutation null) and gate3_hnsc_replication.py and its outputs (TCGA-HNSC matched-regulator replication). They are kept as a record.

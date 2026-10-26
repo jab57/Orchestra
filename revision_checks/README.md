@@ -40,3 +40,5 @@ Fixed in `build_gene_promoter_matrix.py`; all reported probe-level numbers are f
 (agreement with cBioPortal values 0.67–0.86).
 
 Note: some outputs here (item1_probe_level_results.csv, item3_null_summary.csv, item4_ci_table.csv, item4_sox8_difference_tests.csv, item6_dach1_low_vs_high.csv, gene_promoter_meth_cesc_B*.csv.gz) also contain a second probe definition ("B": TSS1500 + TSS200 + first-exon probes) that is not used in the paper. The paper reports only the TSS200-based definition (TSS1500 as fallback).
+
+Also run but not reported in the paper: item4_ci_table.csv (95% confidence intervals; the paper cites only the SOX8-TFPI2 interval), item5_burden_pax1.csv (PAX1 added to the burden index) and item6_dach1_low_vs_high.csv (DACH1-low vs -high comparison). They are kept as a record.
