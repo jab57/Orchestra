@@ -24,7 +24,7 @@ are untouched.
 
 ## Software versions
 
-Python 3.12.8, SciPy 1.16.3, NumPy 2.3.5, pandas 2.3.3. The scripts do not record versions; these were confirmed on 2026-10-28 to be the versions installed on the analysis machine. A full rerun on that date was not possible because the ~1 GB probe-level methylation file listed above is not kept locally; re-download it to reproduce `probe_level_and_null.py`.
+Python 3.12.8, SciPy 1.16.3, NumPy 2.3.5, pandas 2.3.3. The scripts do not record versions; these are the versions installed on the analysis machine. On 2026-10-28 the probe-level chain was rerun from the re-downloaded `TCGA-CESC.methylation450.tsv.gz` under these versions (`build_gene_promoter_matrix.py`, `probe_level_and_null.py`, `screening/gate3_matched_tf_null_dach1.py`, `items4_5_6_ci_burden_bimodal.py`). `promoter_definitions.json` (as parsed), `item1_probe_level_results.csv`, `item3_null_summary.csv`, `gate3_results.json`, `gate3_null_rhos.csv` and the item 4 to 6 tables reproduced unchanged; `item3_null_all_genes_A.csv` has identical values with rows in a different order.
 
 ## Done 2026-10-18: RASSF1 rerun (`item5_rassf1_rerun.py`, outputs `item5_rassf1_rerun_{orig23,rassf1_24}.json`)
 
