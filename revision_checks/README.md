@@ -22,6 +22,10 @@ are untouched.
 - Probe-level HM450 betas: UCSC Xena GDC hub `TCGA-CESC.methylation450.tsv.gz` (~1 GB, hg38)
 - Illumina manifest: GEO GPL13534 `GPL13534_HumanMethylation450_15017482_v.1.1.csv.gz`
 
+## Software versions
+
+Python 3.12.8, SciPy 1.16.3, NumPy 2.3.5, pandas 2.3.3. The scripts do not record versions; these were confirmed on 2026-10-28 to be the versions installed on the analysis machine. A full rerun on that date was not possible because the ~1 GB probe-level methylation file listed above is not kept locally; re-download it to reproduce `probe_level_and_null.py`.
+
 ## Done 2026-10-18: RASSF1 rerun (`item5_rassf1_rerun.py`, outputs `item5_rassf1_rerun_{orig23,rassf1_24}.json`)
 
 Versions: Orchestra v1.3.11-3-gd090671, RegNetAgents v1.3.0-1-g54b1cf8, CASCADE v1.5.0-2-g281bb03. Settings: epithelial_cell, tcga_network=cesc, contexts cervical cancer + head and neck squamous.
