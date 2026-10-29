@@ -1,0 +1,7 @@
+source,regulator,target,n,rho,fisher_lo,fisher_hi,boot_lo,boot_hi,p
+cBioPortal,SALL2,CADM1,253,-0.136,-0.255,-0.012,-0.261,-0.006,3.1e-02
+cBioPortal,SALL2,SCGB3A1,253,-0.169,-0.286,-0.046,-0.286,-0.044,7.2e-03
+cBioPortal,SALL2,WIF1,253,0.129,0.005,0.248,0.002,0.254,4.1e-02
+A,SALL2,CADM1,253,-0.078,-0.2,0.045,-0.202,0.048,2.1e-01
+A,SALL2,SCGB3A1,253,-0.235,-0.349,-0.115,-0.352,-0.112,1.6e-04
+A,SALL2,WIF1,253,-0.107,-0.228,0.016,-0.235,0.029,8.9e-02

@@ -15,6 +15,7 @@ are untouched.
 | 1+3 | `probe_level_and_null.py` | `item1_probe_level_results.csv`, `item3_null_summary.csv`, `item3_null_all_genes_A.csv` |
 | 5 diag | `diag_pax1_dcc.py` | `cbioportal_extra_meth_cesc.csv` |
 | 4+5+6 | `items4_5_6_ci_burden_bimodal.py` | `item4_ci_table.csv`, `item4_sox8_difference_tests.csv`, `item5_burden_pax1.csv`, `item6_dach1_low_vs_high.csv` |
+| 10 | `item10_sall2_correct_targets.py` | `item10_sall2_correct_targets.csv`, `cbioportal_sall2_targets_meth_cesc.csv` |
 
 ## Downloaded inputs (not stored here; large, public)
 
@@ -46,3 +47,5 @@ Fixed in `build_gene_promoter_matrix.py`; all reported probe-level numbers are f
 Note: some outputs here (item1_probe_level_results.csv, item3_null_summary.csv, item4_ci_table.csv, item4_sox8_difference_tests.csv, item6_dach1_low_vs_high.csv, gene_promoter_meth_cesc_B*.csv.gz) also contain a second probe definition ("B": TSS1500 + TSS200 + first-exon probes) that is not used in the paper. The paper reports only the TSS200-based definition (TSS1500 as fallback).
 
 Also run but not reported in the paper: item4_ci_table.csv (95% confidence intervals; the paper cites only the SOX8-TFPI2 interval), item5_burden_pax1.csv (PAX1 added to the burden index) and item6_dach1_low_vs_high.csv (DACH1-low vs -high comparison). They are kept as a record.
+
+Correction (2026-10-29): `item4_ci_table.csv` originally ran SALL2 against SOX8's genes (DCC, FHIT, TFPI2) by mistake. SALL2's overlap genes are CADM1, SCGB3A1 and WIF1; the SALL2 rows now hold those (item 10), and the earlier SALL2 rows are removed. The SOX8 and DACH1 rows are unchanged.
