@@ -4,7 +4,10 @@ This project exposes an MCP server (`orchestra_mcp_server.py`) that composes
 RegNetAgents and CASCADE for regulatory network analysis. When assisting a user
 with Orchestra tools, follow the pipelines and rules below.
 
-## Potential project (not yet decided): remote access for a second user
+## Potential project (PARKED 2026-11-17): remote access for a second user
+
+**Status: the user decided on 2026-11-17 this does not make sense without a
+collaborator. Parked; do not offer it again unless a second user appears.**
 
 Carried over from a prior session (`c:\Dev` root) as planning context only —
 **nothing below has been committed to or started.** The user was still
