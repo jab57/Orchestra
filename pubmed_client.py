@@ -30,9 +30,16 @@ _CANCER_SYNONYMS: dict[str, str] = {
         '("cervical cancer"[tiab] OR "cervical carcinoma"[tiab] OR '
         '"cervical squamous cell carcinoma"[tiab] OR "CESC"[tiab])'
     ),
+    # Subsite terms (larynx, oropharynx, tongue, oral cavity...) are matched only when a
+    # cancer word appears too, so "oral contraceptive" papers do not count. HNSC* sits
+    # inside that group because on its own it also matches hNSC (human neural stem cell).
     "head and neck squamous": (
         '("head and neck squamous"[tiab] OR "HNSCC"[tiab] OR '
-        '"head and neck cancer"[tiab] OR "head and neck squamous cell carcinoma"[tiab])'
+        '"head and neck cancer"[tiab] OR "head and neck squamous cell carcinoma"[tiab] OR '
+        '(("head and neck"[tiab] OR HNSC*[tiab] OR laryn*[tiab] OR oropharyn*[tiab] OR '
+        'hypopharyn*[tiab] OR pharyn*[tiab] OR tongue[tiab] OR "oral cavity"[tiab] OR '
+        '"oral squamous"[tiab] OR "oral cancer"[tiab] OR "oral carcinoma"[tiab]) AND '
+        '(cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab] OR tumor*[tiab] OR tumour*[tiab])))'
     ),
     "colorectal": (
         '("colorectal"[tiab] OR "colorectal cancer"[tiab] OR '

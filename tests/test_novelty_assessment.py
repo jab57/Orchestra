@@ -99,6 +99,70 @@ class TestQueryConstruction:
         assert missing == [], f"Contexts missing synonym entries: {missing}"
 
 
+class TestHeadNeckSubsiteExpansion:
+    """Head/neck synonyms must also catch papers that name only a subsite.
+
+    Offline structure checks only. The live comparison against the DACH1 paper's
+    query (DACH1 and SOX8 give identical record sets) was run separately.
+    """
+
+    _OLD_PHRASES = [
+        '"head and neck squamous"[tiab]',
+        '"HNSCC"[tiab]',
+        '"head and neck cancer"[tiab]',
+        '"head and neck squamous cell carcinoma"[tiab]',
+    ]
+
+    def _clause(self):
+        return _CANCER_SYNONYMS["head and neck squamous"]
+
+    def test_original_phrases_are_kept(self):
+        # Widening must never remove a phrase, so counts can only go up.
+        for phrase in self._OLD_PHRASES:
+            assert phrase in self._clause()
+
+    def test_subsites_are_matched(self):
+        c = self._clause()
+        for term in ("laryn*[tiab]", "oropharyn*[tiab]", "hypopharyn*[tiab]",
+                     "tongue[tiab]", '"oral cavity"[tiab]', "pharyn*[tiab]"):
+            assert term in c
+
+    def test_no_bare_oral_term(self):
+        # Bare "oral" matches oral contraceptive / oral drug papers.
+        import re
+        assert re.search(r'(?<!")\boral\[tiab\]', self._clause()) is None
+
+    def test_subsite_terms_require_a_cancer_word(self):
+        core, sep, qualified = self._clause().partition('OR (("head and neck"[tiab]')
+        assert sep, "subsite group not found"
+        for term in ("laryn*", "tongue", "oropharyn*"):
+            assert term not in core
+        assert "AND (cancer*[tiab]" in qualified
+        assert "carcinoma*[tiab]" in qualified
+
+    def test_hnsc_wildcard_needs_a_cancer_word(self):
+        # HNSC* alone also matches hNSC (human neural stem cell) papers.
+        core, _, qualified = self._clause().partition('OR (("head and neck"[tiab]')
+        assert "HNSC*" not in core
+        assert "HNSC*[tiab]" in qualified
+
+    def test_clause_is_balanced(self):
+        c = self._clause()
+        assert c.count("(") == c.count(")")
+        assert c.count('"') % 2 == 0
+
+    def test_single_and_pair_queries_use_expansion(self):
+        assert "laryn*[tiab]" in _build_base_query("DACH1", "head and neck squamous", None)
+        assert "laryn*[tiab]" in _build_base_query("DACH1", "head and neck squamous", "SOX8")
+
+    def test_other_contexts_unchanged(self):
+        # Scope is head/neck only; cervical stays exactly as released in v1.3.11.
+        assert _CANCER_SYNONYMS["cervical cancer"] == (
+            '("cervical cancer"[tiab] OR "cervical carcinoma"[tiab] OR '
+            '"cervical squamous cell carcinoma"[tiab] OR "CESC"[tiab])'
+        )
+
+
 # ---------------------------------------------------------------------------
 # Verdict thresholds
 # ---------------------------------------------------------------------------
