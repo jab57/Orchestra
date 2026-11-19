@@ -25,6 +25,19 @@ _SSL_VERIFY = os.getenv("ORCHESTRA_SSL_NO_VERIFY") != "1"
 # Synonym expansion for each cancer context string produced by _TCGA_TO_CANCER_CONTEXT.
 # Each value is a self-contained OR clause ready to embed in a PubMed boolean query.
 # Unknown contexts fall back to a plain [tiab] literal in _build_base_query.
+# A bare organ word ("breast", "prostate") matches non-cancer papers, so organ terms are
+# only counted when a cancer word also appears (same rule as the head/neck subsite group).
+_CANCER_WORD = (
+    '(cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab] OR '
+    'tumor*[tiab] OR tumour*[tiab])'
+)
+
+
+def _organ_with_cancer(*organ_terms: str) -> str:
+    """OR clause that matches any organ term AND a cancer word, e.g. breast + tumour."""
+    return f'(({" OR ".join(organ_terms)}) AND {_CANCER_WORD})'
+
+
 _CANCER_SYNONYMS: dict[str, str] = {
     "cervical cancer": (
         '("cervical cancer"[tiab] OR "cervical carcinoma"[tiab] OR '
@@ -41,32 +54,62 @@ _CANCER_SYNONYMS: dict[str, str] = {
         '"oral squamous"[tiab] OR "oral cancer"[tiab] OR "oral carcinoma"[tiab]) AND '
         '(cancer*[tiab] OR carcinoma*[tiab] OR neoplasm*[tiab] OR tumor*[tiab] OR tumour*[tiab])))'
     ),
+    # Contexts below were widened in v1.3.13. Every original phrase is kept, so counts can
+    # only rise. Cervical (above) is deliberately unchanged: the DACH1 paper's published
+    # query uses it.
     "colorectal": (
         '("colorectal"[tiab] OR "colorectal cancer"[tiab] OR '
-        '"colon cancer"[tiab] OR "rectal cancer"[tiab])'
+        '"colon cancer"[tiab] OR "rectal cancer"[tiab] OR '
+        + _organ_with_cancer('colon[tiab]', 'colonic[tiab]', 'rectal[tiab]',
+                             'colorectal[tiab]', 'CRC[tiab]') + ')'
     ),
-    "breast cancer": '("breast cancer"[tiab] OR "breast carcinoma"[tiab])',
-    "lung adenocarcinoma": '("lung adenocarcinoma"[tiab] OR "LUAD"[tiab])',
+    "breast cancer": (
+        '("breast cancer"[tiab] OR "breast carcinoma"[tiab] OR '
+        + _organ_with_cancer('breast[tiab]', 'mammary[tiab]') + ')'
+    ),
+    "lung adenocarcinoma": (
+        '("lung adenocarcinoma"[tiab] OR "LUAD"[tiab] OR "pulmonary adenocarcinoma"[tiab])'
+    ),
     "lung squamous cell carcinoma": (
         '("lung squamous cell carcinoma"[tiab] OR "LUSC"[tiab] OR '
-        '"lung squamous carcinoma"[tiab])'
+        '"lung squamous carcinoma"[tiab] OR "squamous cell lung"[tiab] OR '
+        '"pulmonary squamous"[tiab])'
     ),
     "hepatocellular carcinoma": (
-        '("hepatocellular carcinoma"[tiab] OR "liver cancer"[tiab] OR "HCC"[tiab])'
+        '("hepatocellular carcinoma"[tiab] OR "liver cancer"[tiab] OR "HCC"[tiab] OR '
+        'hepatoma[tiab] OR "liver carcinoma"[tiab] OR "hepatocellular cancer"[tiab])'
     ),
-    "ovarian cancer": '("ovarian cancer"[tiab] OR "ovarian carcinoma"[tiab])',
-    "bladder cancer": '("bladder cancer"[tiab] OR "urothelial carcinoma"[tiab])',
+    "ovarian cancer": (
+        '("ovarian cancer"[tiab] OR "ovarian carcinoma"[tiab] OR '
+        + _organ_with_cancer('ovarian[tiab]') + ')'
+    ),
+    "bladder cancer": (
+        '("bladder cancer"[tiab] OR "urothelial carcinoma"[tiab] OR '
+        '"bladder carcinoma"[tiab] OR "urothelial cancer"[tiab] OR "BLCA"[tiab] OR '
+        + _organ_with_cancer('bladder[tiab]', 'urothelial[tiab]') + ')'
+    ),
+    # Kidney is broadened from clear cell only to renal cell carcinoma in general (RCC
+    # literature is mostly clear cell, and the TCGA network is KIRC).
     "kidney clear cell carcinoma": (
         '("kidney clear cell carcinoma"[tiab] OR "clear cell renal cell carcinoma"[tiab] OR '
-        '"ccRCC"[tiab])'
+        '"ccRCC"[tiab] OR "renal cell carcinoma"[tiab] OR "RCC"[tiab] OR '
+        '"kidney cancer"[tiab] OR "KIRC"[tiab])'
     ),
-    "gastric cancer": '("gastric cancer"[tiab] OR "stomach cancer"[tiab])',
+    "gastric cancer": (
+        '("gastric cancer"[tiab] OR "stomach cancer"[tiab] OR '
+        + _organ_with_cancer('gastric[tiab]', 'stomach[tiab]') + ')'
+    ),
     "pancreatic cancer": (
-        '("pancreatic cancer"[tiab] OR "pancreatic ductal adenocarcinoma"[tiab] OR "PDAC"[tiab])'
+        '("pancreatic cancer"[tiab] OR "pancreatic ductal adenocarcinoma"[tiab] OR "PDAC"[tiab] OR '
+        + _organ_with_cancer('pancreatic[tiab]', 'pancreas[tiab]') + ')'
     ),
-    "prostate cancer": '("prostate cancer"[tiab] OR "prostate carcinoma"[tiab])',
+    "prostate cancer": (
+        '("prostate cancer"[tiab] OR "prostate carcinoma"[tiab] OR '
+        + _organ_with_cancer('prostate[tiab]', 'prostatic[tiab]') + ')'
+    ),
     "endometrial cancer": (
-        '("endometrial cancer"[tiab] OR "endometrial carcinoma"[tiab] OR "uterine cancer"[tiab])'
+        '("endometrial cancer"[tiab] OR "endometrial carcinoma"[tiab] OR "uterine cancer"[tiab] OR '
+        + _organ_with_cancer('endometrial[tiab]', '"uterine corpus"[tiab]', 'UCEC[tiab]') + ')'
     ),
 }
 

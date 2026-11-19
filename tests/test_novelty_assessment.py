@@ -163,6 +163,84 @@ class TestHeadNeckSubsiteExpansion:
         )
 
 
+class TestOrganContextExpansion:
+    """v1.3.13: the other cancer contexts are widened the same careful way.
+
+    Offline structure checks only. The live old-vs-new count comparison was run
+    separately (counts only ever rise).
+    """
+
+    # Phrases as released in v1.3.12; widening must never drop one.
+    _OLD = {
+        "colorectal": ['"colorectal"[tiab]', '"colorectal cancer"[tiab]',
+                       '"colon cancer"[tiab]', '"rectal cancer"[tiab]'],
+        "breast cancer": ['"breast cancer"[tiab]', '"breast carcinoma"[tiab]'],
+        "lung adenocarcinoma": ['"lung adenocarcinoma"[tiab]', '"LUAD"[tiab]'],
+        "lung squamous cell carcinoma": ['"lung squamous cell carcinoma"[tiab]',
+                                         '"LUSC"[tiab]', '"lung squamous carcinoma"[tiab]'],
+        "hepatocellular carcinoma": ['"hepatocellular carcinoma"[tiab]',
+                                     '"liver cancer"[tiab]', '"HCC"[tiab]'],
+        "ovarian cancer": ['"ovarian cancer"[tiab]', '"ovarian carcinoma"[tiab]'],
+        "bladder cancer": ['"bladder cancer"[tiab]', '"urothelial carcinoma"[tiab]'],
+        "kidney clear cell carcinoma": ['"kidney clear cell carcinoma"[tiab]',
+                                        '"clear cell renal cell carcinoma"[tiab]',
+                                        '"ccRCC"[tiab]'],
+        "gastric cancer": ['"gastric cancer"[tiab]', '"stomach cancer"[tiab]'],
+        "pancreatic cancer": ['"pancreatic cancer"[tiab]',
+                              '"pancreatic ductal adenocarcinoma"[tiab]', '"PDAC"[tiab]'],
+        "prostate cancer": ['"prostate cancer"[tiab]', '"prostate carcinoma"[tiab]'],
+        "endometrial cancer": ['"endometrial cancer"[tiab]', '"endometrial carcinoma"[tiab]',
+                               '"uterine cancer"[tiab]'],
+    }
+
+    # Contexts whose organ words must be qualified by a cancer word.
+    _ORGAN_TERMS = {
+        "colorectal": ["colon[tiab]", "rectal[tiab]", "CRC[tiab]"],
+        "breast cancer": ["breast[tiab]", "mammary[tiab]"],
+        "ovarian cancer": ["ovarian[tiab]"],
+        "bladder cancer": ["bladder[tiab]", "urothelial[tiab]"],
+        "gastric cancer": ["gastric[tiab]", "stomach[tiab]"],
+        "pancreatic cancer": ["pancreatic[tiab]", "pancreas[tiab]"],
+        "prostate cancer": ["prostate[tiab]", "prostatic[tiab]"],
+        "endometrial cancer": ["endometrial[tiab]", "UCEC[tiab]"],
+    }
+
+    def test_original_phrases_are_kept(self):
+        for ctx, phrases in self._OLD.items():
+            for phrase in phrases:
+                assert phrase in _CANCER_SYNONYMS[ctx], (ctx, phrase)
+
+    def test_organ_terms_require_a_cancer_word(self):
+        for ctx, terms in self._ORGAN_TERMS.items():
+            clause = _CANCER_SYNONYMS[ctx]
+            qualified_start = clause.index("((")
+            core, qualified = clause[:qualified_start], clause[qualified_start:]
+            for term in terms:
+                assert term not in core, (ctx, term, "appears outside the cancer-word group")
+                assert term in qualified, (ctx, term)
+            assert "AND (cancer*[tiab]" in qualified
+            assert "carcinoma*[tiab]" in qualified
+
+    def test_new_expansions_present(self):
+        assert '"renal cell carcinoma"[tiab]' in _CANCER_SYNONYMS["kidney clear cell carcinoma"]
+        assert "hepatoma[tiab]" in _CANCER_SYNONYMS["hepatocellular carcinoma"]
+        assert '"pulmonary adenocarcinoma"[tiab]' in _CANCER_SYNONYMS["lung adenocarcinoma"]
+
+    def test_every_clause_is_balanced(self):
+        for ctx, clause in _CANCER_SYNONYMS.items():
+            assert clause.count("(") == clause.count(")"), ctx
+            assert clause.count('"') % 2 == 0, ctx
+
+    def test_cervical_and_head_neck_unchanged_by_this_release(self):
+        # Cervical is pinned to the DACH1 paper's query; head/neck was widened in v1.3.12.
+        assert _CANCER_SYNONYMS["cervical cancer"].count("OR") == 3
+        assert "laryn*[tiab]" in _CANCER_SYNONYMS["head and neck squamous"]
+
+    def test_queries_use_expansion(self):
+        assert "mammary[tiab]" in _build_base_query("SHOX2", "breast cancer", None)
+        assert '"renal cell carcinoma"[tiab]' in _build_base_query("SHOX2", "kidney clear cell carcinoma", "TIMP3")
+
+
 # ---------------------------------------------------------------------------
 # Verdict thresholds
 # ---------------------------------------------------------------------------
